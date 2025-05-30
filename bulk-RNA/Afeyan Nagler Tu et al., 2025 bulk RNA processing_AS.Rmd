@@ -1,0 +1,535 @@
+---
+title: "Afeyan Nagler Tu et al. 2025 bulk RNA processing"
+output: html_document
+date: "2025-05-30"
+description: "This R Markdown workflow performs  processing and analysis of bulk RNA-seq data from FFPE and snap-frozen tumor samples for the Afeyan, Nagler, Tu et al. (2025) study. Input is bulk RNA-seq from Braun 2021 and Braun 2025"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_knit$set(root.dir = '/your/path/here')  # Uncomment and edit if needed
+```
+
+```{R, message=FALSE, warning = FALSE}
+library(dplyr)
+library(writexl)
+library(DESeq2)
+library(stringr)
+library(ggplot2)
+library(goseq)
+library(org.Hs.eg.db)
+library(svglite)
+library(openxlsx)
+library(GSVA)
+```
+
+```{R}
+#DEG of snap-frozen Braun 2021 + FFPE Braun 2025 - should align ENSGs (whole tumor samples)
+DBCC_RCC.bulk <- read.delim2("rsem_aggregate_results_v1-0_BETA_cfg_2020-04-12T02-43-13.rsem_genes_expected_count.txt") #Braun 2021 cohort, tumor and normal samples
+DBCC_RCC.bulk <- DBCC_RCC.bulk[,-28] #take only the first of two S1 runs as recommended
+pattern <- "S\\d+_[^\\s_]"
+matches <- regmatches(colnames(DBCC_RCC.bulk), regexpr(pattern, colnames(DBCC_RCC.bulk)))
+
+colnames(DBCC_RCC.bulk) <- c(colnames(DBCC_RCC.bulk)[1:2], matches)
+
+DBCC_RCC.bulk$gene_id <- sapply(str_split(DBCC_RCC.bulk$gene_id, "\\."), `[`, 1)
+rownames(DBCC_RCC.bulk) <- DBCC_RCC.bulk$gene_id
+colnames(DBCC_RCC.bulk)[1] <- "ENSG"
+#make these matrices to be able to feed fromTo
+DBCC_RCC.bulk.mat <- as.matrix(DBCC_RCC.bulk)
+
+samplenames <- vapply(str_split(string = list.files("Bulk RNA seq/Tumor.FFPE/"), pattern = "\\."), `[`, 1, FUN.VALUE=character(1))
+filenames <- list.files("Bulk RNA seq/Tumor.FFPE/")
+filenames <- paste0("Bulk RNA seq/Tumor.FFPE/", filenames)
+
+NeoVax.rsem <- lapply(filenames, read.delim2) #loaded in Braun 2025
+NeoVax.count <- lapply(NeoVax.rsem,"[",c(1,5))
+
+#get the ENSG ids in a format accepted by fromTo
+NeoVax.count <- lapply(NeoVax.count, function(df) {
+  df$ENSG <- sapply(str_split(df$gene_id, "\\."), `[`, 1)
+  return(df)
+})
+
+#make the rownames ENSG ids, hoping for no repeats
+NeoVax.count <- lapply(NeoVax.count, function(df) {
+  rownames(df) <- df$ENSG
+  return(df)
+})
+
+#make these matrices to be able to feed fromTo
+NeoVax.count.mat <- lapply(NeoVax.count, function(df) {
+  df <- as.matrix(df)
+  return(df)
+})
+
+names(NeoVax.count.mat) <- samplenames
+
+output_df <- DBCC_RCC.bulk
+for (sample_name in names(NeoVax.count.mat)) {
+  # Get the current matrix
+  sample_df <- NeoVax.count.mat[[sample_name]]
+  
+  # Keep only ENSG and TPM columns
+  sample_df <- sample_df[, c("ENSG", "expected_count")]
+  
+  # Rename TPM column to the sample name
+  colnames(sample_df)[colnames(sample_df) == "expected_count"] <- sample_name
+  
+  # Merge with the main output_df by ENSG
+  output_df <- merge(output_df, sample_df, by = "ENSG", all.x = TRUE)
+}
+
+rownames(output_df) <- output_df$ENSG
+
+z <- fromTo(rownames(output_df), id.in = "ensg", id.out = "symbol", rough = TRUE)
+output_df <- as.data.frame(output_df)
+output_df$genename <- z
+output_df <- output_df %>% relocate("genename")
+rownames(output_df) <- make.names(output_df$genename, unique = TRUE)
+output_df.mat <- as.matrix(output_df)
+numeric_matrix <- as.matrix(output_df.mat[ , 4:40], drop = FALSE)
+mode(numeric_matrix) <- "numeric"
+
+FFPE.count.DESeq <- as.data.frame(numeric_matrix)
+#expected counts aren't always integers
+FFPE.count.DESeq <- as.data.frame(
+  lapply(FFPE.count.DESeq, function(x) as.numeric(round(as.numeric(x))))
+)
+rownames(FFPE.count.DESeq) <- rownames(numeric_matrix)
+FFPE.count.DESeq <- FFPE.count.DESeq[rowSums(FFPE.count.DESeq != 0) > 0, ]
+#take only the tumor samples
+FFPE.count.DESeq <- FFPE.count.DESeq[,-c(1,3,5,7,9,11,13,15,17,19,21,23,27,32)] #take only the tumor samples from the two cohorts, which should be, for those executing this code: c("S10_T", "S11_T", "S12_T", "S14_T", "S15_T","S16_T", "S2_T", "S3_T", "S5_T", "S6_T", "S7_T", "S8_T", "S1_T", "16097.102", "16097.104T", "16097.105", "16097.106", "16097.107", "16097.108T", "16097.109", "16097.110", "16097.111", "16097.112") #the trial number for Braun 2025 is "16097"
+
+#add relevant metadata
+coldata <- data.frame("condition" = c("nonTLS", "TLS", "nonTLS", "nonTLS", "TLS", "TLS", "nonTLS", "TLS", "TLS", "nonTLS", "nonTLS", "nonTLS", "nonTLS", "TLS", "TLS", "nonTLS", "TLS", "TLS", "TLS", "nonTLS", "nonTLS", "nonTLS", "TLS"))
+rownames(coldata) <- c(colnames(FFPE.count.DESeq))
+
+#prepare and run DESeq on the data
+dds <- DESeqDataSetFromMatrix(countData = FFPE.count.DESeq,
+                              colData = coldata,
+                              design = ~ condition)
+dds <- DESeq(dds)
+
+keep <- rowSums(counts(dds)) >= 10 #filter for "good markers"
+dds <- dds[keep,]
+
+#prepare results
+res <- results(dds)
+resdf <- as.data.frame(res)
+resdf$gene <- rownames(resdf)
+
+write_xlsx(resdf, "sig.genes.TLS.FFPE.xlsx")
+
+#analysis of the results of DDS
+#Plotted the mean expression v mean fold change
+volcano_plot <- ggplot(res, aes(x = log2FoldChange, y = -log10(padj))) +
+  geom_point(aes(color = ifelse(padj < 0.05 & abs(log2FoldChange) > 2, "red",
+                                ifelse(padj < 0.05, "blue", "black"))), size = 1) +
+  scale_color_identity() +  # Keep custom colors
+  theme_minimal() +
+  labs(title = "Volcano Plot",
+       x = "Log2 Fold Change",
+       y = "-Log10 Padj-value")
+
+volcano_plot
+ggsave("volcanoplotTLSvnonTLS.FFPE.allpts.svg", plot = volcano_plot, device = "svg", width = 11, height = 7.5)
+#Extended Data Fig. 2b
+
+upgenes <- as.integer(res$padj < 0.05 & res$log2FoldChange > 0)
+downgenes <- as.integer(res$padj < 0.05 & res$log2FoldChange < 0)
+names(upgenes) <- rownames(res)
+names(downgenes) <- rownames(res)
+upgenes <- upgenes[!is.na(upgenes)]
+downgenes <- downgenes[!is.na(downgenes)]
+pwfup <- nullp(upgenes, "hg19", "geneSymbol")
+pwfdown <- nullp(downgenes, "hg19", "geneSymbol")
+GO.wall.up <- goseq(pwfup, "hg19", "geneSymbol")
+GO.wall.down <- goseq(pwfdown, "hg19", "geneSymbol")
+
+writexl::write_xlsx(GO.wall.up, "UpGOterms.FFPE.allpts.rounded.xlsx")
+
+dataforplot <- GO.wall.up[1:10,c(6,2,4,5)]
+dataforplot$proportionofGO <- dataforplot[,3]/dataforplot[,4]
+dataforplot$log10p <- -log10(dataforplot$over_represented_pvalue)
+dataforplot$termlevel <- factor(dataforplot$term, levels = unique(dataforplot$term))
+
+up.FFPE <- ggplot(data = dataforplot, aes(x= log10p, y = rev(termlevel), fill = proportionofGO)) + geom_bar(stat="identity") + scale_fill_gradient(low = "#479EF3", high = "#102035", limits = c(0, 1)) + theme(panel.grid = element_blank(), panel.border = element_rect(color = "black", fill = NA, size = 1), plot.margin = unit(c(5, 5, 5, 0), "pt"), panel.background = element_rect(fill = "white", color = NA)) + scale_x_continuous(expand = expansion(mult = c(0, 0.05)))
+
+ggsave("GOplot.TLSvnonTLS.FFPE.allpts.svg", plot = up.FFPE, device = "svg", width = 10, height = 10) #Extended Data Figure 2c
+```
+
+```{R}
+#prep for PUREE/TLS score application
+DBCC_RCC.bulk <- read.delim2("Alternate Datasets/Braun compressed data/rsem_aggregate_results_v1-0_BETA_cfg_2020-04-12T02-43-13.rsem_genes_expected_count.txt")
+#take only the first S1 run
+DBCC_RCC.bulk <- DBCC_RCC.bulk[,-28]
+pattern <- "S\\d+_[^\\s_]"
+matches <- regmatches(colnames(DBCC_RCC.bulk), regexpr(pattern, colnames(DBCC_RCC.bulk)))
+
+colnames(DBCC_RCC.bulk) <- c(colnames(DBCC_RCC.bulk)[1:2], matches)
+
+DBCC_RCC.bulk$gene_id <- sapply(str_split(DBCC_RCC.bulk$gene_id, "\\."), `[`, 1)
+rownames(DBCC_RCC.bulk) <- DBCC_RCC.bulk$gene_id
+colnames(DBCC_RCC.bulk)[1] <- "ENSG"
+#make these matrices to be able to feed fromTo
+DBCC_RCC.bulk.mat <- as.matrix(DBCC_RCC.bulk)
+
+samplenames <- vapply(str_split(string = c(list.files("Bulk RNA seq/Tumor.FFPE/"),list.files("Bulk RNA seq/SortedTumorRNA/")), pattern = "\\."), `[`, 1, FUN.VALUE=character(1))
+filenames <- c(list.files("Bulk RNA seq/Tumor.FFPE/"),list.files("Bulk RNA seq/SortedTumorRNA/"))
+filenames[1:12] <- paste0("Bulk RNA seq/Tumor.FFPE/", filenames[1:12])
+filenames[13:21] <- paste0("Bulk RNA seq/SortedTumorRNA/", filenames[13:21])
+
+NeoVax.rsem <- lapply(filenames, read.delim2)
+NeoVax.TPM <- lapply(NeoVax.rsem,"[",c(1,6))
+
+#get the ENSG ids in a format accepted by fromTo
+NeoVax.TPM <- lapply(NeoVax.TPM, function(df) {
+  df$ENSG <- sapply(str_split(df$gene_id, "\\."), `[`, 1)
+  return(df)
+})
+
+#make the rownames ENSG ids, hoping for no repeats
+NeoVax.TPM <- lapply(NeoVax.TPM, function(df) {
+  rownames(df) <- df$ENSG
+  return(df)
+})
+
+#make these matrices to be able to feed fromTo
+NeoVax.TPM.mat <- lapply(NeoVax.TPM, function(df) {
+  df <- as.matrix(df)
+  return(df)
+})
+
+names(NeoVax.TPM.mat) <- c("16097-102.FFPE", "16097-104M.FFPE", "16097-104T.FFPE", "16097-105.FFPE", "16097-106.FFPE", "16097-107.FFPE", "16097-108M.FFPE", "16097-108T.FFPE", "16097-109.FFPE", "16097-110.FFPE", "16097-111.FFPE", "16097-112.FFPE", "16097-101.CA9", "16097-102.CA9", "16097-104M.CA9", "16097-104T.CA9", "16097-105.CA9", "16097-108M.CA9", "16097-108T.CA9", "16097-109.CA9", "16097-110.CA9")
+
+output_df <- DBCC_RCC.bulk
+for (sample_name in names(NeoVax.TPM.mat)) {
+  # Get the current matrix
+  sample_df <- NeoVax.TPM.mat[[sample_name]]
+  
+  # Keep only ENSG and TPM columns
+  sample_df <- sample_df[, c("ENSG", "TPM")]
+  
+  # Rename TPM column to the sample name
+  colnames(sample_df)[colnames(sample_df) == "TPM"] <- sample_name
+  
+  # Merge with the main output_df by ENSG
+  output_df <- merge(output_df, sample_df, by = "ENSG", all.x = TRUE)
+}
+
+rownames(output_df) <- output_df$ENSG
+output_df.mat <- as.matrix(output_df)
+numeric_matrix <- as.matrix(output_df.mat[ , 3:48], drop = FALSE)
+mode(numeric_matrix) <- "numeric"
+
+FFPE.TPM.PUREE <- as.data.frame(t(numeric_matrix))
+write.csv(FFPE.TPM.PUREE, "TPM.NeoVax+DBCC.forPUREE.allpts.csv")
+#PUREE data for Extended Data Fig. 2d
+```
+
+```{R only the purified tumor samples}
+samplenames <- vapply(str_split(string = list.files("Bulk RNA seq/SortedTumorRNA/"), pattern = "\\."), `[`, 1, FUN.VALUE=character(1))
+filenames <- list.files("Bulk RNA seq/SortedTumorRNA/")
+filenames <- paste0("Bulk RNA seq/SortedTumorRNA/", filenames)
+
+FFPE.rsem <- lapply(filenames, read.delim2)
+FFPE.TPM <- lapply(FFPE.rsem,"[",c(1,6))
+##prep for DESeq2
+FFPE.count <- lapply(FFPE.rsem,"[",c(1,5))
+
+FFPE.count <- lapply(FFPE.count, function(df) {
+  df$ENSG <- sapply(str_split(df$gene_id, "\\."), `[`, 1)
+  return(df)
+})
+
+#make the rownames ENSG ids, hoping for no repeats
+FFPE.count <- lapply(FFPE.count, function(df) {
+  rownames(df) <- df$ENSG
+  return(df)
+})
+
+#make these matrices to be able to feed fromTo
+FFPE.count.mat <- lapply(FFPE.count, function(df) {
+  df <- as.matrix(df)
+  return(df)
+})
+
+#convert ENSG numbers to gene names, and make the rownames those gene names
+FFPE.count.mat <- lapply(FFPE.count, function(df) {
+  df$genename <- fromTo(rownames(df), id.in = "ensg", id.out = "symbol", rough = TRUE)
+  df <- df %>% relocate("genename")
+  rownames(df) <- make.names(df$genename, unique = TRUE)
+  return(df)
+})
+
+#relabel each table so it corresponds with the patient name
+names(FFPE.count.mat) <- samplenames
+
+#extract the TPM column
+FFPE.count.DESeq <- do.call(cbind, lapply(FFPE.count.mat, function(df) {
+  df$expected_count
+}))
+
+#rename the columns to reflect their TPM and add gene names
+rownames(FFPE.count.DESeq) <- FFPE.count.mat$`16097-102`$genename
+FFPE.count.DESeq <- as.data.frame(FFPE.count.DESeq)
+FFPE.count.DESeq[c(samplenames)] <- lapply(FFPE.count.DESeq[c(samplenames)], function(x) {
+  as.numeric(round(as.numeric(x)))
+})
+FFPE.count.DESeq.2 <- FFPE.count.DESeq[rowSums(FFPE.count.DESeq != 0) > 0, ]
+#take only the tumor samples
+FFPE.count.DESeq <- FFPE.count.DESeq[,-c(3,6)]
+#add relevant metadata
+coldata <- data.frame("condition" = c("TLS", "TLS", "TLS", "nonTLS", "TLS", "nonTLS", "nonTLS"))
+rownames(coldata) <- c(colnames(FFPE.count.DESeq))
+
+#prepare and run DESeq on the data
+dds <- DESeqDataSetFromMatrix(countData = FFPE.count.DESeq,
+                              colData = coldata,
+                              design = ~ condition)
+dds <- DESeq(dds)
+
+keep <- rowSums(counts(dds)) >= 10 #filter for "good markers"
+dds <- dds[keep,]
+
+#prepare results
+res <- results(dds)
+
+#analysis of the results of DDS
+#Plotted the mean expression v mean fold change
+plotMA(res, ylim=c(-2,2))
+plotCounts(dds, gene=which.min(res$padj), intgroup="condition")
+res <- res[order(res$padj),]
+head(res)
+
+par(mfrow=c(1,1))
+png("volcanoplotTLSvnonTLSpurifiedtumor.allpts.png", width = 11, height = 7.5, units='in', res=500)
+with(res, plot(log2FoldChange, -log10(pvalue), pch=20, main="Volcano plot", xlim=c(-30,30)))
+
+# Add colored points: blue if padj<0.01, red if log2FC>1 and padj<0.05)
+with(subset(res, padj<.01 ), points(log2FoldChange, -log10(pvalue), pch=20, col="blue"))
+with(subset(res, padj<.01 & abs(log2FoldChange)>2), points(log2FoldChange, -log10(pvalue), pch=20, col="red"))
+
+dev.off()
+
+volcano_plot <- ggplot(res, aes(x = log2FoldChange, y = -log10(padj))) +
+  geom_point(aes(color = ifelse(padj < 0.05 & abs(log2FoldChange) > 2, "red",
+                                ifelse(padj < 0.05, "blue", "black"))), size = 1) +
+  scale_color_identity() +  # Keep custom colors
+  theme_minimal() +
+  labs(title = "Volcano Plot",
+       x = "Log2 Fold Change",
+       y = "-Log10 Padj-value")
+
+ggsave("volcanoplotTLSvnonTLS.PureTumor.allpts.svg", plot = volcano_plot, device = "svg", width = 11, height = 7.5) #Figure 1c
+
+#vsdata allows for pca
+vsdata <- vst(dds, blind=FALSE)
+pca_data <- plotPCA(vsdata, intgroup="condition", returnData = TRUE)
+percentVar <- round(100 * attr(pca_data, "percentVar"))
+
+pca_plot <- ggplot(pca_data, aes(x = PC1, y = PC2, label = name)) +  # 'name' is the column for labels
+  geom_point(aes(color = condition), size = 3) +  # Adjust size and aesthetics
+  geom_text(vjust = -1.5) +  # Adjust position of labels
+  xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+  ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+  theme_minimal() +
+  theme(legend.position = "right")
+
+# png("pca.plot.TLSvnonTLS.png", width = 11, height = 7.5, units='in', res=500)
+print(pca_plot)
+# dev.off()
+# 
+ggsave("pca.plot.TLSvnonTLS.purifiedtumor.allpts.svg", plot = pca_plot, device = "svg", width = 11, height = 7.5) #not used, but inspected to understand the concordance of TLS+ and TLS- samples within groups
+
+pca_results <- prcomp(t(assay(vsdata)), scale. = TRUE)
+loadings <- pca_results$rotation
+explained_variance <- pca_results$sdev^2 / sum(pca_results$sdev^2)
+
+top_PC1 <- head(sort(loadings[,1], decreasing = TRUE), n = 10)  # Top 10 contributors
+bottom_PC1 <- head(sort(loadings[,1], decreasing = FALSE), n = 10)  # Bottom 10 contributors
+
+# Top contributors to PC2
+top_PC2 <- head(sort(loadings[,2], decreasing = TRUE), n = 10)
+bottom_PC2 <- head(sort(loadings[,2], decreasing = FALSE), n = 10)
+
+top_PC1_df <- data.frame(gene = names(top_PC1), loading = top_PC1)
+ggplot(top_PC1_df, aes(x=reorder(gene, loading), y=loading)) + 
+    geom_bar(stat="identity") + coord_flip() +
+    labs(title = "Top Contributors to PC1")
+
+top_PC2_df <- data.frame(gene = names(top_PC2), loading = top_PC2)
+ggplot(top_PC2_df, aes(x=reorder(gene, loading), y=loading)) + 
+    geom_bar(stat="identity") + coord_flip() +
+    labs(title = "Top Contributors to PC2")
+
+loadings.df <- as.data.frame(loadings)
+loadings.df$gene <- rownames(loadings.df)
+write_xlsx(loadings.df, "PCAloadings.FFPE.TLSvnonTLSpurifiedtumor.allpts.xlsx")
+
+print(pca_plot)
+
+#gene ontology
+upgenes <- as.integer(res$padj < 0.05 & res$log2FoldChange > 0)
+downgenes <- as.integer(res$padj < 0.05 & res$log2FoldChange < 0)
+names(upgenes) <- rownames(res)
+names(downgenes) <- rownames(res)
+upgenes <- upgenes[!is.na(upgenes)]
+downgenes <- downgenes[!is.na(downgenes)]
+pwfup <- nullp(upgenes, "hg19", "geneSymbol")
+pwfdown <- nullp(downgenes, "hg19", "geneSymbol")
+GO.wall.up <- goseq(pwfup, "hg19", "geneSymbol")
+GO.wall.down <- goseq(pwfdown, "hg19", "geneSymbol")
+
+writexl::write_xlsx(GO.wall.up, "UpGOterms.PureTumor.xlsx")
+
+# GO.samp <- goseq(pwf, "hg19", "geneSymbol", method = "Sampling", repcnt = 1000)
+
+#plot the top p-value results
+pdf("GO.up.TLSvnonTLSpurifiedtumor.allpts.pdf", width = 11, height = 7.5)
+  a <- GO.wall.up %>%
+    top_n(20, wt=-over_represented_pvalue) %>%
+    mutate(hitsPerc=numDEInCat*100/numInCat,
+           term = factor(term, levels = rev(unique(term)))) %>%
+    ggplot(aes(x=hitsPerc,
+               y=term,
+               colour=over_represented_pvalue,
+               size=numDEInCat)) +
+        geom_point() +
+        expand_limits(x=0) +
+        labs(x="Hits (%)", y="GO term", colour="p value", size="Count")
+dev.off()
+
+pdf("GO.down.TLSvnonTLSpurifiedtumor.allpts.pdf", width = 11, height = 7.5)
+  b <- GO.wall.down %>%
+    top_n(20, wt=-over_represented_pvalue) %>%
+    mutate(hitsPerc=numDEInCat*100/numInCat,
+           term = factor(term, levels = rev(unique(term)))) %>%
+    ggplot(aes(x=hitsPerc,
+               y=term,
+               colour=over_represented_pvalue,
+               size=numDEInCat)) +
+        geom_point() +
+        expand_limits(x=0) +
+        labs(x="Hits (%)", y="GO term", colour="p value", size="Count")
+dev.off()
+
+print(a)
+print(b)
+
+ggsave("GO.up.TLSvnonTLSpurifiedtumor.allpts.svg", plot = a, device = "svg", width = 11, height = 7.5)
+ggsave("GO.down.TLSvnonTLSpurifiedtumor.allpts.svg", plot = b, device = "svg", width = 11, height = 7.5)
+
+
+#redo to make plot for Extended Data Fig. 2e
+dataforplot <- GO.wall.up[1:20,c(6,2,4,5)] #refined in final figure to be top 10 genes
+dataforplot$proportionofGO <- dataforplot[,3]/dataforplot[,4]
+dataforplot$log10p <- -log10(dataforplot$over_represented_pvalue)
+dataforplot$termlevel <- factor(dataforplot$term, levels = unique(dataforplot$term))
+
+up.FFPE <- ggplot(data = dataforplot, aes(x= log10p, y = rev(termlevel), fill = proportionofGO)) + geom_bar(stat="identity") + scale_fill_gradient(low = "#479EF3", high = "#102035", limits = c(0, 1)) + theme(panel.grid = element_blank(), panel.border = element_rect(color = "black", fill = NA, size = 1), plot.margin = unit(c(5, 5, 5, 0), "pt"), panel.background = element_rect(fill = "white", color = NA)) + scale_x_continuous(expand = expansion(mult = c(0, 0.05)))
+
+ggsave("GOplotprettier.TLSvnonTLS.CA9sel.pts.svg", plot = up.FFPE, device = "svg", width = 10, height = 10)
+
+resdf <- as.data.frame(res)
+resdf$gene <- rownames(resdf)
+write_xlsx(resdf, "TLSvnonTLSpurifiedtumor.allpts.rounded.xlsx")
+```
+
+
+```{R scoring of TLS signatures in bulk data}
+TLS.signatures <- list("Signature.Cabrita_TLS_Hallmark" = c("CCL19", "CCL21", "CXCL13", "CCR7", "CXCR5", "SELL", "LAMP3"), "Signature.Cabrita_TLS_Signature" = c("CD79B", "CD1D", "CCR6", "LAT", "SKAP1", "CETP", "EIF1AY", "RBP5", "PTGDS"), "Signature.Meylan_TLS" = c("IGHA1", "IGHG1", "IGHG2", "IGHG3", "IGHG4", "IGHGP", "IGHM", "IGKC", "IGLC1", "IGLC2", "IGLC3", "JCHAIN", "CD79A", "FCRL5", "MZB1", "SSR4", "XBP1", "TRBC2", "IL7R", "CXCL12", "LUM", "C1QA", "C7", "CD52", "APOE", "PTGDS", "PIM2", "DERL3", "PTLP"), "Signature.Xu_TLS" = c("CCL2", "CCL3", "CCL4", "CCL5", "CCL8", "CCL18", "CCL19", "CCL21", "CXCL9", "CXCL10", "CXCL11", "CXCL13"))
+
+DBCC_RCC.bulk <- read.delim2("Alternate Datasets/Braun compressed data/rsem_aggregate_results_v1-0_BETA_cfg_2020-04-12T02-43-13.rsem_genes_tpm.txt")
+#take only the first S1 run
+DBCC_RCC.bulk <- DBCC_RCC.bulk[,-28]
+pattern <- "S\\d+_[^\\s_]"
+matches <- regmatches(colnames(DBCC_RCC.bulk), regexpr(pattern, colnames(DBCC_RCC.bulk)))
+
+colnames(DBCC_RCC.bulk) <- c(colnames(DBCC_RCC.bulk)[1:2], matches)
+
+DBCC_RCC.bulk$gene_id <- sapply(str_split(DBCC_RCC.bulk$gene_id, "\\."), `[`, 1)
+rownames(DBCC_RCC.bulk) <- DBCC_RCC.bulk$gene_id
+colnames(DBCC_RCC.bulk)[1] <- "ENSG"
+#make these matrices to be able to feed fromTo
+DBCC_RCC.bulk.mat <- as.matrix(DBCC_RCC.bulk)
+
+samplenames <- vapply(str_split(string = c(list.files("../Bulk RNA seq/Tumor.FFPE/"),list.files("../Bulk RNA seq/SortedTumorRNA/")), pattern = "\\."), `[`, 1, FUN.VALUE=character(1))
+filenames <- c(list.files("../Bulk RNA seq/Tumor.FFPE/"),list.files("../Bulk RNA seq/SortedTumorRNA/"))
+filenames[1:12] <- paste0("../Bulk RNA seq/Tumor.FFPE/", filenames[1:12])
+filenames[13:21] <- paste0("../Bulk RNA seq/SortedTumorRNA/", filenames[13:21])
+
+NeoVax.rsem <- lapply(filenames, read.delim2)
+NeoVax.TPM <- lapply(NeoVax.rsem,"[",c(1,6))
+
+#get the ENSG ids in a format accepted by fromTo
+NeoVax.TPM <- lapply(NeoVax.TPM, function(df) {
+  df$ENSG <- sapply(str_split(df$gene_id, "\\."), `[`, 1)
+  return(df)
+})
+
+#make the rownames ENSG ids, hoping for no repeats
+NeoVax.TPM <- lapply(NeoVax.TPM, function(df) {
+  rownames(df) <- df$ENSG
+  return(df)
+})
+
+#make these matrices to be able to feed fromTo
+NeoVax.TPM.mat <- lapply(NeoVax.TPM, function(df) {
+  df <- as.matrix(df)
+  return(df)
+})
+
+names(NeoVax.TPM.mat) <- c("16097-102.FFPE", "16097-104M.FFPE", "16097-104T.FFPE", "16097-105.FFPE", "16097-106.FFPE", "16097-107.FFPE", "16097-108M.FFPE", "16097-108T.FFPE", "16097-109.FFPE", "16097-110.FFPE", "16097-111.FFPE", "16097-112.FFPE", "16097-101.CA9", "16097-102.CA9", "16097-104M.CA9", "16097-104T.CA9", "16097-105.CA9", "16097-108M.CA9", "16097-108T.CA9", "16097-109.CA9", "16097-110.CA9")
+
+output_df <- DBCC_RCC.bulk
+for (sample_name in names(NeoVax.TPM.mat)) {
+  # Get the current matrix
+  sample_df <- NeoVax.TPM.mat[[sample_name]]
+  
+  # Keep only ENSG and TPM columns
+  sample_df <- sample_df[, c("ENSG", "TPM")]
+  
+  # Rename TPM column to the sample name
+  colnames(sample_df)[colnames(sample_df) == "TPM"] <- sample_name
+  
+  # Merge with the main output_df by ENSG
+  output_df <- merge(output_df, sample_df, by = "ENSG", all.x = TRUE)
+}
+
+rownames(output_df) <- output_df$ENSG
+output_df.mat <- as.matrix(output_df)
+numeric_matrix <- as.matrix(output_df.mat[ , 3:48], drop = FALSE)
+mode(numeric_matrix) <- "numeric"
+
+FFPE.TPM.PUREE <- as.data.frame(t(numeric_matrix))
+write.csv(FFPE.TPM.PUREE, "TPM.NeoVax+DBCC.forPUREE.allpts.csv")
+
+## CIBERSORT scoring
+rownames(output_df) <- output_df$ENSG
+z <- fromTo(rownames(output_df), id.in = "ensg", id.out = "symbol", rough = TRUE)
+output_df <- as.data.frame(output_df)
+output_df$genename <- z
+output_df <- output_df %>% relocate("genename")
+rownames(output_df) <- make.names(output_df$genename, unique = TRUE)
+output_df.mat <- as.matrix(output_df)
+numeric_matrix <- as.matrix(output_df.mat[ , c(5,7,9,11,13,15,17,19,21,23,25,27:40)], drop = FALSE)
+mode(numeric_matrix) <- "numeric"
+
+FFPE.count.DESeq <- as.data.frame(log2(numeric_matrix + 1))
+rownames(FFPE.count.DESeq) <- rownames(numeric_matrix)
+FFPE.count.DESeq <- as.matrix(FFPE.count.DESeq)
+
+# Run ssGSEA on log-transformed data
+TLS.signature.score <- gsva(
+  FFPE.count.DESeq,
+  TLS.signatures,
+  method = "ssgsea",
+  kcdf = "Gaussian",
+  abs.ranking = TRUE,
+  verbose = TRUE
+)
+
+writexl::write_xlsx(as.data.frame(TLS.signature.scorestrap),"TLS.scoring.allptsGSVA.xlsx") #Extended Data Fig. 2a
+```
