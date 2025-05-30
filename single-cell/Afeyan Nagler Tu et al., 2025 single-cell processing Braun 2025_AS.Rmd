@@ -1,0 +1,2219 @@
+---
+title: "Single-cell code for Deposit Braun 2025"
+output: html_document
+date: "2025-05-30"
+description: "This R Markdown document processes and integrates single-cell RNA-seq data from a renal cell carcinoma cohort using Seurat and Harmony, followed by dimensionality reduction, clustering, TCR annotation, and cluster-specific marker analysis. It includes lineage marker scoring, label harmonization, and differential expression analysis of B cells stratified by TLS status."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_knit$set(root.dir = '/your/path/here')  # Uncomment and edit if needed
+library(dplyr) #1.1.4
+library(knitr) #1.50
+library(Seurat) #4.1.0
+library(openxlsx) #4.2.8
+library(stringr) #1.5.1
+library(clustree) #0.5.1
+library(tidyr) #1.3.1
+library(harmony) #1.2.3
+library(writexl) #1.5.4
+library(plyr) #1.8.9
+library(Matrix) #1.3-3
+library(ggplot2) #3.3.5
+
+#much of this code is directly from https://github.com/kstromhaug/oliveira-stromhaug-melanoma-tcrs-phenotypes; this attribution is cited in the paper.
+```
+
+```{r define variables useful for loading data}
+sample_ids = c(1:23)
+
+samplelabels = list.files("TCRs/TCR_data/")
+
+filelabels = paste0(samplelabels[1:23], "_filtered_feature_bc_matrix")
+
+sampleorigin = c("Normal", "Tumor", "Normal", "Tumor", "Met", "Tumor", "Normal", "Tumor", "Normal", "Tumor", "Normal", "Tumor", "Met", "Normal", "Tumor", "Normal", "Tumor", "Normal", "Tumor", "Normal", "Tumor", "Normal", "Tumor")
+
+patient = as.numeric(gsub(".*?([0-9]+).*", "\\1", samplelabels[1:23]))
+patient = paste0("16097-1", str_pad(patient, pad = "0", width = 2))
+
+#batch IDs
+batchID = c("Pool93", "Pool93", "Pool93", "Pool93", "Pool93", "Pool93", "Pool93", "Pool93", "Pool93", "Pool93", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109", "Pool109")
+```
+
+```{r read RNA and ADT data}
+#ADT not used in this study
+i = 1
+show(getwd())
+data.rna = Read10X(file.path("./RNA", filelabels[1]))$`Gene Expression`
+data.adt = Read10X(file.path("./RNA", filelabels[1]))$`Antibody Capture`
+
+sample_id_array = rep(filelabels[1], ncol(data.rna))
+for (filelabel in filelabels[2:23]) {
+  i = i + 1
+  cat(file.path("./RNA", filelabel), '\n')
+  data.rna_i = Read10X(file.path("./RNA", filelabel))$`Gene Expression`
+  data.adt_i = Read10X(file.path("./RNA", filelabel))$`Antibody Capture`
+  colnames(data.rna_i) <- gsub("-1", paste0("-",i), colnames(data.rna_i))
+  colnames(data.adt_i) <- gsub("-1", paste0("-",i), colnames(data.adt_i))
+  sample_id_array = c(sample_id_array, rep(filelabel, ncol(data.rna_i)))
+
+  cat(nrow(data.rna), nrow(data.rna_i), '\n')
+  data.rna = cbind(data.rna, data.rna_i)
+  cat(nrow(data.adt), nrow(data.adt_i), '\n')
+  data.adt = cbind(data.adt, data.adt_i)
+}
+```
+
+```{r generate Seurat object}
+RCC = CreateSeuratObject(counts = data.rna, min.cells = 0, min.features = 0, 
+                         names.field = 2, names.delim = "-", project = "RCC")
+
+#getting rid of variable genes, to preempt clonotype-driven clustering
+TRBVrows <- grep("^TRBV", rownames(RCC))
+TRBDrows <- grep("^TRBD", rownames(RCC))
+TRBJrows <- grep("^TRBJ", rownames(RCC))
+TRBrows <- append(TRBVrows, TRBDrows)
+TRBrows <- append(TRBrows, TRBJrows)
+
+TRAVrows <- grep("^TRAV", rownames(RCC))
+TRAJrows <- grep("^TRAJ", rownames(RCC))
+TRArows <- append(TRAVrows, TRAJrows)
+TRrows <- append(TRArows, TRBrows)
+
+TRGVrows <- grep("^TRGV", rownames(RCC))
+TRGJrows <- grep("^TRGJ", rownames(RCC))
+TRGrows <- append(TRGVrows, TRGJrows)
+
+TRDVrows <- grep("^TRDV", rownames(RCC))
+TRDDrows <- grep("^TRDD", rownames(RCC))
+TRDJrows <- grep("^TRDJ", rownames(RCC))
+TRDrows <- append(TRDVrows, TRDDrows)
+TRDrows <- append(TRDrows, TRDJrows)
+
+TRrows <- append(TRrows, TRGrows)
+TRrows <- append(TRrows, TRDrows)
+
+IGKVrows <- grep("^IGKV", rownames(RCC))
+IGKJrows <- grep("^IGKJ", rownames(RCC))
+IGKrows <- append(IGKVrows, IGKJrows)
+
+IGHVrows <- grep("^IGHV", rownames(RCC))
+IGHDrows <- grep("^IGHD", rownames(RCC))
+IGHDrows <- IGHDrows[-1]
+IGHJrows <- grep("^IGHJ", rownames(RCC))
+IGHrows <- append(IGHVrows, IGHDrows)
+IGHrows <- append(IGHrows, IGHJrows)
+
+IGLVrows <- grep("^IGLV", rownames(RCC))
+IGLJrows <- grep("^IGLJ", rownames(RCC))
+IGLrows <- append(IGLVrows, IGLJrows)
+
+IGrows <- append(IGKrows, IGHrows)
+IGrows <- append(IGrows, IGLrows)
+
+variablerows <- append(TRrows, IGrows)
+
+keep <- as.data.frame(rownames(RCC)[-variablerows])
+rownames(keep) <- keep[,1]
+
+RCC <- subset(RCC, features = rownames(keep))
+
+# adding adt data
+RCC[["ADT"]] <- CreateAssayObject(counts = data.adt)
+```
+
+# Getting statistics
+```{r, fig.width = 12, fig.height=5,  message = FALSE, warning = FALSE}
+cell_ident = plyr::mapvalues(x = RCC@meta.data$orig.ident, 
+                       from = sample_ids,
+                       to = samplelabels)
+
+batchID = plyr::mapvalues(x = RCC@meta.data$orig.ident, from = sample_ids, to = batchID)
+patient = plyr::mapvalues(x = RCC@meta.data$orig.ident, from = sample_ids, to = patient)
+sampleorigin = plyr::mapvalues(x = RCC@meta.data$orig.ident, from = sample_ids, to = sampleorigin)
+
+names(cell_ident) = rownames(RCC@meta.data)
+RCC = AddMetaData(RCC, cell_ident, col.name = "sample")
+RCC = AddMetaData(RCC, batchID, col.name = "batchID")
+RCC = AddMetaData(RCC, patient, col.name = "patient")
+RCC = AddMetaData(RCC, sampleorigin, col.name = "sampleorigin")
+Idents(RCC) <- RCC@meta.data$sample
+
+# size of the original data
+print("Total number of genes; total number of barcodes")
+dim(data.rna)
+dim(data.adt) # no. cells should be equal
+
+# size per sample
+count1 = table(RCC@meta.data$sample)
+
+mito_genes = grep("^MT-", rownames(RCC@assays$RNA@data), value = T)
+percent_mito = Matrix::colSums(expm1(RCC@assays$RNA@data[mito_genes, ]))/Matrix::colSums(expm1(RCC@assays$RNA@data))
+RCC = AddMetaData(RCC, percent_mito, "percent_mito")
+
+par(mfrow = c(1, 3))
+FeatureScatter(RCC, "nFeature_RNA", "nCount_RNA")
+FeatureScatter(RCC, "nFeature_RNA", "percent_mito")
+FeatureScatter(RCC, "nCount_RNA", "percent_mito")
+```
+
+# Quality control (>250 nUMI, <10000 nUMI, <20% mitochondrial gene content)
+Pre-filtering plots 
+```{r quality control, fig.width = 12, fig.height=5, message = FALSE, warning=FALSE}
+Idents(object = RCC) <- RCC@meta.data$sample
+VlnPlot(object = RCC, features = c("nFeature_RNA", "nCount_RNA", "percent_mito"), ncol = 3, pt.size = 0)
+```
+
+
+Running filtering steps
+```{r filtering steps, fig.width = 12, fig.height=5, message = FALSE, warning=FALSE}
+# remove cells with low nUMI
+RCC.low <- FetchData(object = RCC, vars = "nCount_RNA")
+count.umi.low = RCC[,which(x = RCC.low > 250)]
+
+# remove cells with high mitochondrial content
+RCC.mito <- FetchData(object = RCC, vars = "percent_mito")
+count.mito= RCC[,which(x = RCC.mito < 0.2)]
+
+# remove cells with too high UMI count (for doublet exclusion)
+RCC.high <- FetchData(object = RCC, vars = "nCount_RNA")
+count.umi.high = RCC[,which(x = RCC.high < 10000)]
+
+RCC <- subset(x = RCC, subset = (nCount_RNA < 10000 & nCount_RNA > 250 & percent_mito < 0.2))
+```
+
+Post-filtering plots
+```{r post-filtering plots, fig.width = 12, fig.height=5, message = FALSE, warning=FALSE}
+VlnPlot(object = RCC, features = c("nFeature_RNA", "nCount_RNA", "percent_mito"), ncol = 3, pt.size = 0)
+```
+
+```{r counting cells}
+#compare original counts of cells to filtered counts
+numi_250p_count = table(count.umi.low$sample)
+mito_20p_count = table(count.mito$sample)
+numi_10000_count = table(count.umi.high$sample)
+
+count_stats = data.frame(raw = data.frame(count1)$Freq,
+                         numi_250 = data.frame(numi_250p_count)$Freq,
+                         mito_20p = data.frame(mito_20p_count)$Freq,
+                         numi_10000 = data.frame(numi_10000_count)$Freq,
+                         row.names = data.frame(count1)$Var1)
+
+count_stats
+```
+
+```{R save point}
+saveRDS(RCC, "R_output/Seurat_objects/RCCunprocessed.RDS")
+RCC <- readRDS("R_output/Seurat_objects/RCCunprocessed.RDS")
+```
+
+```{r tcr detection filtering step, eval=FALSE, echo=FALSE}
+# reading TCR data and adding suffix according to numbers in seurat object
+setwd(dir = "/your/path/here")
+getwd()
+
+RCC_1N <- read.xlsx("processed_1N_TCRs.xlsx") 
+RCC_1N$origin <- "1N"
+
+RCC_1T <- read.xlsx("processed_1T_TCRs.xlsx") 
+RCC_1T$cell.barcode <- gsub("-1", "-2", RCC_1T$cell.barcode)
+RCC_1T$origin <- "1T"
+
+RCC_2N <- read.xlsx("processed_2N_TCRs.xlsx") 
+RCC_2N$cell.barcode <- gsub("-1", "-3", RCC_2N$cell.barcode)
+RCC_2N$origin <- "2N"
+
+RCC_2T <- read.xlsx("processed_2T_TCRs.xlsx") 
+RCC_2T$cell.barcode <- gsub("-1", "-4", RCC_2T$cell.barcode)
+RCC_2T$origin <- "2T"
+
+RCC_4M <- read.xlsx("processed_4M_TCRs.xlsx") 
+RCC_4M$cell.barcode <- gsub("-1", "-5", RCC_4M$cell.barcode)
+RCC_4M$origin <- "4M"
+
+RCC_4T <- read.xlsx("processed_4T_TCRs.xlsx") 
+RCC_4T$cell.barcode <- gsub("-1", "-6", RCC_4T$cell.barcode)
+RCC_4T$origin <- "4T"
+
+RCC_5N <- read.xlsx("processed_5N_TCRs.xlsx") 
+RCC_5N$cell.barcode <- gsub("-1", "-7", RCC_5N$cell.barcode)
+RCC_5N$origin <- "5N"
+
+RCC_5T <- read.xlsx("processed_5T_TCRs.xlsx") 
+RCC_5T$cell.barcode <- gsub("-1", "-8", RCC_5T$cell.barcode)
+RCC_5T$origin <- "5T"
+
+RCC_6N <- read.xlsx("processed_6N_TCRs.xlsx") 
+RCC_6N$cell.barcode <- gsub("-1", "-9", RCC_6N$cell.barcode)
+RCC_6N$origin <- "6N"
+
+RCC_6T <- read.xlsx("processed_6T_TCRs.xlsx") 
+RCC_6T$cell.barcode <- gsub("-1", "-10", RCC_6T$cell.barcode)
+RCC_6T$origin <- "6T"
+
+RCC_7N <- read.xlsx("processed_7N_TCRs.xlsx") 
+RCC_7N$cell.barcode <- gsub("-1", "-11", RCC_7N$cell.barcode)
+RCC_7N$origin <- "7N"
+
+RCC_7T <- read.xlsx("processed_7T_TCRs.xlsx") 
+RCC_7T$cell.barcode <- gsub("-1", "-12", RCC_7T$cell.barcode)
+RCC_7T$origin <- "7T"
+
+RCC_8M <- read.xlsx("processed_8M_TCRs.xlsx") 
+RCC_8M$cell.barcode <- gsub("-1", "-13", RCC_8M$cell.barcode)
+RCC_8M$origin <- "8M"
+
+RCC_8N <- read.xlsx("processed_8N_TCRs.xlsx") 
+RCC_8N$cell.barcode <- gsub("-1", "-14", RCC_8N$cell.barcode)
+RCC_8N$origin <- "8N"
+
+RCC_8T <- read.xlsx("processed_8T_TCRs.xlsx") 
+RCC_8T$cell.barcode <- gsub("-1", "-15", RCC_8T$cell.barcode)
+RCC_8T$origin <- "8T"
+
+RCC_9N <- read.xlsx("processed_9N_TCRs.xlsx") 
+RCC_9N$cell.barcode <- gsub("-1", "-16", RCC_9N$cell.barcode)
+RCC_9N$origin <- "9N"
+
+RCC_9T <- read.xlsx("processed_9T_TCRs.xlsx") 
+RCC_9T$cell.barcode <- gsub("-1", "-17", RCC_9T$cell.barcode)
+RCC_9T$origin <- "9T"
+
+RCC_10N <- read.xlsx("processed_10N_TCRs.xlsx") 
+RCC_10N$cell.barcode <- gsub("-1", "-18", RCC_10N$cell.barcode)
+RCC_10N$origin <- "10N"
+
+RCC_10T <- read.xlsx("processed_10T_TCRs.xlsx") 
+RCC_10T$cell.barcode <- gsub("-1", "-19", RCC_10T$cell.barcode)
+RCC_10T$origin <- "10T"
+
+RCC_11N <- read.xlsx("processed_11N_TCRs.xlsx") 
+RCC_11N$cell.barcode <- gsub("-1", "-20", RCC_11N$cell.barcode)
+RCC_11N$origin <- "11N"
+
+RCC_11T <- read.xlsx("processed_11T_TCRs.xlsx") 
+RCC_11T$cell.barcode <- gsub("-1", "-21", RCC_11T$cell.barcode)
+RCC_11T$origin <- "11T"
+
+RCC_12N <- read.xlsx("processed_12N_TCRs.xlsx") 
+RCC_12N$cell.barcode <- gsub("-1", "-22", RCC_12N$cell.barcode)
+RCC_12N$origin <- "12N"
+
+RCC_12T <- read.xlsx("processed_12T_TCRs.xlsx") 
+RCC_12T$cell.barcode <- gsub("-1", "-23", RCC_12T$cell.barcode)
+RCC_12T$origin <- "12T"
+
+# cells to exclude
+remove <- c(RCC_1N$cell.barcode[RCC_1N$category %in% c("6.multiple")],
+            RCC_1T$cell.barcode[RCC_1T$category %in% c("6.multiple")],
+            RCC_2N$cell.barcode[RCC_2N$category %in% c("6.multiple")],
+            RCC_2T$cell.barcode[RCC_2T$category %in% c("6.multiple")],
+            RCC_4M$cell.barcode[RCC_4M$category %in% c("6.multiple")],
+            RCC_4T$cell.barcode[RCC_4T$category %in% c("6.multiple")],
+            RCC_5N$cell.barcode[RCC_5N$category %in% c("6.multiple")],
+            RCC_5T$cell.barcode[RCC_5T$category %in% c("6.multiple")],
+            RCC_6N$cell.barcode[RCC_6N$category %in% c("6.multiple")],
+            RCC_6T$cell.barcode[RCC_6T$category %in% c("6.multiple")],
+            RCC_7N$cell.barcode[RCC_7N$category %in% c("6.multiple")],
+            RCC_7T$cell.barcode[RCC_7T$category %in% c("6.multiple")],
+            RCC_8M$cell.barcode[RCC_8M$category %in% c("6.multiple")],
+            RCC_8N$cell.barcode[RCC_8N$category %in% c("6.multiple")],
+            RCC_8T$cell.barcode[RCC_8T$category %in% c("6.multiple")],
+            RCC_9N$cell.barcode[RCC_9N$category %in% c("6.multiple")],
+            RCC_9T$cell.barcode[RCC_9T$category %in% c("6.multiple")],
+            RCC_10N$cell.barcode[RCC_10N$category %in% c("6.multiple")],
+            RCC_10T$cell.barcode[RCC_10T$category %in% c("6.multiple")],
+            RCC_11N$cell.barcode[RCC_11N$category %in% c("6.multiple")],
+            RCC_11T$cell.barcode[RCC_11T$category %in% c("6.multiple")],
+            RCC_12N$cell.barcode[RCC_12N$category %in% c("6.multiple")],
+            RCC_12T$cell.barcode[RCC_12T$category %in% c("6.multiple")])
+
+# count before removing
+count.umi.high = table(RCC@meta.data$sample)
+
+RCC = subset(RCC, cells = names(Idents(RCC))[!names(Idents(RCC)) %in% remove]) 
+count.tcr = table(RCC@meta.data$sample)
+```
+
+```{r count cells passing filter, echo=FALSE, eval=FALSE}
+count_stats = data.frame(numi_10000 = data.frame(count.umi.high)$Freq,
+                         tcr = data.frame(count.tcr)$Freq,
+                         row.names = data.frame(count.tcr)$Var1)
+
+count_stats
+
+# data dimensions after filtering
+print("Total number of genes; total number of barcodes")
+dim(RCC)
+```
+
+```{r new post-filtering plots, fig.width = 12, fig.height=5, message = FALSE, warning=FALSE}
+VlnPlot(object = RCC, features = c("nFeature_RNA", "nCount_RNA", "percent_mito"), ncol = 3, pt.size = 0)
+```
+
+```{r normalization,}
+# RNA normalization
+RCC <- NormalizeData(RCC, assay = "RNA", normalization.method = "LogNormalize", scale.factor = 1e6)
+
+# ADT normalization
+RCC <- NormalizeData(RCC, assay = "ADT", normalization.method = "CLR")
+
+saveRDS(RCC, file = "R_output/Seurat_objects/RCC.TNorm.20220210.rds")
+RCC <- readRDS(file = "R_output/Seurat_objects/RCC.TNorm.20220210.rds")
+```
+
+# Read in TCR clonotype matching
+```{r read in TCR clonotype matches, eval=FALSE}
+#load in revised clonotype data, change barcodes to match central formatting
+tcr.clone.101 = read.xlsx('TCRs/Clonotype Grouping Output/16097_101_clonotype.xlsx')
+
+tcr.clone.102 = read.xlsx('TCRs/Clonotype Grouping Output/16097_102_clonotype.xlsx')
+tcr.clone.102$cell.barcode <- gsub("-1", "-3", tcr.clone.102$cell.barcode)
+tcr.clone.102$cell.barcode <- gsub("-2", "-4", tcr.clone.102$cell.barcode)
+
+tcr.clone.104 = read.xlsx('TCRs/Clonotype Grouping Output/16097_104_clonotype.xlsx')
+tcr.clone.104$cell.barcode <- gsub("-1", "-5", tcr.clone.104$cell.barcode)
+tcr.clone.104$cell.barcode <- gsub("-2", "-6", tcr.clone.104$cell.barcode)
+
+tcr.clone.105 = read.xlsx('TCRs/Clonotype Grouping Output/16097_105_clonotype.xlsx')
+tcr.clone.105$cell.barcode <- gsub("-1", "-7", tcr.clone.105$cell.barcode)
+tcr.clone.105$cell.barcode <- gsub("-2", "-8", tcr.clone.105$cell.barcode)
+
+tcr.clone.106 = read.xlsx('TCRs/Clonotype Grouping Output/16097_106_clonotype.xlsx')
+tcr.clone.106$cell.barcode <- gsub("-1", "-9", tcr.clone.106$cell.barcode)
+tcr.clone.106$cell.barcode <- gsub("-2", "-10", tcr.clone.106$cell.barcode)
+
+tcr.clone.107 = read.xlsx('TCRs/Clonotype Grouping Output/16097_107_clonotype.xlsx')
+tcr.clone.107$cell.barcode <- gsub("-1", "-11", tcr.clone.107$cell.barcode)
+tcr.clone.107$cell.barcode <- gsub("-2", "-12", tcr.clone.107$cell.barcode)
+
+tcr.clone.108 = read.xlsx('TCRs/Clonotype Grouping Output/16097_108_clonotype.xlsx')
+tcr.clone.108$cell.barcode <- gsub("-1", "-13", tcr.clone.108$cell.barcode)
+tcr.clone.108$cell.barcode <- gsub("-2", "-14", tcr.clone.108$cell.barcode)
+tcr.clone.108$cell.barcode <- gsub("-3", "-15", tcr.clone.108$cell.barcode)
+
+tcr.clone.109 = read.xlsx('TCRs/Clonotype Grouping Output/16097_109_clonotype.xlsx')
+tcr.clone.109$cell.barcode <- gsub("-1", "-16", tcr.clone.109$cell.barcode)
+tcr.clone.109$cell.barcode <- gsub("-2", "-17", tcr.clone.109$cell.barcode)
+
+tcr.clone.110 = read.xlsx('TCRs/Clonotype Grouping Output/16097_110_clonotype.xlsx')
+tcr.clone.110$cell.barcode <- gsub("-1", "-18", tcr.clone.110$cell.barcode)
+tcr.clone.110$cell.barcode <- gsub("-2", "-19", tcr.clone.110$cell.barcode)
+
+tcr.clone.111 = read.xlsx('TCRs/Clonotype Grouping Output/16097_111_clonotype.xlsx')
+tcr.clone.111$cell.barcode <- gsub("-1", "-20", tcr.clone.111$cell.barcode)
+tcr.clone.111$cell.barcode <- gsub("-2", "-21", tcr.clone.111$cell.barcode)
+#gsub natively returns "20" as "210" because of replacing a "2"
+tcr.clone.111$cell.barcode <- gsub("-210", "-20", tcr.clone.111$cell.barcode)
+
+tcr.clone.112 = read.xlsx('TCRs/Clonotype Grouping Output/16097_112_clonotype.xlsx')
+tcr.clone.112$cell.barcode <- gsub("-1", "-22", tcr.clone.112$cell.barcode)
+tcr.clone.112$cell.barcode <- gsub("-2", "-23", tcr.clone.112$cell.barcode)
+#gsub natively returns "22" as "232" because of replacing a "2"
+tcr.clone.112$cell.barcode <- gsub("-232", "-22", tcr.clone.112$cell.barcode)
+```
+
+# add TCR clonotype matches to metadata
+```{r add in TCR clonotype matches}
+barcodes = RCC@meta.data[,c('nCount_RNA', 'orig.ident')]
+barcodes$cell.barcode = rownames(barcodes)
+
+tcr.clone = rbind(tcr.clone.101, tcr.clone.102, tcr.clone.104, tcr.clone.105, tcr.clone.106, tcr.clone.107, tcr.clone.108, tcr.clone.109, tcr.clone.110, tcr.clone.111, tcr.clone.112)
+
+#remove any duplicate barcodes - double assignments from tcr algorithm
+tcr.clone = tcr.clone %>% distinct(tcr.clone$cell.barcode, .keep_all= TRUE)
+
+tcr.sub = tcr.clone[,c('clonotype.ID', 'cell.barcode', 'clone')];
+# for (i in 1:ncol(tcr.sub)) {
+#   tcr.sub[,i]<- as.character(tcr.sub[,i])
+# }
+
+allb = merge(barcodes, tcr.sub, by='cell.barcode', all=TRUE)
+rownames(allb)<-allb$cell.barcode
+head(allb); allb = allb[rownames(barcodes), ]; head(allb)
+
+RCC <- AddMetaData(RCC, metadata=allb$clonotype.ID, col.name="TCR.Clone")
+```
+
+## Normalization of different proteins in ADT dataset
+```{r ADT normalization old , warning=FALSE, message=FALSE, eval=FALSE}
+meta.df = data.frame(matrix(ncol=ncol(RCC@assays$ADT@data), nrow=nrow(RCC@assays$ADT@data)))
+colnames(meta.df) = colnames(RCC@assays$ADT@data)
+for (cell in colnames(RCC@assays$ADT@data)) {
+  isotypesmean = mean(RCC@assays$ADT@data[c("IgG1isotype-CITEseq", "IgG2aisotype-CITEseq", "IgG2bisotype-CITEseq"), cell])
+  cell.data = RCC@assays$ADT@data[,cell]
+  op1 = as.numeric(cell.data/isotypesmean)
+  op11 = as.numeric(cell.data+1-isotypesmean)
+  if(isotypesmean>=1) {
+    cell.norm = op1
+  } else { cell.norm= op11}
+  meta.df[,cell]<-cell.norm
+}
+rownames(meta.df) <- paste0(rownames(RCC@assays$ADT@data), '.norm')
+meta.df = data.frame(meta.df)
+for (row in rownames(meta.df)) {
+  add = as.numeric(meta.df[row,])
+  RCC <- AddMetaData(RCC, metadata = add, col.name=row)
+}
+
+#CITE-seq was not used
+```
+
+# Save and reload data
+```{r Load Data 2, echo=FALSE}
+saveRDS(RCC, file = "R_output/Seurat_objects/RCC.CITEnorm.20220210.rds")
+RCC = readRDS(file = "R_output/Seurat_objects/RCC.CITEnorm.20220210.rds")
+```
+
+# Clustering on ALL RCC data
+```{r cluster RCC}
+RCC <- FindVariableFeatures(object = RCC)
+RCC <- ScaleData(object = RCC)
+cat("Number of variable genes", length(x = VariableFeatures(object = RCC)), '\n')
+RCC <- RunPCA(object = RCC, features = VariableFeatures(object = RCC), verbose = FALSE)
+RCC <- RunUMAP(RCC, reduction = "pca", dims = 1:50)
+RCC <- FindNeighbors(object = RCC, dims = 1:50)
+RCC <- FindClusters(object = RCC)
+RCC$clusters <- Idents(object = RCC)
+
+RCC.all.markers <- FindAllMarkers(RCC,min.pct = 0.25, logfc.threshold = log(2))
+cluster_labels <- c(
+  "GZMK CD8 Tex",
+  "DUSP4 CD8 Tex",
+  "C3 Macrophages",
+  "FOLR2 M2-like Macrophages",
+  "SPON2 NK Cells",
+  "GNLY NK Cells",
+  "IL7R CD4 TEM Cells",
+  "IL7R CD8-CD4 TEM Cells",
+  "APOE Macrophages",
+  "TTN B cells",
+  "SMIM25 CD16+CD14- Monocytes",
+  "S100A8 Monocytes",
+  "UBE2C TProl CD8 T Cells",
+  "FCER1A Classical DCs",
+  "CXCL13 CD8 T cells",
+  "ZNF683 CD8 T cells",
+  "GZMH CD8-CD4 TEM T cells",
+  "FOXP3 Tregs",
+  "NDUFA4L2 RCC",
+  "CCL14 Endothelial Cells",
+  "ALDOB Kidney Tubule Cells",
+  "ANLN Proliferating CD14+CD16+ Monocytes",
+  "DERL3 B cells",
+  "FXYD4 Kidney Collecting Duct Principal Cells",
+  "BANK1 B cells",
+  "ANGPT2 Endothelial Cells",
+  "MTRNRL8 Erythroblasts (T)",
+  "ATP6V1G3 Kidney Collecting Duct Intercalated Cells",
+  "SLC25A37 Erythroid Cells",
+  "XCR1 DCs",
+  "TPSAB1 Mast Cells",
+  "SOST Endothelial Cells",
+  "FCN1 Classical Monocytes",
+  "LRRC26 Plasmacytoid DCs",
+  "RGS5 Kidney Mesangial Cells",
+  "NPHS2 Kidney Podocyte",
+  "PLA2G2A Fibroblasts"
+)
+
+RCC$final_cluster <- factor(RCC$cluster, levels = 0:36, labels = cluster_labels)
+```
+
+###### Generate Supplementary Table 14 #######
+```{R}
+RCC.all$tumorcluster <- ifelse(RCC.all$clusters == 18, "tum", "nottum")
+Idents(RCC.all) <- RCC.all$tumorcluster
+RCC.markers <- FindMarkers(RCC.all, min.pct = 0.25, logfc.threshold = log(2), ident.1 = "tum", ident.2 = "nottum")
+RCC.markers$gene <- rownames(RCC.markers)
+
+SuppTable14 <- RCC.markers[RCC.markers$avg_log2FC > 2 & RCC.markers$p_val_adj < 0.05,]
+```
+
+```{R save clustered data}
+saveRDS(RCC, "R_output/Seurat_objects/RCCallwclusternames.rds")
+RCC <- readRDS("R_output/Seurat_objects/RCCallwclusternames.rds")
+```
+
+# Remove contaminant clusters and cells
+```{r remove contaminant clusters}
+#selected based on CD3+, and negativity for CD19, ITGAM, C1QA, JCHAIN, IGKC, among other markers
+cells.TrueT = rownames(RCC@meta.data)[RCC@meta.data$clusters %in% c(0, 1, 6, 7, 12, 14, 15, 16, 17, 26)]
+length(cells.TrueT)
+
+count.umi.high = table(RCC@meta.data$sample)
+RCC.TrueT <- subset(RCC, cells = cells.TrueT)
+Idents(RCC) <- RCC$clusters
+DimPlot(RCC, reduction = "umap", label = TRUE)
+DimPlot(RCC.TrueT, reduction = "umap") 
+count.umi = table(RCC.TrueT@meta.data$sample)
+
+
+umaps = data.frame(RCC.TrueT@reductions$umap@cell.embeddings)
+want = umaps %>% subset(UMAP_2 > -8 & UMAP_1 < 4)
+dim(want); dim(umaps)
+cells.TrueTbis = rownames(want); length(cells.TrueTbis)
+TrueTbis <- subset(RCC.TrueT, cells=cells.TrueTbis)
+Idents(TrueTbis) <- TrueTbis$clusters
+DimPlot(TrueTbis, reduction = "umap")
+
+TrueTbis <- FindVariableFeatures(object = TrueTbis)
+TrueTbis <- ScaleData(object = TrueTbis)
+cat("Number of variable genes", length(x = VariableFeatures(object = TrueTbis)), '\n')
+TrueTbis <- RunPCA(object = TrueTbis, features = VariableFeatures(object = TrueTbis), verbose = FALSE)
+TrueTbis <- RunUMAP(TrueTbis, reduction = "pca", dims = 1:50)
+TrueTbis <- FindNeighbors(object = TrueTbis, dims = 1:50)
+TrueTbis <- FindClusters(object = TrueTbis)
+TrueTbis$clusters <- Idents(object = TrueTbis)
+DimPlot(TrueTbis, reduction = "umap")
+```
+
+```{r plot cell markers, echo=FALSE, eval=FALSE}
+## RCC
+cells = names(Idents(RCC))
+smoothScatter(RCC@assays$RNA@data["CD3E", cells], RCC@assays$RNA@data["ITGAM", cells], xlab = "CD3", ylab = "CD11b", xlim = c(-2, 10), ylim = c(-2, 10))
+
+smoothScatter(RCC@assays$RNA@data["CD3E", cells], RCC@assays$RNA@data["CD19", cells], xlab = "CD3", ylab = "CD19", xlim = c(-2, 10), ylim = c(-2, 10))
+
+smoothScatter(RCC@assays$RNA@data["CD8A", cells], RCC@assays$RNA@data["CD4", cells], xlab = "CD8", ylab = "CD4", xlim = c(-2, 10), ylim = c(-2, 10))
+```
+
+```{R subset by CD19- ITGAM-}
+cells = names(Idents(TrueTbis))
+data_rna <- TrueTbis@assays$RNA@data[,cells]
+true_t_cells_rna <- colnames(data_rna)[data_rna["ITGAM", ] < 3.5 & data_rna['CD19', ] < 3.5]; length(true_t_cells_rna)
+
+count.umi.high = table(RCC.TrueT@meta.data$sample)
+trueT <- subset(TrueTbis, cells = true_t_cells_rna)
+trueT <- NormalizeData(trueT, assay = "RNA", normalization.method = "LogNormalize", scale.factor = 1e6)
+count.umi = table(trueT@meta.data$sample)
+Idents(RCC.TrueT) <- RCC.TrueT$clusters
+DimPlot(RCC.TrueT, reduction = "umap")
+DimPlot(trueT, reduction = "umap")
+DimPlot(trueT, reduction = "umap", split.by ="orig.ident")
+```
+
+```{r}
+count_stats = data.frame(numi_10000 = data.frame(count.umi.high)$Freq,
+                         tcr = data.frame(count.umi)$Freq,
+                         row.names = data.frame(count.umi)$Var1)
+
+count_stats
+```
+
+```{r identify T lymphocytes, echo=FALSE, eval=FALSE}
+
+cells = names(Idents(trueT))
+data <- trueT@meta.data[cells, ]; dim(data)
+RCC.cd8 <- rownames(data)[trueT@assays$RNA@data["CD4", cells] == 0 & (trueT@assays$RNA@data["CD8A", cells] > 0 | trueT@assays$RNA@data["CD8B", cells] > 0)]
+RCC.noncd8 <- rownames(data)[trueT@assays$RNA@data["CD8A", cells] == 0 & trueT@assays$RNA@data["CD8B", cells] == 0]
+
+cd8.rna <- colnames(trueT@assays$RNA@data)[trueT@assays$RNA@data["CD8A",] >= 3]
+cd4.rna <- colnames(trueT@assays$RNA@data)[trueT@assays$RNA@data["CD4",] >= 3]
+
+d = trueT@meta.data
+d$cd8.rna = ifelse(rownames(d) %in% RCC.cd8, 1, 0)
+d$cd4.rna = ifelse(rownames(d) %in% RCC.noncd8, 1, 0)
+
+trueT = AddMetaData(trueT, metadata=d$cd8.rna, col.name='cd8.rna')
+trueT = AddMetaData(trueT, metadata=d$cd4.rna, col.name='noncd8.rna')
+
+
+nums <- c(length(cd8.rna), length(cd4.rna))
+names(nums) <- c("CD8, RNA", "CD4, RNA")
+barplot(nums, col = c("darkred", "darkred", "darkblue", "darkblue"), ylim = c(0, 100000), main = "CD8/CD4 lymphocytes")
+```
+
+# Detection of variable genes
+```{r find variable genes}
+trueT <- FindVariableFeatures(object = trueT)
+cat("Number of variable genes", length(x = VariableFeatures(object = trueT)), '\n')
+trueT <- ScaleData(object = trueT)
+```
+
+# Performing linear dimensionality reduction (PCA)
+```{r PCA}
+# running PCA
+trueT <- RunPCA(object = trueT, features = VariableFeatures(object = trueT), verbose = FALSE)
+# plot top 4 PCs
+VizDimLoadings(object = trueT, dims = 1:4)
+# heatmap of top PCs
+DimHeatmap(object = trueT, dims = 1:3, cells = 500, balanced = TRUE)
+DimHeatmap(object = trueT, dims = 4:6, cells = 500, balanced = TRUE)
+# elbow plot to determine number of PCs to use
+ElbowPlot(object = trueT, ndims = 50)
+# set number of PCs to use
+num.pc.to.use <- 50
+```
+
+# Clustering of trueT cells: I choose R 0.50
+```{r Clustering, message=FALSE, warning=FALSE}
+trueT <- RunUMAP(trueT, reduction = "pca", dims = 1:50)
+trueT <- FindNeighbors(object = trueT, dims = 1:num.pc.to.use)
+trueT <- FindClusters(object = trueT, resolution = 0.50)
+trueT$clusters <- Idents(object = trueT)
+DimPlot(trueT, label=TRUE)
+
+DimPlot(trueT, group.by='orig.ident')
+
+DimPlot(trueT, split.by='orig.ident')
+
+```
+
+```{R save point}
+saveRDS(trueT, file = "R_output/Seurat_Objects/trueT.Res05.seurat.clustered.20220211.rds")
+
+trueT = readRDS(file = "R_output/Seurat_Objects/trueT.Res05.seurat.clustered.20220211.rds")
+```
+
+###### CD8 Clustering ######
+```{R subset CD8 cells in preparation for harmony}
+CD8 <- subset(trueT, subset = (cd8.rna == 1))
+
+CD8 <- NormalizeData(CD8, assay = "RNA", normalization.method = "LogNormalize", scale.factor = 1e6)
+CD8 <- FindVariableFeatures(object = CD8)
+CD8 <- ScaleData(CD8)
+CD8 <- RunPCA(object = CD8, features = VariableFeatures(object = CD8), verbose = FALSE)
+CD8 <- RunUMAP(CD8, reduction = "pca", dims = 1:50)
+CD8 <- FindNeighbors(object = CD8, dims = 1:50)
+CD8 <- FindClusters(object = CD8, resolution = 0.40)
+
+CD8$clusters <- Idents(object = CD8)
+DimPlot(CD8, reduction = "umap", label = TRUE)
+
+
+Idents(CD8)=CD8$patient
+DimPlot(CD8, reduction = "umap", label = TRUE)
+
+Idents(CD8) <- CD8@meta.data$sample
+plot1 <- DimPlot(CD8, reduction = "umap")
+LabelClusters(plot1, id = "ident", size = 5, repel = T)
+
+## Batch Plot
+Idents(CD8) <- CD8$batchID
+DimPlot(CD8, reduction = "umap", label = TRUE) + NoLegend()
+```
+
+```{R PCA analysis for CD8}
+# plot top 4 PCs
+VizDimLoadings(object = CD8, dims = 1:4)
+# heatmap of top PCs
+DimHeatmap(object = CD8, dims = 1:3, cells = 500, balanced = TRUE)
+DimHeatmap(object = CD8, dims = 4:6, cells = 500, balanced = TRUE)
+# elbow plot to determine number of PCs to use
+ElbowPlot(object = CD8, ndims = 50)
+# set number of PCs to use
+num.pc.to.use <- 50
+
+```
+
+```{R prep for harmony by batchID}
+CD8.harmony <- CD8
+
+## already has the batchID there
+options(repr.plot.height = 5, repr.plot.width = 12)
+DimPlot(object = CD8.harmony, dims=c(1,2), reduction = "pca", pt.size = .1, group.by = "batchID", split.by='patient')
+DimPlot(object = CD8.harmony, dims=c(1,2), reduction = "pca", pt.size = .1, group.by = "batchID")
+DimPlot(object = CD8.harmony, dims=c(2,3), reduction = "pca", pt.size = .1, group.by = "batchID")
+
+VlnPlot(object = CD8.harmony, features = "PC_1", group.by = "batchID", pt.size = .1)
+```
+
+```{R run harmony}
+#Harmony batch correction was tested with both batchID and patient; results were equivalent
+options(repr.plot.height = 2.5, repr.plot.width = 6)
+CD8.harmony <- CD8.harmony %>% RunHarmony("batchID", plot_convergence = TRUE)
+
+options(repr.plot.height = 5, repr.plot.width = 12)
+dp1 <- DimPlot(object = CD8.harmony, reduction = "harmony", pt.size = .1, group.by = "sample")
+v1 <- VlnPlot(object = CD8.harmony, features = "harmony_1", group.by = "sample", pt.size = .1)
+dp1
+v1
+DimPlot(object = CD8.harmony, dims=c(1,2), reduction = "harmony", pt.size = .1, group.by = "patient", split.by='patient')
+DimPlot(object = CD8.harmony, reduction = "harmony", pt.size = .1, group.by = "batchID")
+```
+
+```{r CD8 recluster}
+CD8.harmony <- CD8.harmony %>% 
+    RunUMAP(reduction = "harmony", dims=1:50) %>%
+    FindNeighbors(reduction = "harmony", dims = 1:50) %>% 
+    FindClusters(resolution = 0.5) %>% 
+    identity()
+
+#confirm harmony corrected for batch
+DimPlot(CD8.harmony, reduction='umap', label=TRUE)
+Idents(CD8.harmony) <- CD8.harmony$sample
+DimPlot(CD8.harmony, reduction='umap')
+Idents(CD8.harmony) <- CD8.harmony$batchID
+DimPlot(CD8.harmony, reduction='umap')
+Idents(CD8.harmony) <- CD8.harmony$clusters
+```
+
+```{R save point}
+saveRDS(CD8.harmony, file = "R_output/Seurat_objects/no.variable/CD8.firstharmony.20220211.rds")
+CD8.harmony = readRDS("R_output/Seurat_objects/no.variable/CD8.firstharmony.20220211.rds")
+```
+
+```{R make clustertree}
+res = c(0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1)
+
+for (i in res) {
+  CD8.harmony <- FindClusters(CD8.harmony, resolution=i)
+  CD8.harmony@meta.data[,paste0('clusters_', as.character(i))]<-CD8.harmony$seurat_clusters
+}
+
+clustertree <- clustree(CD8.harmony)
+```
+
+```{R plot by resolution}
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.3
+d1 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.30")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.35
+d2 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.35")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.4
+d3 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.40")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.45
+d4 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.45")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.5
+d5 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.50")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.55
+d6 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.55")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.6
+d7 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.60")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.65
+d8 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.65")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.7
+d9 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.70")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.75
+d10 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.75")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.8
+d11 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.80")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.85
+d12 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.85")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.9
+d13 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.90")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.95
+d14 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.95")
+
+Idents(CD8.harmony) <- CD8.harmony$clusters_1
+d15 = DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 1")
+
+d1
+d2
+d3
+d4
+d5
+d6
+d7
+d8
+d9
+d10
+d11
+d12
+d13
+d14
+d15
+```
+
+```{R cluster identities}
+#stable solution
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.4
+DimPlot(CD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.4")
+CD8.harmony$clusters <- Idents(object = CD8.harmony)
+```
+
+```{R save point}
+saveRDS(CD8.harmony, "R_output/Seurat_objects/no.variable/CD8harmonizedres0.4.20220210.rds")
+CD8.harmony <- readRDS("R_output/Seurat_objects/no.variable/CD8harmonizedres0.4.20220210.rds")
+```
+
+```{R top CD8 markers}
+Idents(CD8.harmony) <- CD8.harmony$clusters_0.4
+CD8.harmony$clusters <- Idents(object = CD8.harmony)
+CD8.markers <- FindAllMarkers(CD8.harmony, min.pct = 0.25, logfc.threshold = log(2))
+write.xlsx(CD8.markers, 'R_output/no.variable/harmonizedCD8.20220210.xlsx')
+#Supp. Table 7
+```
+
+```{R calculating counts and freqs}
+clonotypetable <- table(CD8.harmony$TCR.Clone)
+clonotypetablebytissue <- table(CD8.harmony$TCR.Clone, CD8.harmony$sampleorigin)
+clonotypescttum <- clonotypetablebytissue[,2]
+clonotypesctnorm <- clonotypetablebytissue[,1]
+clonotypesctmet <- clonotypetablebytissue[,3]
+clonotypesums <- rowSums(clonotypetablebytissue)
+
+totcts <- clonotypesums[as.factor(CD8.harmony$TCR.Clone)]
+tumcts <- clonotypescttum[as.factor(CD8.harmony$TCR.Clone)]
+normcts <- clonotypesctnorm[as.factor(CD8.harmony$TCR.Clone)]
+metcts <- clonotypesctmet[as.factor(CD8.harmony$TCR.Clone)]
+CD8.harmony$totalcount <- totcts
+CD8.harmony$countintum <- tumcts
+CD8.harmony$countinnorm <- normcts
+CD8.harmony$countinmet <- metcts
+
+CD8.harmony$HasClonotype <- ifelse(is.na(CD8.harmony$TCR.Clone), 0, 1)
+
+CD8withclono <- subset(CD8.harmony, subset = (HasClonotype == 1))
+
+ptlist <- unique(patient)
+clonoptlist.1 <- str_split(ptlist, "-")
+clonoptlist <- 0
+for (i in 1:length(ptlist)){
+  clonoptlist[i] <- paste0("p", clonoptlist.1[[i]][2])
+}
+
+totalCD8clono <- table(CD8withclono$patient, CD8withclono$sampleorigin)
+totalCD8clono <- totalCD8clono[ptlist,]
+totalCD8tum <- totalCD8clono[,2]
+totalCD8norm <- totalCD8clono[,1]
+totalCD8met <- totalCD8clono[,3]
+totalCD8sum <- rowSums(totalCD8clono)
+
+CD8.harmony$freqinCD8 <- 0
+CD8.harmony$freqinCD8tum <- 0
+CD8.harmony$freqinCD8norm <- 0
+CD8.harmony$freqinCD8met <- 0
+for (i in 1:length(totalCD8sum)){
+  CD8.harmony$freqinCD8 <- ifelse(grepl(pattern = clonoptlist[i], x = CD8.harmony$TCR.Clone, fixed = TRUE), CD8.harmony$totalcount/totalCD8sum[i], CD8.harmony$freqinCD8)
+  CD8.harmony$freqinCD8tum <- ifelse(grepl(pattern = clonoptlist[i], x = CD8.harmony$TCR.Clone, fixed = TRUE), CD8.harmony$countintum/totalCD8tum[i], CD8.harmony$freqinCD8tum)
+  CD8.harmony$freqinCD8norm <- ifelse(grepl(pattern = clonoptlist[i], x = CD8.harmony$TCR.Clone, fixed = TRUE), CD8.harmony$countinnorm/totalCD8norm[i], CD8.harmony$freqinCD8norm)
+  CD8.harmony$freqinCD8met <- ifelse(grepl(pattern = clonoptlist[i], x = CD8.harmony$TCR.Clone, fixed = TRUE), CD8.harmony$countinmet/totalCD8met[i], CD8.harmony$freqinCD8met)
+}
+```
+
+```{R scoring by signatures}
+#cytotoxicity, exhaustion, memory from Oliveira, Egloff, Afeyan et al., 2023, Science Immunology. 
+#tumor_specific and viral_specific from Oliveira et al., 2021, Nature.
+cytotoxicity = list(c("PRF1", "GZMH", "GZMK", "GZMB", "GZMA", "GNLY", "IFNG", "FASLG"))
+exhaustion = list(c('PDCD1', 'TIGIT', 'LAG3', 'HAVCR2', 'CTLA4', 'TOX'))
+memory = list(c('TCF7', 'SELL', 'IL7R', 'CCR7', 'CD28'))
+proliferation = list(c('MKI67', 'TOP2A', 'STMN1'))
+tumor_specific = list(c('KRT86', 'RDH10', 'TYMS', 'HMOX1', 'GNG4', 'CXCL13', 'AFAP1L2', 'ACP5', 'MYO1E', 'LAYN', 'TNS3', 'TNFSF4', 'AKAP5', 'HAVCR2', 'ENTPD1', 'SLC2A8', 'AC243829', 'ZBED2', 'MCM5', 'CAV1', 'GOLIM4', 'TRAV21', 'VCAM1', 'PON2', 'MTSS1', 'CD38', 'TRBV11-2', 'MS4A6A', 'TOX2', 'CSF1', 'GALNT2', 'FXYD2', 'PLPP1', 'LMCD1', 'MYL6B', 'LAG3', 'HLA-DRA', 'IGFLR1', 'CCDC50', 'CD27', 'KIAA1324', 'CDKN2A', 'CD70', 'ABHD6', 'CTLA4', 'PDCD1', 'GEM', 'NUSAP1', 'TOX', 'CXCR6', 'NMB', 'HOPX', 'CLIC3', 'INPP5F', 'SNAP47', 'TSHZ2', 'HLA-DMA', 'SIT1', 'HLA-DRB1', 'TUBB', 'PYCARD', 'ADGRG1', 'HLA-DQA1', 'PRF1', 'HLA-DPA1', 'PTMS', 'CKS1B', 'HIPK2', 'CHST12', 'LSP1', 'FAM3C', 'SLC1A4', 'NUDT1', 'DNPH1'))
+virus_specific = list(c('RARA', 'GADD45B', 'C1orf21', 'AOAH', 'MATK', 'SATB1', 'MBP', 'ANTXR2', 'RORA', 'CCR7', 'ANXA1', 'BACH2', 'GLUL', 'TNFSF14', 'AUTS2', 'PERP', 'EPHA4', 'TCF7', 'SELL', 'MYC', 'IL7R', 'CD300A', 'ITGA5', 'GPR183', 'KLF3', 'S1PR1'))
+
+Idents(CD8.harmony)<-CD8.harmony$clusters
+cell_group = cytotoxicity
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(CD8.harmony)]
+CD8.harmony <- AddModuleScore(CD8.harmony, features=cell_group, name='cytotoxicity')
+
+cell_group = exhaustion
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(CD8.harmony)]
+CD8.harmony <- AddModuleScore(CD8.harmony, features=cell_group, name='exhaustion')
+
+cell_group = memory
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(CD8.harmony)]
+CD8.harmony <- AddModuleScore(CD8.harmony, features=cell_group, name='memory')
+
+cell_group = proliferation
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(CD8.harmony)]
+CD8.harmony <- AddModuleScore(CD8.harmony, features=cell_group, name='proliferation')
+
+Idents(CD8.harmony)<-CD8.harmony$clusters
+cell_group = tumor_specific
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(CD8.harmony)]
+CD8.harmony <- AddModuleScore(CD8.harmony, features=cell_group, name='tumor_specific')
+
+cell_group = virus_specific
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(CD8.harmony)]
+CD8.harmony <- AddModuleScore(CD8.harmony, features=cell_group, name='virus_specific')
+```
+
+```{R save point}
+saveRDS(CD8.harmony, "R_output/Seurat_objects/CD8harmonized20220215withfreq.rds")
+CD8.harmony <- readRDS("../NeoVax RCC Analysis/R_output/Seurat_objects/CD8harmonized20220215withfreq.rds")
+```
+
+###### CD4 clustering ######
+
+```{R load in trueT}
+trueT <- readRDS(file = "R_output/Seurat_Objects/no.variable/trueT.Res05.seurat.clustered.20220211.rds")
+
+FeaturePlot(trueT, features = "CD8A")
+FeaturePlot(trueT, features = "CD8B")
+FeaturePlot(trueT, features = "CD4")
+FeaturePlot(trueT, features = "noncd8.rna")
+```
+
+```{R}
+nonCD8 <- subset(trueT, subset = (noncd8.rna == 1))
+nonCD8 <- FindVariableFeatures(object = nonCD8)
+cat("Number of variable genes", length(x = VariableFeatures(object = nonCD8)), '\n')
+nonCD8 <- ScaleData(object = nonCD8)
+nonCD8 <- RunPCA(object = nonCD8, features = VariableFeatures(object = nonCD8), verbose = FALSE)
+
+nonCD8.all <- NormalizeData(nonCD8, assay = "RNA", normalization.method = "LogNormalize", scale.factor = 1e6)
+
+nonCD8.all <- nonCD8.all %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000) %>% 
+  ScaleData()
+
+nonCD8.all <- nonCD8.all %>% RunPCA(features = VariableFeatures(nonCD8.all), verbose=F)
+
+nonCD8.all <- nonCD8.all %>% RunUMAP(reduction = "pca", dims = 1:50) %>% 
+  FindNeighbors(dims = 1:50) %>%
+  FindClusters()
+
+DimPlot(nonCD8.all, label=TRUE)
+
+Idents(nonCD8.all)=nonCD8.all$patient
+DimPlot(nonCD8.all, reduction = "umap")
+
+## Batch Plot
+Idents(nonCD8.all) <- nonCD8.all@meta.data$sample
+DimPlot(nonCD8.all, reduction = "umap")
+```
+
+#### Look at PCs
+```{r look at PCs}
+nonCD8.harmony <- nonCD8.all %>% NormalizeData(assay = "RNA", normalization.method = "LogNormalize", scale.factor = 1e6)
+nonCD8.harmony <- nonCD8.harmony %>% FindVariableFeatures(selection.method = "vst", nfeatures = 2000)
+nonCD8.harmony <- nonCD8.harmony %>% ScaleData()
+nonCD8.harmony <- nonCD8.harmony %>% RunPCA(features = VariableFeatures(nonCD8.harmony), verbose = FALSE)
+
+## already has the patient there
+options(repr.plot.height = 5, repr.plot.width = 12)
+DimPlot(object = nonCD8.harmony, dims=c(1,2), reduction = "pca", pt.size = .1, group.by = "patient", split.by='patient')
+DimPlot(object = nonCD8.harmony, dims=c(1,2), reduction = "pca", pt.size = .1, group.by = "patient")
+DimPlot(object = nonCD8.harmony, dims=c(2,3), reduction = "pca", pt.size = .1, group.by = "patient")
+
+VlnPlot(object = nonCD8.harmony, features = "PC_1", group.by = "patient", pt.size = .1)
+# plot_grid(p1,p3)
+
+```
+
+```{R run harmony}
+nonCD8.harmony <- nonCD8.harmony %>% RunHarmony("batchID", plot_convergence = TRUE)
+nonCD8.harmony <- nonCD8.harmony %>% 
+    RunUMAP(reduction = "harmony", dims=1:50) %>%
+    FindNeighbors(reduction = "harmony", dims = 1:50) %>% 
+    FindClusters(resolution = 0.5) %>% 
+    identity()
+
+DimPlot(nonCD8.harmony, reduction='umap', label=TRUE)
+DimPlot(nonCD8.harmony, reduction='umap', split.by='sample')
+Idents(nonCD8.harmony) <- nonCD8.harmony$sample
+DimPlot(nonCD8.harmony, reduction='umap')
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters
+
+```
+
+```{r read in CD8.harmony}
+saveRDS(nonCD8.harmony, file = "R_output/Seurat_objects/no.variable/nonCD8020220216")
+nonCD8.harmony = readRDS(file = "R_output/Seurat_objects/no.variable/nonCD8020220216")
+```
+
+```{R make clustertree}
+res = c(0.30, 0.35, 0.40, 0.45, 0.50, 0.55, 0.60, 0.65, 0.70, 0.75, 0.80, 0.85, 0.90, 0.95, 1)
+
+for (i in res) {
+  nonCD8.harmony <- FindClusters(nonCD8.harmony, resolution=i)
+  nonCD8.harmony@meta.data[,paste0('clusters_', as.character(i))]<-nonCD8.harmony$seurat_clusters
+}
+
+clustertree <- clustree(nonCD8.harmony)
+
+```
+
+```{R plot by resolution}
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.3
+d1 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.30")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.35
+d2 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.35")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.4
+d3 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.40")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.45
+d4 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.45")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.5
+d5 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.50")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.55
+d6 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.55")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.6
+d7 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.60")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.65
+d8 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.65")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.7
+d9 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.70")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.75
+d10 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.75")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.8
+d11 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.80")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.85
+d12 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.85")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.9
+d13 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.90")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.95
+d14 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.95")
+
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_1
+d15 = DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 1")
+
+d1
+d2
+d3
+d4
+d5
+d6
+d7
+d8
+d9
+d10
+d11
+d12
+d13
+d14
+d15
+```
+
+```{r}
+nonCD8.harmony$clusters <- nonCD8.harmony$clusters_0.45
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters
+DimPlot(nonCD8.harmony, reduction = "umap", label = TRUE) + labs(title = "Res = 0.45")
+#selected a stable solution at Res = 0.45
+```
+
+
+```{R save point}
+saveRDS(nonCD8.harmony, "R_output/Seurat_objects/no.variable/nonCD8.harmonized.rds")
+nonCD8.harmony <- readRDS("R_output/Seurat_objects/no.variable/nonCD8.harmonized.rds")
+#Exclude cluster 11 due to small size and minimal TCR representation (94 cells, 3 with clonotype)
+nonCD8.harmony <- subset(nonCD8.harmony, subset = (clusters != 11))
+saveRDS(nonCD8.harmony, "R_output/Seurat_objects/no.variable/nonCD8.harmonizedno11.rds")
+nonCD8.harmony <- readRDS("R_output/Seurat_objects/no.variable/nonCD8.harmonizedno11.rds")
+```
+
+```{R}
+Idents(nonCD8.harmony) <- nonCD8.harmony$clusters_0.45
+nonCD8.harmony$clusters <- Idents(object = nonCD8.harmony)
+nonCD8.markers <- FindAllMarkers(nonCD8.harmony, min.pct = 0.25, logfc.threshold = log(2))
+write.xlsx(CD8.markers, 'R_output/no.variable/harmonizednonCD8no11.20220302')
+#Supp. Table 7
+```
+
+```{R}
+#based on cluster identities, preserved only clusters that contain true CD4 T cells, as opposed to CD8-negative T cells
+nonCD8.harmony$HasClonotype <- ifelse(is.na(nonCD8.harmony$TCR.Clone), 0, 1)
+CD4 <- subset(nonCD8.harmony, subset = (clusters == 0| clusters == 4| clusters == 5| clusters == 6| clusters ==7| clusters == 8| clusters == 9))
+saveRDS(CD4, "R_output/no.variable/CD4.rds")
+```
+
+```{R establish CD4 and CD8- counts and frequencies}
+clonotypetable <- table(CD4$TCR.Clone)
+clonotypetablebytissue <- table(CD4$TCR.Clone, CD4$sampleorigin)
+clonotypescttum <- clonotypetablebytissue[,2]
+clonotypesctnorm <- clonotypetablebytissue[,1]
+clonotypesctmet <- clonotypetablebytissue[,3]
+clonotypesums <- rowSums(clonotypetablebytissue)
+
+totcts <- clonotypesums[as.factor(CD4$TCR.Clone)]
+tumcts <- clonotypescttum[as.factor(CD4$TCR.Clone)]
+normcts <- clonotypesctnorm[as.factor(CD4$TCR.Clone)]
+metcts <- clonotypesctmet[as.factor(CD4$TCR.Clone)]
+CD4$totalcountinCD4 <- totcts
+CD4$countintuminCD4 <- tumcts
+CD4$countinnorminCD4 <- normcts
+CD4$countinmetinCD4 <- metcts
+
+CD4withclono <- subset(CD4, subset = (HasClonotype == 1))
+nonCD8withclono <- subset(nonCD8.harmony, subset = (HasClonotype == 1))
+
+ptlist <- unique(patient)
+clonoptlist.1 <- str_split(ptlist, "-")
+clonoptlist <- 0
+for (i in 1:length(ptlist)){
+  clonoptlist[i] <- paste0("p", clonoptlist.1[[i]][2])
+}
+
+totalCD4clono <- table(CD4withclono$patient, CD4withclono$sampleorigin)
+totalCD4clono <- totalCD4clono[ptlist,]
+totalCD4tum <- totalCD4clono[,2]
+totalCD4norm <- totalCD4clono[,1]
+totalCD4met <- totalCD4clono[,3]
+totalCD4sum <- rowSums(totalCD4clono)
+
+totalnonCD8clono <- table(nonCD8withclono$patient, nonCD8withclono$sampleorigin)
+totalnonCD8clono <- totalnonCD8clono[ptlist,]
+totalnonCD8tum <- totalnonCD8clono[,2]
+totalnonCD8norm <- totalnonCD8clono[,1]
+totalnonCD8met <- totalnonCD8clono[,3]
+totalnonCD8sum <- rowSums(totalnonCD8clono)
+
+CD4$freqinCD4 <- 0
+CD4$freqinCD4tum <- 0
+CD4$freqinCD4norm <- 0
+CD4$freqinCD4met <- 0
+CD4$freqinnonCD8 <- 0
+CD4$freqinnonCD8tum <- 0
+CD4$freqinnonCD8norm <- 0
+CD4$freqinnonCD8met <- 0
+for (i in 1:length(totalCD4sum)){
+  CD4$freqinCD4 <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$totalcountinCD4/totalCD4sum[i], CD4$freqinCD4)
+  CD4$freqinCD4tum <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$countintuminCD4/totalCD4tum[i], CD4$freqinCD4tum)
+  CD4$freqinCD4norm <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$countinnorminCD4/totalCD4norm[i], CD4$freqinCD4norm)
+  CD4$freqinCD4met <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$countinmetinCD4/totalCD4met[i], CD4$freqinCD4met)
+  CD4$freqinnonCD8 <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$totalcountinCD4/totalnonCD8sum[i], CD4$freqinnonCD8)
+  CD4$freqinnonCD8tum <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$countintuminCD4/totalnonCD8tum[i], CD4$freqinnonCD8tum)
+  CD4$freqinnonCD8norm <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$countinnorminCD4/totalnonCD8norm[i], CD4$freqinnonCD8norm)
+  CD4$freqinnonCD8met <- ifelse(grepl(pattern = clonoptlist[i], x = CD4$TCR.Clone, fixed = TRUE), CD4$countinmetinCD4/totalnonCD8met[i], CD4$freqinnonCD8met)
+}
+
+barcodes = CD4@meta.data[,c('totalcountinCD4', 'countintuminCD4', 'countinnorminCD4', 'countinmetinCD4', 'freqinCD4', 'freqinCD4tum', 'freqinCD4norm' , 'freqinCD4met', 'freqinnonCD8', 'freqinnonCD8tum', 'freqinnonCD8norm', 'freqinnonCD8met', 'totalcountinCD4', 'orig.ident')]
+barcodes$cell.barcode = rownames(barcodes)
+
+fullbarcodes = data.frame(cell.barcode = nonCD8.harmony@assays$RNA@data@Dimnames[[2]])
+
+allb=0
+allb = merge(fullbarcodes, barcodes, by='cell.barcode', all.x = TRUE, sort = FALSE)
+rownames(allb)<-allb$cell.barcode
+head(allb)
+allb <- allb[order(match(allb[,1],fullbarcodes[,1])),]
+
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$totalcountinCD4, col.name="totalcountinCD4")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$countintuminCD4, col.name="countintuminCD4")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$countinnorminCD4, col.name="countinnorminCD4")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$countinmetinCD4, col.name="countinmetinCD4")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinCD4, col.name="freqinCD4")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinCD4tum, col.name="freqinCD4tum")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinCD4norm, col.name="freqinCD4norm")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinCD4met, col.name="freqinCD4met")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinnonCD8, col.name="freqinnonCD8")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinnonCD8tum, col.name="freqinnonCD8tum")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinnonCD8norm, col.name="freqinnonCD8norm")
+nonCD8.harmony <- AddMetaData(nonCD8.harmony, metadata=allb$freqinnonCD8met, col.name="freqinnonCD8met")
+```
+
+```{R score nonCD8 T cells}
+#exhaustion, memory, proliferation, Treg, and antitumor CD4s derive from Oliveira et al., 2022. Nature.
+
+exhaustion = list(c('PDCD1', 'TIGIT', 'LAG3', 'HAVCR2', 'CTLA4', 'TOX'))
+memory = list(c('TCF7', 'SELL', 'IL7R', 'CCR7', 'CD28'))
+proliferation = list(c('MKI67', 'TOP2A', 'STMN1'))
+newTreg = list(c('FOXP3', 'IL2R'))
+cytotoxic_antitumor_CD4s = list(c('ADGRG1', 'CADM1', 'RDH10', 'HMOX1', 'GNLY', "HAVCR2", "PRF1", "SLC27A2", "NKG7", "CCL4", "GZMA", "SLC1A4", "GZMK", "LAG3", "NCDN", "CST7", "CXCR6", "UBE2E3", "KIAA0319L", "CHST12", "PDCD1", "SLA2", "PTMS", "CCL5", "RHBDF2", "CD27", "IGFLR1", "CTSW", "GGA2", "APOBEC3G"))
+TFH_TPE_antitumor_CD4s = list(c("CXCL13", "GNG4", "NMB", "CD200", "IGFBP4", "BTLA", "CCDC50", "KIAA1324", "PGM2L1", "GRAMD1A", "NCOA7", "FABP5", "FKBP5", "TNFSF8", "SESN3", "SH2D1A", "NPDC1"))
+Treg_antitumor_CD4s = list(c("FOXP3", "CARD16", "LAYN", "ACP5", "LINC01943", "MIR4435-2HG", "HTATIP2", "CASP1", "CTSC", "TIGIT", "IL32", "TBC1D4", "CHST7", "DNPH1", "MAGEH1", "TNFRSF9", "BATF", "S100A4", "TNFRSF18", "CXCR6", "GBP5", "STAM", "LGALS3", "GLRX", "ZBTB38", "ATP1B1", "IL2RA", "CTLA4"))
+
+Idents(nonCD8.harmony)<-nonCD8.harmony$clusters
+cell_group = newTreg
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(nonCD8.harmony)]
+nonCD8.harmony <- AddModuleScore(nonCD8.harmony, features=cell_group, name='Treg')
+
+cell_group = exhaustion
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(nonCD8.harmony)]
+nonCD8.harmony <- AddModuleScore(nonCD8.harmony, features=cell_group, name='exhaustion')
+
+cell_group = memory
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(CD4.harmony)]
+nonCD8.harmony <- AddModuleScore(CD4.harmony, features=cell_group, name='memory')
+
+cell_group = proliferation
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(nonCD8.harmony)]
+nonCD8.harmony <- AddModuleScore(nonCD8.harmony, features=cell_group, name='proliferation')
+
+cell_group = cytotoxic_antitumor_CD4s
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(nonCD8.harmony)]
+nonCD8.harmony <- AddModuleScore(nonCD8.harmony, features=cell_group, name='cytotoxic_antitumor_CD4s')
+
+cell_group = TFH_TPE_antitumor_CD4s
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(nonCD8.harmony)]
+nonCD8.harmony <- AddModuleScore(nonCD8.harmony, features=cell_group, name='TFH_TPE_antitumor_CD4s')
+
+cell_group = Treg_antitumor_CD4s
+cell_group[[1]] = cell_group[[1]][cell_group[[1]] %in% rownames(nonCD8.harmony)]
+nonCD8.harmony <- AddModuleScore(nonCD8.harmony, features=cell_group, name='Treg_antitumor_CD4s')
+
+saveRDS(nonCD8.harmony, "R_output/Seurat_objects/no.variable/nonCD8.harmonizedno11withfreq03022022")
+nonCD8.harmony <- readRDS("R_output/Seurat_objects/no.variable/nonCD8.harmonizedno11withfreq03022022")
+```
+
+```{R cluster counts by patient by sample origin}
+tumorsample <- subset(nonCD8.harmony, subset = (sampleorigin == "Tumor"))
+normalsample <- subset(nonCD8.harmony, subset = (sampleorigin == "Normal"))
+metsample <- subset(nonCD8.harmony, subset = (sampleorigin == "Met"))
+
+tumbycluster <- table(tumorsample$clusters, tumorsample$patient)
+normbycluster <- table(normalsample$clusters, normalsample$patient)
+metbycluster <- table(metsample$clusters, metsample$patient)
+
+wb <- createWorkbook()
+name <- "Tumor"
+addWorksheet(wb, name)
+writeData(wb, sheet = name, tumbycluster)
+addWorksheet(wb, "Normal")
+writeData(wb, sheet = "Normal", normbycluster)
+addWorksheet(wb, "Met")
+writeData(wb, sheet = "Met", metbycluster)
+saveWorkbook(wb, file = 'R_output/no.variable/CD4countbypatientbycluster.xlsx', overwrite = TRUE)
+```
+
+```{R defining "final" clusters}
+nonCD8.harmony$final.cluster <- 0
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 0, "Effector Memory", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse((nonCD8.harmony$clusters == 1|nonCD8.harmony$clusters == 8), "Apop", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 2, "Monocyte-like", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 3, "GD T-like", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 4, "Treg", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 5, "FGFBP2+ T", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 6, "TN/CM", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 7, "Exhausted", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 9, "Proliferating", nonCD8.harmony$final.cluster)
+nonCD8.harmony$final.cluster <- ifelse(nonCD8.harmony$clusters == 10, "Erythrocytes", nonCD8.harmony$final.cluster)
+
+clusterbyorigin <- table(nonCD8.harmony$final.cluster, nonCD8.harmony$sampleorigin)
+colSums(clusterbyorigin)
+clusterbyorigin
+
+freqclusterbyorigin <- clusterbyorigin
+freqclusterbyorigin[,1] <- clusterbyorigin[,1]/colSums(clusterbyorigin)[1]
+freqclusterbyorigin[,2] <- clusterbyorigin[,2]/colSums(clusterbyorigin)[2]
+freqclusterbyorigin[,3] <- clusterbyorigin[,3]/colSums(clusterbyorigin)[3]
+freqclusterbyorigin
+
+nonCD8.harmony.2 <- subset(nonCD8.harmony, subset = (patient == "16097-102"))
+pat2clusters <- table(nonCD8.harmony.2$clusters, nonCD8.harmony.2$sampleorigin)
+pat2sums <- colSums(pat2clusters)
+
+freqclusterbyorigin2 <- pat2clusters
+freqclusterbyorigin2[,1] <- pat2clusters[,1]/pat2sums[1]
+freqclusterbyorigin2[,2] <- pat2clusters[,2]/pat2sums[2]
+freqclusterbyorigin2[,3] <- pat2clusters[,3]/pat2sums[3]
+freqclusterbyorigin2
+
+nonCD8.harmony.8 <- subset(nonCD8.harmony, subset = (patient == "16097-108"))
+pat8clusters <- table(nonCD8.harmony.8$clusters, nonCD8.harmony.8$sampleorigin)
+pat8sums <- colSums(pat8clusters)
+
+freqclusterbyorigin8 <- pat8clusters
+freqclusterbyorigin8[,1] <- pat8clusters[,1]/pat8sums[1]
+freqclusterbyorigin8[,2] <- pat8clusters[,2]/pat8sums[2]
+freqclusterbyorigin8[,3] <- pat8clusters[,3]/pat8sums[3]
+freqclusterbyorigin8
+
+nonCD8.harmony.9 <- subset(nonCD8.harmony, subset = (patient == "16097-109"))
+pat9clusters <- table(nonCD8.harmony.9$clusters, nonCD8.harmony.9$sampleorigin)
+pat9sums <- colSums(pat9clusters)
+
+freqclusterbyorigin9 <- pat9clusters
+freqclusterbyorigin9[,1] <- pat9clusters[,1]/pat9sums[1]
+freqclusterbyorigin9[,2] <- pat9clusters[,2]/pat9sums[2]
+freqclusterbyorigin9[,3] <- pat9clusters[,3]/pat9sums[3]
+freqclusterbyorigin9
+
+nonCD8.harmony.10 <- subset(nonCD8.harmony, subset = (patient == "16097-110"))
+pat10clusters <- table(nonCD8.harmony.10$clusters, nonCD8.harmony.10$sampleorigin)
+pat10sums <- colSums(pat10clusters)
+
+freqclusterbyorigin10 <- pat10clusters
+freqclusterbyorigin10[,1] <- pat10clusters[,1]/pat10sums[1]
+freqclusterbyorigin10[,2] <- pat10clusters[,2]/pat10sums[2]
+freqclusterbyorigin10[,3] <- pat10clusters[,3]/pat10sums[3]
+freqclusterbyorigin10
+
+clustertots <- table(nonCD8.harmony$clusters)
+clustbyclono <- table(nonCD8.harmony$clusters, nonCD8.harmony$HasClonotype)
+
+freqclustbyclono <- clustbyclono
+freqclustbyclono[,1] <- clustbyclono[,1]/clustertots
+freqclustbyclono[,2] <- clustbyclono[,2]/clustertots
+```
+
+###### TCR Clonotype Export #######
+
+```{R Export TCR information}
+CD4 <- subset(nonCD8.harmony, subset = (clusters == 0| clusters == 4| clusters == 5| clusters == 6| clusters ==7| clusters == 8| clusters == 9))
+saveRDS(CD4, "../R_output/Seurat_objects/CD4final.rds")
+CD4 <- readRDS("R_output/Seurat_objects/CD4final.rds")
+barcodes = CD4@meta.data[,c('nCount_RNA', 'orig.ident')]
+barcodes$cell.barcode = rownames(barcodes)
+
+tcr.clone = rbind(tcr.clone.101, tcr.clone.102, tcr.clone.104, tcr.clone.105, tcr.clone.106, tcr.clone.107, tcr.clone.108, tcr.clone.109, tcr.clone.110, tcr.clone.111, tcr.clone.112)
+
+#remove any duplicate barcodes - double assignments from tcr algorithm
+tcr.clone = tcr.clone %>% distinct(tcr.clone$cell.barcode, .keep_all= TRUE)
+
+tcr.sub = tcr.clone[,c('clonotype.ID', 'cell.barcode', 'clone', 'cdr3_aa', 'category', 'alpha.1', 'TRAV', 'TRAJ', 'alpha.aa', 'alpha.2', 'TRAV.2', 'TRAJ.2', 'alpha.aa.2', 'beta.1', 'TRBV', 'TRBD', 'TRBJ', 'beta.aa', 'beta.2', 'TRBV.2', 'TRBD.2', 'TRBJ.2', 'beta.aa.2')];
+# for (i in 1:ncol(tcr.sub)) {
+#   tcr.sub[,i]<- as.character(tcr.sub[,i])
+# }
+
+allb = merge(barcodes, tcr.sub, by='cell.barcode', all=TRUE)
+rownames(allb)<-allb$cell.barcode
+head(allb); allb = allb[rownames(barcodes), ]; head(allb)
+
+CD4 <- AddMetaData(CD4, metadata=allb$category, col.name="category")
+CD4 <- AddMetaData(CD4, metadata=allb$cdr3_aa, col.name="cdr3_aa")
+CD4 <- AddMetaData(CD4, metadata=allb$TRAV, col.name="TRAV")
+CD4 <- AddMetaData(CD4, metadata=allb$TRAJ, col.name="TRAJ")
+CD4 <- AddMetaData(CD4, metadata=allb$alpha.aa, col.name="alpha.aa")
+CD4 <- AddMetaData(CD4, metadata=allb$TRBV, col.name="TRBV")
+CD4 <- AddMetaData(CD4, metadata=allb$TRBJ, col.name="TRBJ")
+CD4 <- AddMetaData(CD4, metadata=allb$beta.aa, col.name="beta.aa")
+CD4 <- AddMetaData(CD4, metadata=allb$TRBD, col.name="TRBD")
+CD4 <- AddMetaData(CD4, metadata=allb$TRAV.2, col.name="TRAV.2")
+CD4 <- AddMetaData(CD4, metadata=allb$TRAJ.2, col.name="TRAJ.2")
+CD4 <- AddMetaData(CD4, metadata=allb$alpha.aa.2, col.name="alpha.aa.2")
+CD4 <- AddMetaData(CD4, metadata=allb$TRBV.2, col.name="TRBV.2")
+CD4 <- AddMetaData(CD4, metadata=allb$TRBD.2, col.name="TRBD.2")
+CD4 <- AddMetaData(CD4, metadata=allb$TRBJ.2, col.name="TRBJ.2")
+CD4 <- AddMetaData(CD4, metadata=allb$beta.aa.2, col.name="beta.aa.2")
+CD4 <- AddMetaData(CD4, metadata=allb$clonotype.ID, col.name="clonotype.ID")
+CD4 <- AddMetaData(CD4, metadata=colnames(CD4), col.name = "cell.barcode")
+
+g.table = CD4@meta.data[,c('orig.ident', 'sample', 'patient', 'sampleorigin', 'TCR.Clone', 'clusters', 'countintuminCD4', 'countinnorminCD4', 'countinmetinCD4', 'totalcountinCD4', 'freqinCD4', 'freqinCD4tum', 'freqinCD4met', 'freqinCD4norm')]
+g.table$cell.barcode <- rownames(CD4@meta.data)
+rownames(g.table) <- rownames(CD4@meta.data)
+head(g.table)
+
+wb <- createWorkbook()
+name <- "TCR clones"
+addWorksheet(wb, name)
+writeData(wb, sheet = name, g.table)
+
+saveWorkbook(wb, file = 'R_output/no.variable/CD4.clonotype.cluster.spreadsheet.xlsx', overwrite = TRUE)
+
+g.table = CD4@meta.data[,c('patient', 'category', 'sampleorigin', 'TCR.Clone', 'cell.barcode', 'cdr3_aa', 'countintuminCD4', 'countinnorminCD4', 'countinmetinCD4', 'totalcountinCD4', 'TRAV', 'TRAJ', 'alpha.aa', 'TRBV', 'TRBJ', 'beta.aa', 'TRBD', 'freqinCD4', 'freqinCD4tum', 'freqinCD4met', 'TRAV.2', 'TRAJ.2', 'alpha.aa.2', 'TRBV.2', 'TRBD.2', 'TRBJ.2', 'beta.aa.2', 'sample', 'clusters', 'clonotype.ID')]
+rownames(g.table) <- rownames(CD4@meta.data)
+head(g.table)
+
+wb <- createWorkbook()
+name <- "TCR clones"
+addWorksheet(wb, name)
+writeData(wb, sheet = name, g.table)
+
+saveWorkbook(wb, file = '../R_output/no.variable/CD4infosheet.xlsx', overwrite = TRUE)
+```
+
+
+```{R}
+CD4Tex <- subset(CD4, subset = (clusters == 7 | clusters == 9))
+CD4TEM <- subset(CD4, subset = (clusters == 0 | clusters == 5))
+CD4Treg <- subset(CD4, subset = (clusters == 4))
+CD4other <- subset(CD4, subset = (clusters == 8))
+CD4TNCM <- subset(CD4, subset = (clusters == 6))
+
+
+RCCdistribution <- rbind(c(0), c(0))
+RCCdistributionTex <- as.data.frame(table(CD4Tex$TCR.Clone))
+RCCdistributionTEM <- as.data.frame(table(CD4TEM$TCR.Clone))
+RCCdistributionOther <- as.data.frame(table(CD4other$TCR.Clone))
+RCCdistributionTreg <- as.data.frame(table(CD4Treg$TCR.Clone))
+RCCdistributionTNCM <- as.data.frame(table(CD4TNCM$TCR.Clone))
+
+RCCdistribution <- full_join(RCCdistributionTex, RCCdistributionTEM, by = "Var1")
+RCCdistribution <- full_join(RCCdistribution, RCCdistributionOther, by = "Var1")
+RCCdistribution <- full_join(RCCdistribution, RCCdistributionTreg, by = "Var1")
+RCCdistribution <- full_join(RCCdistribution, RCCdistributionTNCM, by = "Var1")
+
+colnames(RCCdistribution) <- c("Clonotype", "Count TEx", "Count TEM", "Count Other", "Count Treg", "Count TNCM")
+rownames(RCCdistribution) <- RCCdistribution$Clonotype
+RCCdistribution <- RCCdistribution[,2:6]
+RCCdistNA <- RCCdistribution
+
+RCCdistNA$`Count TEx` <- ifelse(is.na(RCCdistribution$`Count TEx`), 0, RCCdistribution$`Count TEx`)
+RCCdistNA$`Count TEM` <- ifelse(is.na(RCCdistribution$`Count TEM`), 0, RCCdistribution$`Count TEM`)
+RCCdistNA$`Count Other` <- ifelse(is.na(RCCdistribution$`Count Other`), 0, RCCdistribution$`Count Other`)
+RCCdistNA$`Count Treg` <- ifelse(is.na(RCCdistribution$`Count Treg`), 0, RCCdistribution$`Count Treg`)
+RCCdistNA$`Count TNCM` <- ifelse(is.na(RCCdistribution$`Count TNCM`), 0, RCCdistribution$`Count TNCM`)
+RCCdistNA$`Sums` <- rowSums(RCCdistNA)
+RCCdistNA$`Freq TEx` <- RCCdistNA$`Count TEx`/RCCdistNA$`Sums`
+RCCdistNA$`Freq TEM` <- RCCdistNA$`Count TEM`/RCCdistNA$`Sums`
+RCCdistNA$`Freq Other` <- RCCdistNA$`Count Other`/RCCdistNA$`Sums`
+RCCdistNA$`Freq Treg` <- RCCdistNA$`Count Treg`/RCCdistNA$`Sums`
+RCCdistNA$`Freq TNCM` <- RCCdistNA$`Count TNCM`/RCCdistNA$`Sums`
+
+RCCdistNA$`Primary Cluster` <- "Other/NA"
+for (i in 1:dim(RCCdistNA)[1]){
+  if(RCCdistNA$`Freq TEx`[i] >= 0.6){
+    RCCdistNA$`Primary Cluster`[i] <- "TEx"
+  }
+  if(RCCdistNA$`Freq TEM`[i] >= 0.6){
+    RCCdistNA$`Primary Cluster`[i] <- "TEM"
+  }
+  if(RCCdistNA$`Freq Treg`[i] >= 0.6){
+    RCCdistNA$`Primary Cluster`[i] <- "Treg"
+  }
+  if(RCCdistNA$`Freq TNCM`[i] >= 0.6){
+    RCCdistNA$`Primary Cluster`[i] <- "TNCM"
+  }
+}
+
+CD4$PrimaryCluster <- "NA"
+for (i in 1:dim(RCCdistNA)[1]){
+  templist <- grep(paste0("^", rownames(RCCdistNA)[i], "$"), CD4$TCR.Clone)
+  CD4$PrimaryCluster[templist] <- RCCdistNA$`Primary Cluster`[i]
+}
+
+saveRDS(CD4, "R_output/Seurat_objects/CD4finalwPrimaryCluster.rds")
+```
+
+```{R}
+#so what about gene programs? what are the qualities of T cells, for instance, between these categories
+CD8.harmony <- readRDS("../objects/CD8withPBMCfreq.rds")
+CD8.harmony$freqinCD8.2 <- ifelse(CD8.harmony$freqinCD8 >= 0.02, 0.02, CD8.harmony$freqinCD8)
+
+png(paste0("../RCC Paper TCR Functional and Spatial Properties/Figures/freqinCD8.2.png"), width = 6, height = 4, units='in', res=500)
+FeaturePlot(CD8.harmony, "freqinCD8.2", cols = c("#d3d2d4", "#d1001c")) + NoLegend() #Extended Data Figure 5a
+dev.off()
+
+CD8.harmony@meta.data <- CD8.harmony@meta.data %>%
+  mutate(TLS.binary = case_when(
+    patient %in% c("16097-108", "16097-106", "16097-102", "16097-107", "16097-112", "16097-104", "16097-101") ~ "TLS+",
+    patient %in% c("16097-105", "16097-110", "16097-111", "16097-109") ~ "TLS-"
+  ))
+
+CD8.harmony.tumormet <- subset(CD8.harmony, subset = sampleorigin %in% c("Tumor", "Met"))
+Idents(CD8.harmony.tumormet) <- CD8.harmony.tumormet$TLS.binary
+CD8.harmony.binary <- FindAllMarkers(CD8.harmony.tumormet, min.pct = 0.25, logfc.threshold = log(2))
+
+ordered_freq_list_forplots.binary <- list()
+# Loop through each cell type and reshape + reorder the data
+for (cell in unique(CD8.harmony.tumormet$clusters)) {
+  freq_data <- CD8.harmony.tumormet@meta.data %>%
+    group_by(sample, TLS.binary) %>%
+    summarise(cell_type_frequency = sum(clusters == cell) / n(), .groups = "drop") 
+  ordered_freq_list_forplots.binary[[cell]] <- freq_data
+}
+
+column_order.binary <- c("sample", "TLS+", "TLS-")
+# Loop through each cell type and reshape the data
+ordered_freq_list.binary <- list()
+
+for (cell in unique(CD8.harmony.tumormet$clusters)) {
+  freq_data <- CD8.harmony.tumormet@meta.data %>%
+    group_by(sample, TLS.binary) %>%
+    summarise(cell_type_frequency = sum(clusters == cell) / n(), .groups = "drop") %>%
+    pivot_wider(names_from = TLS.binary, values_from = cell_type_frequency) %>%
+    select(any_of(column_order.binary))  # Reorder columns
+
+  # Set patient_id as row names
+  freq_data <- as.data.frame(freq_data)  # Ensure it's a dataframe
+  rownames(freq_data) <- freq_data$sample  # Set row names 
+  # Store in list with the cell type as the name
+  ordered_freq_list.binary[[cell]] <- freq_data
+}
+
+output_file.binary <- "R_output/Processing Output (XLSX + PDF)/CD8.clusterfreq.TLSornot.xlsx"
+writexl::write_xlsx(ordered_freq_list.binary, path = output_file.binary)
+
+unique_patients <- unique(ordered_freq_list_forplots[[1]]$sample)
+patient_colors <- setNames(c("6T" = "#333333", "7T" = "#FF85FF", "8M" = "#009092", "8T" = "#009092", "9T" = "#521B93", "10T" = "#9B2010", "1T" = "#FFFFFF", "11T" = "#D5FC79", "12T" = "#999999", "2T" = "#FF9300", "4M" = "#CCCCCC", "4T" = "#CCCCCC", "5T" = "#666666"), unique_patients)  # Assign unique colors
+patient_shapes <- setNames(c("6T" = 22, "7T" = 22, "8M" = 23, "8T" = 22, "9T" = 21, "10T" = 21, "1T" = 22,  "11T" = 21, "12T" = 22, "2T" = 22, "4M" = 23, "4T" = 22, "5T" = 21), unique_patients)  # Assign unique shapes
+group_colors.binary <- c("TLS+" = "#709681", "TLS-" = "#000000")
+
+#need to exclude 8M and 4M because they don't have TLS, and are not relevant to the question
+# Define patients to exclude
+exclude_patients <- c("4M", "8M")  # Replace with actual patient IDs
+# Filter out the unwanted patients
+freq_data_filtered.binary <- lapply(ordered_freq_list_forplots.binary, function(x){x %>% filter(!sample %in% exclude_patients)})
+i = 1
+for(i in (1:length(freq_data_filtered.binary))){
+plot <- ggplot(freq_data_filtered.binary[[i]], aes(x = TLS.binary, y = cell_type_frequency)) +
+  geom_boxplot(aes(fill = TLS.binary), outlier.shape = NA, alpha = 0.5) +  # Boxplot in gray
+  geom_jitter(aes(shape = sample, fill = sample), 
+              color = "black",  # Black outline
+              stroke = 0.25,  # Outline thickness
+              width = 0.2,
+              height = 0, 
+              size = 5) +  # Adjust size
+  scale_shape_manual(values = patient_shapes) +  # Apply patient-specific shapes
+  scale_fill_manual(values = c(group_colors, patient_colors)) +  # Apply patient-specific colors
+  theme_minimal() +
+  labs(title = paste(names(freq_data_filtered.binary)[[i]]),
+       y = "Cell Type Frequency") +
+  theme(panel.grid = element_blank(),  # Removes all grid lines
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Adds black border
+    plot.background = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Outer plot border
+    axis.ticks.y = element_line(color = "black", linewidth = 0.5), 
+    legend.position = "none") 
+file_name <- paste0("../RCC Paper TCR Functional and Spatial Properties/Figures/Unassigned panels/T cell type TLS+.v.-/", 
+                    gsub("[^A-Za-z0-9_]", "_", names(freq_data_filtered.binary)[i]), 
+                    ".pdf")
+ggsave(file=file_name, plot=plot, width=4, height=8)
+} #these values were used and entered into GraphPad Prism 10 to form Figure 1j, Extended Data 4c
+```
+
+```{R}
+# Initialize an empty list to store test results
+mann_whitney_results.binary <- list()
+
+# Loop through each cell type (each data frame in freq_list)
+for (cell_type in names(freq_data_filtered.binary)) {
+  df <- freq_data_filtered.binary[[cell_type]]  # Get the data frame for this cell type
+  
+  # Ensure the table has at least two groups
+  if (length(unique(df$TLS.binary)) < 2) {
+    warning(paste("Skipping", cell_type, "- less than two groups"))
+    next
+  }
+
+  # Perform Mann-Whitney test for the current cell type
+  test_result <- wilcox.test(cell_type_frequency ~ TLS.binary, data = df)
+
+  # Store result in a list
+  mann_whitney_results.binary[[cell_type]] <- test_result
+}
+
+# Print results for each cell type
+mann_whitney_results.binary
+
+p.val <- sapply(mann_whitney_results.binary, function(x){
+  y <- x$p.value
+  return(y)
+})
+#TEx-2 is significant (cluster 0)
+p.val
+
+t_test_results <- list()
+wilcoxon_results <- list()
+fold_changes <- list()
+
+# Loop through each cell type
+for (cell_type in names(freq_data_filtered.binary)) {
+  df <- freq_data_filtered.binary[[cell_type]]  # Get the data frame for this cell type
+  
+  # Ensure the table has at least two groups
+  if (length(unique(df$TLS.binary)) < 2) {
+    warning(paste("Skipping", cell_type, "- less than two groups"))
+    next
+  }
+
+  # Perform t-test
+  t_test_result <- t.test(cell_type_frequency ~ TLS.binary, data = df)
+
+  # Perform Wilcoxon rank-sum test (Mann-Whitney U test)
+  wilcoxon_result <- wilcox.test(cell_type_frequency ~ TLS.binary, data = df)
+
+  # Compute mean frequencies for each TLS group
+  means <- aggregate(cell_type_frequency ~ TLS.binary, data = df, mean)
+  
+  # Ensure there are exactly two groups before computing fold change
+  if (nrow(means) == 2) {
+    fold_change <- means$cell_type_frequency[means$TLS.binary == "TLS+"] / 
+                   means$cell_type_frequency[means$TLS.binary == "TLS-"]
+  } else {
+    fold_change <- NA  # If only one group exists, fold change is undefined
+  }
+
+  # Store results
+  t_test_results[[cell_type]] <- t_test_result
+  wilcoxon_results[[cell_type]] <- wilcoxon_result
+  fold_changes[[cell_type]] <- fold_change
+}
+
+# Extract p-values
+t_test_pvals <- sapply(t_test_results, function(x) x$p.value)
+wilcoxon_pvals <- sapply(wilcoxon_results, function(x) x$p.value)
+
+# Adjust p-values using Benjamini-Hochberg FDR correction
+t_test_pvals_adj <- p.adjust(t_test_pvals, method = "BH")
+wilcoxon_pvals_adj <- p.adjust(wilcoxon_pvals, method = "BH")
+
+# Convert fold change results into a data frame
+fold_changes_df <- data.frame(
+  Cell_Type = names(fold_changes),
+  Fold_Change = unlist(fold_changes)
+)
+```
+
+```{R}
+CD4.harmony <- readRDS("R_output/Seurat_objects/CD4finalwPrimaryCluster.rds")
+FeaturePlot(CD4.harmony, "countintuminCD4")
+CD4.harmony$freqinCD4.2 <- ifelse(CD4.harmony$freqinCD4 >= 0.02, 0.02, CD4.harmony$freqinCD4)
+FeaturePlot(CD4.harmony, "freqinCD4.2", cols = c("#d3d2d4", "#d1001c")) + NoLegend() #Extended Data Figure 5b
+
+png(paste0("../RCC Paper TCR Functional and Spatial Properties/Figures/Unassigned panels/freqinCD4.2.png"), width = 6, height = 4, units='in', res=500)
+FeaturePlot(CD4.harmony, "freqinCD4.2", cols = c("#d3d2d4", "#d1001c")) + NoLegend()
+dev.off()
+
+CD4.harmony@meta.data <- CD4.harmony@meta.data %>%
+  mutate(TLS.binary = case_when(
+    patient %in% c("16097-108", "16097-106", "16097-102", "16097-107", "16097-112", "16097-104", "16097-101") ~ "TLS+",
+    patient %in% c("16097-105", "16097-110", "16097-111", "16097-109") ~ "TLS-"
+  ))
+
+CD4.harmony.tumormet <- subset(CD4.harmony, subset = sampleorigin %in% c("Tumor", "Met"))
+Idents(CD4.harmony.tumormet) <- CD4.harmony.tumormet$TLS.binary
+CD4.harmony.binary <- FindAllMarkers(CD4.harmony.tumormet, min.pct = 0.25, logfc.threshold = log(2))
+
+ordered_freq_list_forplots.binary <- list()
+# Loop through each cell type and reshape + reorder the data
+for (cell in unique(CD4.harmony.tumormet$clusters)) {
+  freq_data <- CD4.harmony.tumormet@meta.data %>%
+    group_by(sample, TLS.binary) %>%
+    summarise(cell_type_frequency = sum(clusters == cell) / n(), .groups = "drop") 
+  ordered_freq_list_forplots.binary[[cell]] <- freq_data
+}
+
+column_order.binary <- c("sample", "TLS+", "TLS-")
+# Loop through each cell type and reshape the data
+ordered_freq_list.binary <- list()
+
+# Loop through each cell type and reshape + reorder the data
+for (cell in unique(CD4.harmony.tumormet$clusters)) {
+  freq_data <- CD4.harmony.tumormet@meta.data %>%
+    group_by(sample, TLS.binary) %>%
+    summarise(cell_type_frequency = sum(clusters == cell) / n(), .groups = "drop") %>%
+    pivot_wider(names_from = TLS.binary, values_from = cell_type_frequency) %>%
+    select(any_of(column_order.binary))  # Reorder columns
+
+  # Set patient_id as row names
+  freq_data <- as.data.frame(freq_data)  # Ensure it's a dataframe
+  rownames(freq_data) <- freq_data$sample  # Set row names 
+  # Store in list with the cell type as the name
+  ordered_freq_list.binary[[cell]] <- freq_data
+}
+
+output_file.binary <- "R_output/Processing Output (XLSX + PDF)/CD4.clusterfreq.TLSornot.xlsx" #these data were used for Extended Data Fig. 4d
+writexl::write_xlsx(ordered_freq_list.binary, path = output_file.binary)
+
+unique_patients <- unique(ordered_freq_list_forplots[[1]]$sample)
+patient_colors <- setNames(c("6T" = "#333333", "7T" = "#FF85FF", "8M" = "#009092", "8T" = "#009092", "9T" = "#521B93", "10T" = "#9B2010", "1T" = "#FFFFFF", "11T" = "#D5FC79", "12T" = "#999999", "2T" = "#FF9300", "4M" = "#CCCCCC", "4T" = "#CCCCCC", "5T" = "#666666"), unique_patients)  # Assign unique colors
+patient_shapes <- setNames(c("6T" = 22, "7T" = 22, "8M" = 23, "8T" = 22, "9T" = 21, "10T" = 21, "1T" = 22,  "11T" = 21, "12T" = 22, "2T" = 22, "4M" = 23, "4T" = 22, "5T" = 21), unique_patients)  # Assign unique shapes
+group_colors.binary <- c("TLS+" = "#709681", "TLS-" = "#000000")
+
+#need to exclude 8M and 4M because they don't have TLS, and are not relevant to the question
+# Define patients to exclude
+exclude_patients <- c("4M", "8M")  # Replace with actual patient IDs
+# Filter out the unwanted patients
+freq_data_filtered.binary <- lapply(ordered_freq_list_forplots.binary, function(x){x %>% filter(!sample %in% exclude_patients)})
+i = 1
+for(i in (1:length(freq_data_filtered.binary))){
+plot <- ggplot(freq_data_filtered.binary[[i]], aes(x = TLS.binary, y = cell_type_frequency)) +
+  geom_boxplot(aes(fill = TLS.binary), outlier.shape = NA, alpha = 0.5) +  # Boxplot in gray
+  geom_jitter(aes(shape = sample, fill = sample), 
+              color = "black",  # Black outline
+              stroke = 0.25,  # Outline thickness
+              width = 0.2,
+              height = 0, 
+              size = 5) +  # Adjust size
+  scale_shape_manual(values = patient_shapes) +  # Apply patient-specific shapes
+  scale_fill_manual(values = c(group_colors, patient_colors)) +  # Apply patient-specific colors
+  theme_minimal() +
+  labs(title = paste(names(freq_data_filtered.binary)[[i]]),
+       y = "Cell Type Frequency") +
+  theme(panel.grid = element_blank(),  # Removes all grid lines
+    panel.border = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Adds black border
+    plot.background = element_rect(color = "black", fill = NA, linewidth = 0.5),  # Outer plot border
+    axis.ticks.y = element_line(color = "black", linewidth = 0.5), 
+    legend.position = "none") 
+file_name <- paste0("../RCC Paper TCR Functional and Spatial Properties/Figures/Unassigned panels/T cell type TLS+.v.-/CD4.", 
+                    gsub("[^A-Za-z0-9_]", "_", names(freq_data_filtered.binary)[i]), 
+                    ".pdf")
+ggsave(file=file_name, plot=plot, width=4, height=8)
+}
+```
+
+```{R}
+#Plot key T cell lineage markers for Extended Data Fig. 4b
+lineagemarkers <- c("CD3E", "CD4", "CD8A", "SELL", "CCR7", "IL7R", "CD28", "FAS", "CD27", "ITGAE", "ITGAL", "ITGAM", "ITGAX", "PDCD1", "TIGIT", "HAVCR2", "LAG3", "CTLA4", "VTCN1", "CD244", "KLRG1", "TNFRSF14", "BTLA", "CD160", "CXCL13", "CD38", "ENTPD1", "NT5E", "CD69", "IL2RA", "ICOS", "TNFRSF4", "HLA-DRA", "CD40LG", "GZMA", "GZMB", "GZMH", "GZMK", "GZMM", "PRF1", "NKG7", "GNLY", "IFNG", "FASLG", "TNF", "IL17A", "IL2", "FGFBP2", "CX3CR1", "KLRB1", "KLRC3", "LEF1", "TCF7", "EOMES", "TBX21", "PRDM1", "TOX", "GATA3", "ID2", "ID3", "NR4A1", "ZNF683", "FOXP3", "MKI67", "TOP2A")
+lineagemarkers <- rev(lineagemarkers)
+
+lineagemean <- FetchData(object = CD8.harmony, vars = lineagemarkers)
+lineagemean[,66] <- FetchData(object = CD8.harmony, vars = "clusters")
+
+cluster_scores = aggregate(.~lineagemean[,66], lineagemean[,1:65], mean) 
+rownames(cluster_scores) <- cluster_scores$`lineagemean[, 66]`
+colnames(cluster_scores)[1] <- "clusters"
+cluster_scores <- cluster_scores[,2:66]
+cluster_scorem <- as.matrix(cluster_scores)
+cluster_scorem3 <- ifelse(cluster_scorem > 3, 3, cluster_scorem)
+
+colorder <- c(2,0,5,8,7,3,1,9,6,4)
+
+cluster_scoresre <- reshape2::melt(cluster_scorem3, "clusters")
+
+cluster_scoresre$ord.x <- factor(cluster_scoresre$clusters, ordered=TRUE, levels = colorder)
+
+colnames(cluster_scoresre) <- c("clusters", "Gene Name", "Value", "ord.x")
+cluster_scoresre$clusters <- as.character(cluster_scoresre$clusters)
+
+write.xlsx(as.data.frame(cluster_scorem3), "R_output/Processing Output (XLSX + PDF)/lineagemarkersTcells.xlsx", rowNames= TRUE)
+
+#repeat for nonCD8.harmony
+nonCD8.harmony <- readRDS("R_output/Seurat_objects/nonCD8.harmonizedno11.rds")
+lineagemean <- FetchData(object = nonCD8.harmony, vars = lineagemarkers)
+lineagemean[,66] <- FetchData(object = nonCD8.harmony, vars = "clusters")
+
+cluster_scores = aggregate(.~lineagemean[,66], lineagemean[,1:65], mean) 
+rownames(cluster_scores) <- cluster_scores$`lineagemean[, 66]`
+colnames(cluster_scores)[1] <- "clusters"
+cluster_scores <- cluster_scores[,2:66]
+cluster_scorem <- as.matrix(cluster_scores)
+cluster_scorem3 <- ifelse(cluster_scorem > 3, 3, cluster_scorem)
+
+colorder <- c(7,9,4,8,5,0,6,2,1,10,3)
+
+cluster_scoresre <- reshape2::melt(cluster_scorem3, "clusters")
+
+cluster_scoresre$ord.x <- factor(cluster_scoresre$clusters, ordered=TRUE, levels = colorder)
+
+colnames(cluster_scoresre) <- c("clusters", "Gene Name", "Value", "ord.x")
+cluster_scoresre$clusters <- as.character(cluster_scoresre$clusters)
+
+write.xlsx(as.data.frame(cluster_scorem3), "R_output/Processing Output (XLSX + PDF)/lineagemarkersnonCD8Tcells.xlsx", rowNames= TRUE)
+```
+
+```{R}
+#Fig. 4e
+CD8.harmony.tum <- subset(CD8.harmony, subset = sampleorigin %in% c("Tumor", "Met"))
+NeoAgTCRs.CD8 <- subset(CD8.harmony.tum, subset = TCR.Clone %in% c("p108_205", "p108_1", "p108_208", "p108_2", "p108_215", "p108_220", "p108_250", "p108_236", "p108_266", "p108_244", "p108_271"))
+
+NeoAgTCRs.CD8.clusters <- as.data.frame.matrix(table(NeoAgTCRs.CD8$TCR.Clone, NeoAgTCRs.CD8$clusters))
+NeoAgTCRs.CD8.clusters$clusters <- rownames(NeoAgTCRs.CD8.clusters)
+write.xlsx(NeoAgTCRs.CD8.clusters, "../RCC Paper TCR Functional and Spatial Properties/Supplementary Tables/NeoAgTCR.expansion.bycluster.xlsx")
+```
+
+```{R export of UMAPs Extended Data 6b, 7c, 7e}
+tumspec <- openxlsx::read.xlsx("TCR screening/Final TCR Specificities.xlsx")
+CD8.tum <- 
+TopClonotypes <- FetchData(CD8.harmony, "TCR.Clone")
+TopClonotypes$rownames <- rownames(TopClonotypes)
+
+cellnames_tum <- TopClonotypes[TopClonotypes$TCR.Clone %in% tumspec$Tumor.Specific,]
+
+png("./Lab Meeting 12222022/Figures/tumspec.png", width = 7, height = 4, units='in', res=500)
+DimPlot(CD8.harmony, cells.highlight = list(rownames(cellnames_tum)), order = TRUE) + scale_colour_manual("", values=c("#d1d1d1","#FC0307"), labels=c("N/A", "Tumor-Specific")) + scale_shape_manual("",values=c(19,19,19,19), labels=c("N/A", "Tumor-Specific"))
+dev.off()
+
+tumspec <- openxlsx::read.xlsx("TCR screening/Final TCR Specificities.xlsx")
+#viral specificity figure
+ViralDBTCRs <- read.xlsx("Side Projects/TCR Database Cross-Referencing/TCR database comparison.xlsx")
+
+ViralTCRsrelpts <- c(grep("p102", ViralDBTCRs$TCR.Clonotype), grep("p107", ViralDBTCRs$TCR.Clonotype), grep("p108", ViralDBTCRs$TCR.Clonotype), grep("p109", ViralDBTCRs$TCR.Clonotype), grep("p110", ViralDBTCRs$TCR.Clonotype), grep("p111", ViralDBTCRs$TCR.Clonotype))
+ViralDBTCRs <- ViralDBTCRs[ViralDBTCRs$`Exclude?`=="Include" & ViralDBTCRs$TCR.Clonotype %in% ViralDBTCRs$TCR.Clonotype[ViralTCRsrelpts],]
+#Redoing the original text for relevant patients
+CD8.harmonyrelpts <- subset(CD8.harmony, subset = patient %in% c("16097-102", "16097-107", "16097-108", "16097-109", "16097-110", "16097-111"))
+CD8.harmonyrelpts$dbspec <- "NA"
+for (i in 1:dim(ViralDBTCRs)[1]){
+  temprows <- grep(paste0("^", ViralDBTCRs$TCR.Clonotype[i],"$"), CD8.harmonyrelpts$TCR.Clone)
+  CD8.harmonyrelpts$dbspec[temprows] <- ViralDBTCRs$Antigen.Species[i]
+}
+
+antigenspecies <- FetchData(CD8.harmonyrelpts, "dbspec")
+antigenspecies$rownames <- rownames(antigenspecies)
+cellnames_Influenza <- antigenspecies[antigenspecies == "Influenza A",]
+cellnames_CMV <- antigenspecies[antigenspecies == "CMV",]
+cellnames_other <- antigenspecies[antigenspecies == "SARS-CoV-2",]
+cellnames_EBV <- antigenspecies[antigenspecies == "EBV",]
+
+#get experimental specificities
+TCRspecificities <- read.xlsx("TCR screening/Final TCR Specificities.xlsx")
+TopClonotypes <- FetchData(CD8.harmonyrelpts, "TCR.Clone")
+TopClonotypes$rownames <- rownames(TopClonotypes)
+
+cellnames_EBVexperimental <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$`EBV-Specific` == 1,1])],]
+colnames(cellnames_EBVexperimental) <- c("dbspec", "rownames")
+cellnames_EBV <- rbind(cellnames_EBV, cellnames_EBVexperimental)
+
+cellnames_CMVexperimental <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Notes %in% c("CEFX (CMV, based on TCR database)", "CMV Peptide (10^7)"),1])],]
+colnames(cellnames_CMVexperimental) <- c("dbspec", "rownames")
+cellnames_CMV <- rbind(cellnames_CMV, cellnames_CMVexperimental)
+
+cellnames_otherexperimental <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Notes == "CEFX reactivity, Re-do",1])],]
+colnames(cellnames_otherexperimental) <- c("dbspec", "rownames")
+cellnames_other <- rbind(cellnames_other, cellnames_otherexperimental)
+
+png("../RCC Paper TCR Functional and Spatial Properties/Figures/Unassigned panels//TCRdatabase+experimental6pts.png", width = 7, height = 4, units='in', res=500)
+DimPlot(CD8.harmonyrelpts, cells.highlight = list(rownames(cellnames_Influenza), rownames(cellnames_CMV), rownames(cellnames_other), rownames(cellnames_EBV)), order = TRUE) + scale_colour_manual("", values=c("#d1d1d1","#011993","#025610","#98959a","#01c377"), labels=c("N/A", "EBV",  "CMV", "Influenza", "Other")) + scale_shape_manual("",values=c(19,19,19,19), labels=c("", "EBV", "CMV", "Influenza A", "Other")) + NoAxes()
+dev.off()
+
+CD8.harmony <- readRDS("../objects/CD8withPBMCfreq.rds")
+TCRspecificities <- openxlsx::read.xlsx("../xlsx_output/Final TCR Specificities.xlsx")
+
+TopClonotypes <- FetchData(CD8.harmony, "TCR.Clone")
+TopClonotypes$rownames <- rownames(TopClonotypes)
+cellnames_neoag <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "NSUN5-10 (B*27:05)",1])],]
+CD8.harmony.relpts <- subset(CD8.harmony, subset = (patient %in% c("16097-102", "16097-107", "16097-108", "16097-109", "16097-110", "16097-111")))
+
+
+
+png("../Graphics/NeoAgspec.png", width = 7, height = 4, units='in', res=500)
+DimPlot(CD8.harmony.relpts, cells.highlight = list(rownames(cellnames_neoag)), order = TRUE) + scale_colour_manual("", values=c("#d1d1d1", "#108080"), labels=c("N/A", "NSUN5p.Q18K")) + NoAxes() + NoLegend()
+dev.off()
+
+
+cellnames_IGFBP3 <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "IGFBP3 Pool",1])],]
+cellnames_TAA7 <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "NAT8(27-37), B38*01",1])],]
+cellnames_TAA51 <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "NAT8(173-182)",1])],]
+cellnames_TAA53 <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "NAT8(211-219)",1])],]
+cellnames_TAA69 <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "SLC17A3(56-64)",1])],]
+cellnames_TAA56 <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "NAT8(39-47)",1])],]
+cellnames_TAA91 <- TopClonotypes[TopClonotypes$TCR.Clone %in% TCRspecificities$Clonotype[TCRspecificities$TCR.Test.No. %in% na.omit(TCRspecificities[TCRspecificities$Antigen.Specificity == "CLEC18A(175-182)",1])],]
+png("../Graphics/TAAspec.png", width = 7, height = 4, units='in', res=500)
+DimPlot(CD8.harmony.relpts, cells.highlight = list(rownames(cellnames_TAA91), rownames(cellnames_TAA69), rownames(cellnames_TAA53), rownames(cellnames_TAA51), rownames(cellnames_TAA56), rownames(cellnames_TAA7), rownames(cellnames_IGFBP3)), order = TRUE) + scale_colour_manual("", values=c("#d1d1d1", "#fa2b80", "#FD8008", "#FC6666", "#800040", "#400080", "#FECC66", "#ae4f44"), labels=c("N/A", "IGFBP3 Pool", "NAT8(27-37)", "NAT8(39-47)", "NAT8(173-182)", "NAT8(211-219)", "SLC17A3(56-64)", "CLEC18A(175-182)")) + scale_shape_manual("",values=c(19,19,19,19), labels=c("N/A", "IGFBP3 Pool", "NAT8(27-37)", "NAT8(39-47)", "NAT8(173-182)", "NAT8(211-219)", "SLC17A3(56-64)", "CLEC18A(175-182)")) + NoAxes() + NoLegend()
+dev.off()
+```
+
+```{R}
+CD8.harmony <- readRDS(file = "../objects/CD8withPBMCfreq.rds")
+
+#attempted to use a few different TPEx signatures, elected to use in the paper Oliveira_TPEx
+TPEX <- list(Zheng.TCF7 = c("LHFP", "CD200", "GNG4", "CXCL13", "TNFRSF4", "IGFL2", "CPM", "NMB", "SESN3", "EBI3",
+  "BTLA", "TSHZ2", "IGFBP4", "MS4A6A", "PASK", "CHN1", "CHGB", "PTPN13", "CAV1", "TCF7",
+  "NR3C1", "COL9A2", "C1orf228", "GK", "TBC1D4", "FAAH2", "MAGEH1", "THADA", "CD79A",
+  "PHACTR2", "SMCO4", "LIMS2", "LY96", "ITM2A", "UNQ6494", "PTPN14", "MYL6B", "RPS8", "CCR7",
+  "EPHX2", "SELL", "FGFR1", "GEM", "CD27", "TIGIT", "TOX", "EEF1A1", "IL6R", "CORO1B",
+  "BATF", "CD28", "KIAA1324", "LIMS1", "IKZF4", "FKBP5", "STAM", "TTN", "METTL8", "STAC",
+  "RPL11", "CYSLTR1", "CTSL", "SH2D1A", "CXorf21", "CNIH1", "PHEX", "DUSP4", "CD80", "SEPT6",
+  "RNF19A", "DNPH1", "SARDH", "NAB1", "ICOS", "PTK2", "TESPA1", "SMPDL3A", "DGKA", "TNFSF8",
+  "CYBRD1", "CTHRC1", "CD40LG", "ELMO1", "RPL8", "AP3S1", "GPX4", "RPLP1", "SIRPG", "LRRC8D",
+  "ZC2HC1A", "IFNAR2", "RPL12", "TNFRSF25", "RPL6", "NDFIP2", "RPL18", "C16orf45", "ATP5G2",
+  "SMAP2", "BIRC3", "CTSB", "C9orf16", "RPL15", "ST8SIA1", "NINJ2", "NFATC1", "APP", "PRDX2",
+  "MSI2", "RPL29", "PKIA", "RPS5", "RPS24", "CD82", "PELI1", "TSPAN5", "RGS2", "RBPJ",
+  "PIK3IP1", "AHI1", "SOD1", "BARX2", "TLK1", "RHBDD2", "ZNRF1", "SYPL1", "CD84", "ZBTB46",
+  "PEBP1", "ZEB1", "RPS23", "ADPRH", "VOPP1", "RPS28", "SH3BGRL2", "FXYD5", "SGPP2", "EEF2",
+  "ZC3H7A", "CCDC6", "EEF1G", "RPL19", "RPL22", "GPX1", "PPP1CC", "KAT6B", "PON2", "GRSF1",
+  "CAMK1", "RPS2", "FABP5", "CD79B", "HMGN1", "HIF1A", "PARK7", "ANP32B", "RPS4X", "FBXO32",
+  "ACTN1", "RPL4", "PMAIP1", "PTP4A3", "RPL32", "EIF3F", "TMEM123", "ACTG1", "RPS3A", "RPS13",
+  "RPL10A", "SPOCK2", "HNRNPA1", "CIRBP", "RPL5", "SREBF2", "RPL7", "NAP1L1", "TNFRSF9",
+  "EIF3L", "TNIK", "EIF3E", "LIMA1", "ANKS1B", "TMEM245", "SMS", "RPL13", "LRMP", "VDR",
+  "CCR4", "ZC3H12D", "OXA1L", "RPL7A", "FCRL3", "NCOA7", "RAB30", "TSHR", "NAP1L4", "KCNK5",
+  "SMAD1", "C12orf57", "PPP1R2", "CCDC141", "INPP1", "RPL18A", "RPL37", "DGKH", "FHIT",
+  "RPS6", "MARCH3", "RAB11FIP1", "UCP2", "MAGEF1", "BEX2", "EVI5", "TMEM243", "RPS18",
+  "EIF3H", "TRAF1", "SLC7A6", "PAM", "EID1", "ITGB2-AS1", "RPL9", "LINC00158", "TP53INP1",
+  "PPM1G", "RGS10", "GYPC", "SLC25A6", "MYCBP2", "SEC11A", "EEF1B2", "SFXN1", "RPS9",
+  "GADD45G", "HS3ST1", "RPL3", "HNRNPLL", "FAM184A", "FAM107B", "HECTD2", "LDHB", "LYST",
+  "HYI", "RPS7", "RPL10", "PYCR1", "KIAA0319L", "NUDT16", "TBXAS1", "NACA", "NTRK2",
+  "CALM3", "TMEM64", "ZNF706", "GRAMD1A", "RNASET2", "MAML2", "CCNI", "SLC25A46", "ZNF580",
+  "RPL36", "SLA", "EIF4B", "PSIP1", "FZD6", "MPST", "HBS1L", "PJA2", "ST13", "SPCS1", "RPL24",
+  "MTUS1", "AHR", "ANXA7", "SFI1", "BEX4", "EIF3D", "MAPKAPK3", "BCL6", "CLPP", "GRHPR",
+  "KDM5B", "LAT", "HPCAL1", "RMND5B", "STT3B", "PRDX1", "RPS26", "NME2", "CLNS1A", "TIAM2",
+  "ARID4B", "SIAH2", "PAK2", "ATM", "NIT1", "NME3", "SRGAP3", "CARHSP1", "RPS10", "SIPA1L1",
+  "PFDN5", "NBEAL1", "EVC", "SV2A", "RPL41", "PGLS", "ISCU", "ALKBH7", "WBP1", "TACC3",
+  "COX4I1", "EDF1", "TMBIM4", "MZT2A", "PABPC1", "SLC35A2", "IL10RB", "ZBED5", "STAMBPL1",
+  "ITPKB", "LIMD2", "TMEM134", "AMPD3", "ZNF292", "RANGAP1", "PHB2", "RPL34", "RPUSD3",
+  "GOLGA8B", "ZNF638", "RPL23", "COMMD6", "GDI2", "CD151", "MTA3", "TSPO", "CRTAP", "BTF3L4",
+  "GRB2", "SMARCE1", "CARS", "NPAT", "EVC2", "DALRD3", "TOMM34", "SDCCAG8", "WDR83OS", "APEX1",
+  "C1orf43", "EIF2S3", "HMGN3", "C19orf53", "TCEAL8", "ALDH6A1", "SRFBP1", "TAF9B", "RPL35A",
+  "ERGIC3", "TMEM2", "RPL22L1", "ZNF610", "EIF2D", "TSPAN14", "SH3KBP1", "COX8A", "SPTAN1",
+  "CEP170", "SCCPDH", "ANAPC16", "MAN2B1", "MRPL3", "HNRNPK", "MRPS21", "C20orf196", "TMEM256-PLSCR3",
+  "P2RY10", "MBOAT7", "TSR3", "ASNS", "COX5B", "MRPL35", "NSF", "NPM1", "IMPDH2", "ATP5D",
+  "NDUFB1", "NDUFAF3", "NUDT21", "RNFT1", "MEAF6", "PCMTD2", "BANF1", "ASAP1", "SFXN2", "CTTNBP2NL",
+  "DLD"), #LHFP, C1orf228, UNQ6494, SEPT6, C16orf45, ATP5G2, GPX1, TMEM2, C20orf196, TMEM256-PLSCR3, ATP5D
+  Oliveira.TPEX = c("CAV1", "GNG4", "XCL1", "SERPINH1", "CRTAM", "NMB", "BAG3", "CXCL13", "GEM", "XCL2", 
+  "HLA-DQA1", "HSPA1A", "HSPA6", "HLA-DRA", "DNAJB1", "FABP5", "ZFAND2A", "HLA-DRB1", "HSPB1", 
+  "HSPA1B", "TOX", "CMC1", "GK", "HLA-DPA1", "RGS2", "ENC1", "DEDD2", "HLA-DMA", "HSPD1", 
+  "HLA-DPB1", "CD74", "HSPE1", "CD82"),
+  Chen_TCF7.PD1.CD8.log2 = c("CD3E", "CCR5", "GZMK", "EOMES", "KLRG1", "CXCR6", "CD2", "CD27", "PTPRC", "GZMA",
+    "ISG20", "CD3D", "TRAC", "CD69", "CD3G", "CD247", "LAG3", "CCR4", "PRF1", "CCL5",
+    "IL2RG", "CD8A", "CST7", "IL2RB", "PDCD1", "TOX", "FASLG", "SELL", "TCF7", "TIGIT",
+    "CXCR3", "CXCR5", "CD7", "ITGB7", "GATA3", "FLI1", "CCL4", "CD38", "CXCR4", "CTLA4",
+    "PSMB9", "MZB1", "CCR7", "ITGAE", "TNFRSF1B", "TNFRSF25", "TRDC", "S1PR1", "IL32",
+    "GBP4", "NOTCH1", "FOXP3", "IL18RAP", "PRDM1", "MX1", "CD79A", "TNF", "IFNG", "B3GAT1",
+    "TRGC1", "S1PR4", "IL7R", "HAVCR2", "IRF1", "CD40LG", "TBX21", "CXCL10", "ZNF683",
+    "CCL3", "CCR8", "GPR183", "IKZF2", "IL18R1"),
+  SadeFeldmanTPEXfromBi = c("IL7R", "GPR183", "LMNA", "NR4A3", "TCF7", "MGAT4A", "CD55", "AIM1", "PER1", "FOSL2",
+    "EGR1", "TSPYL2", "YPEL5", "CSRNP1", "REL", "SKIL", "PIK3R1", "FOXP1", "RGCC", "PFKFB3",
+    "MYADM", "ZFP36L2", "USP36", "TC2N", "FAM177A1", "BTG2", "TSC22D2", "FAM65B", "STAT4",
+    "RGPD5", "NEU1", "IFRD1", "PDE4B", "NR4A1"), #AIM1, FAM65B
+  SadeFeldmanTermfromBi = c("NKG7", "RAC2", "CLIC1", "GZMA", "PRF1", "APOBEC3C", "RHOA", "CCL4", "COTL1", "PSME2", 
+    "HLA-DPA1", "HMGN2", "LSP1", "PSMB9", "LCK", "SRP14", "ARPC3", "ARPC1B", "TPI1", "APOBEC3G", 
+    "HLA-DPB1", "LDHB", "ATP5G2", "MYL12B", "PSMB8", "PSMA7", "HLA-DRB1", "SUB1", "ARPC4", "CTSW", 
+    "SUMO2", "TAP1", "GZMB", "RARRES3", "CAP1", "UCP2", "PPIB", "RAN", "CHCHD2", "PARK7", "HCST", 
+    "GABARAP", "HLA-DRA", "SOD1", "CAPZB", "S100A4", "RNASEK", "PPP1CA", "PKM", "IFI16", "ACTR3", 
+    "ITM2A", "SLC25A5", "PGAM1", "ANXA6", "CD27", "ATP5B", "LYST", "PSMB10", "MIF", "LY6E", 
+    "ANKRD10", "CTSD", "UBE2L6", "EDF1", "NONO", "TIGIT", "FKBP1A", "IL2RB", "HMGN1", "ATP5L", 
+    "GZMH", "STAT1", "GPI", "LCP2", "GBP2", "ARL6IP5", "CCL4L1", "PRDM1", "OST4", "PDCD1", "HINT1", 
+    "HNRNPF", "GBP5", "COX7C", "ARPC5", "GIMAP4", "XRCC6", "C17orf62", "PRR13", "HLA-DRB5", "WDR1", 
+    "ARL6IP1", "ISG15", "ATP5A1", "EWSR1", "COPE", "HAVCR2", "EIF3H", "ANXA5", "C11orf58", "IFI6", 
+    "SIRPG", "CALM3", "SHISA5", "DENND2D", "MAP4K1", "BUB3", "IKZF3", "SNRPB", "EID1", "PSMB1", 
+    "PTPN6", "NDUFA13", "SSR4", "COX8A", "PTPN7", "MAT2B", "PSTPIP1", "GSTP1", "PSMB3", "IRF9", 
+    "TRAF3IP3", "GIMAP7", "PSMA2", "SASH3", "CD164", "ETNK1", "S100A11", "KLRD1", "MOB1A", "SH2D1A", 
+    "UBE2V1", "SH3KBP1", "ATP5G3", "PSMA5", "MT2A", "LAT", "IFNG", "RAB27A", "COX5A", "DDOST", 
+    "PSMB4", "SRP9", "BRK1", "TNFRSF1B", "EIF4H", "GMFG", "ANXA2", "TCEB2", "RBPJ", "COX6A1", 
+    "UBXN1", "PSMD8", "CD63", "ATP6V0E1", "NDUFB8", "CTSC", "SNRPD2", "ATP5C1", "PRELID1", "COX7A2", 
+    "PSMA6", "ECH1", "U2AF1", "HMGB2", "FAM49B", "CD38", "TSPO", "IDH2", "CASP4", "CCL3", "TRMT112", 
+    "SURF4", "PSMA1", "YWHAE", "LASP1", "PYHIN1", "ANAPC16", "TUBB", "CSNK2B", "PRKAR1A", "SLAMF7", 
+    "GNG5", "PRDX1", "RQCD1", "CCNDBP1", "INPP4B", "CDK2AP2", "CBX3", "RPN1", "SPCS1", "PSMA3", 
+    "SIT1", "XRCC5", "EIF3C", "CXCR6", "COX6C", "M6PR", "ANP32E"), #ATP5G2, RARRES3, ATP5B, ATP5L, CCL4L1, C17orf62, ATP5A1, ATP5G3, TCEB2, ATP5C1, RQCD1
+  HaoLiTLS.TPEX = c("CXCL13", "TCF7", "PDCD1"),
+  HaoLiTLS.TEXTERM = c("TOX", "HAVCR2", "CD101", "PDCD1", "LAG3", "CXCL13", "ENTPD1", "TIGIT")
+)
+
+cell_group = TPEX
+CD8.harmony <- AddModuleScore(CD8.harmony, features=cell_group, name = names(TPEX))
+
+library(viridis)
+plasma <- viridis(6, begin = 0, end = 1, direction = 1, option = "D")
+
+FeaturePlot(CD8.harmony, "Zheng.TCF71", order = TRUE, cols = plasma) #memory cells and TPEx have highest
+FeaturePlot(CD8.harmony, "Oliveira.TPEX2", order = TRUE, cols = plasma) #TPEx looks to have the highest
+FeaturePlot(CD8.harmony, "exhaustion1", order = TRUE, cols = plasma)
+FeaturePlot(CD8.harmony, "Chen_TCF7.PD1.CD8.log23", order = TRUE, cols = plasma) #TEx are high, as is TEM
+FeaturePlot(CD8.harmony, "SadeFeldmanTPEXfromBi4", order = TRUE, cols = plasma)
+FeaturePlot(CD8.harmony, "SadeFeldmanTermfromBi5", order = TRUE, cols = plasma)
+FeaturePlot(CD8.harmony, "HaoLiTLS.TPEX6", order = TRUE, cols = plasma)
+FeaturePlot(CD8.harmony, "HaoLiTLS.TEXTERM7", order = TRUE, cols = plasma)
+
+#and whether with z-scoring we can showing TCF7 and other markers are higher
+Tex.clones <- subset(CD8.harmony, subset = (sampleorigin == "Tumor" & PrimaryCluster == "TEx"))
+Tum.CD8 <- subset(CD8.harmony, subset = (sampleorigin == "Tumor"))
+DimPlot(Tex.clones, group.by = "clusters")
+#what proportion overall of cells are TEM
+TEx.cluster.freq <- as.data.frame(table(Tex.clones$clusters))$Freq/sum(as.data.frame(table(Tex.clones$clusters))$Freq)
+names(TEx.cluster.freq) <- rownames(table(Tex.clones$clusters)) #low pct, ~1.4% total
+Tex.clones.alltissue <- subset(CD8.harmony, subset = (PrimaryCluster == "TEx"))
+
+contingency_table <- table(Tex.clones.alltissue$clusters, Tex.clones.alltissue$patient)
+Freqperpt <- sweep(contingency_table, 2, colSums(contingency_table), FUN = "/")
+Freqperpt <- as.data.frame.matrix(Freqperpt)
+
+cluster_5_values <- Freqperpt[6,]
+TLSpos_values <- cluster_5_values[,c("16097-101", "16097-102", "16097-104", "16097-106", "16097-107", "16097-108", "16097-112")]
+TLSneg_values <- cluster_5_values[,c("16097-105", "16097-109", "16097-110", "16097-111")]
+
+t_test_result <- t.test(TLSpos_values, TLSneg_values, alternative = "greater") #on a patient level
+mann_whitney_result <- wilcox.test(as.numeric(TLSpos_values), as.numeric(TLSneg_values), exact = FALSE, alternative = "greater")
+
+data <- list(TLSpos = as.numeric(TLSpos_values), TLSneg = as.numeric(TLSneg_values))
+boxplot(data, 
+        names = c("TLS+", "TLS-"),
+        main = "Comparison of TLS+ and TLS-", 
+        ylab = "Values", 
+        col = c("skyblue", "lightgreen"))
+
+FeaturePlot(Tex.clones, "tumor_specific1", order = TRUE, cols = plasma)
+
+FeaturePlot(Tex.clones, "Zheng.TCF71", order = TRUE, cols = plasma) #memory cells and TEx-3 have highest
+FeaturePlot(Tex.clones, "Oliveira.TPEX2", order = TRUE, cols = plasma) #TEx-3 looks to have the highest, with TEM involvement
+FeaturePlot(Tex.clones, "exhaustion1", order = TRUE, cols = plasma)
+FeaturePlot(Tex.clones, "Chen_TCF7.PD1.CD8.log23", order = TRUE, cols = plasma) #TEx are high, as is TEM
+FeaturePlot(Tex.clones, "SadeFeldmanTPEXfromBi4", order = TRUE, cols = plasma)
+FeaturePlot(Tex.clones, "SadeFeldmanTermfromBi5", order = TRUE, cols = plasma)
+
+
+Tum.CD8.hasclono <- subset(Tum.CD8, subset = (HasClonotype == 1 & countintum > 1))
+FeaturePlot(CD8.harmony, "tumor_specific1", order = TRUE, cols = plasma)
+
+#Fig. 2a - made in GraphPad Prism 10 after export
+VlnPlot(CD8.harmony, features = "tumor_specific1", group.by = "PrimaryCluster", pt.size = 0)
+write.xlsx(x = FetchData(Tum.CD8.hasclono, vars = c("PrimaryCluster", "tumor_specific1")), "R_output/Processing Output (XLSX + PDF)/tumor_specific_cluster.xlsx")
+FeaturePlot(Tex.clones, "Oliveira.TPEX2", order = TRUE, cols = plasma) #Fig. 2b
+
+ggsave(filename = "../Graphics/TPEX.Tex.pdf")
+VlnPlot(Tex.clones, features = c("Oliveira.TPEX2"), group.by = "clusters", pt.size = 0)
+write.xlsx(FetchData(Tex.clones, vars = c("clusters", "Oliveira.TPEX2")),file = "R_output/Processing Output (XLSX + PDF)/Tex.clono.scores.xlsx") #Fig. 2c
+
+#another way to visualize the proportion of these TCRs in Cluster 5 would be as a fraction of each clonotype
+Tex.clones.exp <- subset(Tex.clones, subset = countintum > 1)
+clonotype.cluster.dist <- as.data.frame.matrix(table(Tex.clones.exp$TCR.Clone, Tex.clones.exp$clusters))
+percentage_data <- sweep(clonotype.cluster.dist, 1, rowSums(clonotype.cluster.dist), FUN = "/") * 100
+
+percentage_data$patient <- str_split(rownames(percentage_data), "_", simplify = TRUE)[,1]
+percentage_data$TLS <- ifelse(percentage_data$patient %in% c("p105", "p109", "p110", "p111"), "TLS-", "TLS+")
+percentage_data$tpex <- percentage_data$`5`
+percentage_data$clonotypes <- rownames(percentage_data)
+write.xlsx(x = percentage_data[,c(6,7,11:13)], file = "R_output/Processing Output (XLSX + PDF)/Tex.clones.cluster5.TLS.xlsx") #Figure 2d
+```
+
+```{R}
+TCRspecificities <- read.xlsx("TCR screening/Final TCR Specificities.xlsx")
+
+TopClonotypes <- FetchData(CD8.harmony, "TCR.Clone")
+TopClonotypes$rownames <- rownames(TopClonotypes)
+
+CD8.harmony$agspec <- "NA"
+CD8.harmony$agspec <- ifelse(CD8.harmony$TCR.Clone %in% TCRspecificities[!is.na(TCRspecificities$Antigen.Specificity) & TCRspecificities$Antigen.Specificity == "NSUN5-10 (B*27:05)",2],"NeoAg",CD8.harmony$agspec)
+
+CD8.harmonyNeoAg <- subset(CD8.harmony, subset = (agspec == "NeoAg" & sampleorigin %in% c("Tumor", "Met")))
+clusters.of.interest <- subset(CD8.harmonyNeoAg, subset = clusters %in% c(2,0,5,8,7,6))
+table(CD8.harmonyNeoAg$clusters)
+CD8.harmonyNeoAgdata <- FetchData(clusters.of.interest, c("PDCD1", "ENTPD1", "LAG3", "HAVCR2", "TOX", "TOX2", "IL7R", "TCF7", "SELL", "CCR7", "CXCL13", "XCL2", "CX3CR1", "GNLY", "GZMB", "GZMH", "TCR.Clone", "barcodes", "clusters"))
+
+a.mat <- t(as.matrix(sapply(CD8.harmonyNeoAgdata[,1:16], as.numeric)))
+
+
+meanTPM <- rowMeans(a.mat)
+sdx <- rowSds(a.mat)
+x <- a.mat
+z <- (x-meanTPM)/sdx
+z <- as.data.frame(z)
+z[17,] <- CD8.harmonyNeoAgdata$clusters
+rownames(z)[17] <- "clusters"
+z <- as.data.frame(t(z))
+z[] <- lapply(z, as.numeric)
+
+final <- aggregate(. ~ z$clusters, data = z, FUN = mean) #really, probably cluster 5 is closest to Tpex, and TEM is more of a, well... cytotoxic effector cell of some sort
+write.xlsx(final, "R_output/Processing Output (XLSX + PDF)/NeoAgheatmap.zscore.xlsx")
+
+CD8_cluster_means <- CD8.harmonyNeoAgdata %>%
+  group_by(clusters) %>%
+  summarise(across(
+    .cols = c("PDCD1", "ENTPD1", "LAG3", "HAVCR2", "TOX", "TOX2", 
+              "IL7R", "TCF7", "SELL", "CCR7", "CXCL13", "XCL2", 
+              "CX3CR1", "GNLY", "GZMH"),
+    .fns = mean,
+    .names = "mean_{.col}"
+  ))
+
+write.xlsx(CD8_cluster_means, "R_output/Processing Output (XLSX + PDF)/NeoAgheatmap.xlsx") #exported to GraphPad Prism 10, and made to Fig. 2i
+```
+
+```{R}
+#Supp. Table 4
+merged_RCC.harmony <- readRDS("../objects/merged_RCC.NeoVax.CancerCell.rds")
+write.xlsx(x = as.data.frame.matrix(table(merged_RCC.harmony$patient, merged_RCC.harmony$sampleorigin)), file = "../xlsx_output/tissue.distribution.merged.RCC.xlsx")
+
+merged.feature <- FetchData(merged_RCC.harmony, vars = c("nFeature_RNA", "patient", "sampleorigin"))
+merged.feature$sampleorigin.pt <- paste0(merged.feature$patient, merged.feature$sampleorigin)
+
+medians <- aggregate(nFeature_RNA ~ sampleorigin.pt, data = merged.feature, median)
+write.xlsx(medians, file = "../xlsx_output/median.features.merged.RCC.xlsx")
+
+CD8.harmony <- readRDS("../objects/CD8withPBMCfreq.rds")
+write.xlsx(as.data.frame(table(CD8.harmony$sample)), "../xlsx_output/tissue.distribution.CD8.harmony.xlsx")
+
+merged.feature <- FetchData(CD8.harmony, vars = c("nFeature_RNA", "patient", "sampleorigin"))
+merged.feature$sampleorigin.pt <- paste0(merged.feature$patient, merged.feature$sampleorigin)
+
+medians.CD8 <- aggregate(nFeature_RNA ~ sampleorigin.pt, data = merged.feature, median)
+write.xlsx(medians.CD8, file = "../xlsx_output/median.features.CD8.harmony.xlsx")
+write.xlsx(as.data.frame.matrix(table(CD8.harmony$HasClonotype, CD8.harmony$sample)), "../xlsx_output/CD8.has.clonotype.sample.xlsx")
+
+nonCD8.harmony <- readRDS("../objects/nonCD8.harmonizedno11.rds")
+write.xlsx(as.data.frame(table(nonCD8.harmony$sample)), "../xlsx_output/tissue.distribution.nonCD8.harmony.xlsx")
+
+merged.feature <- FetchData(nonCD8.harmony, vars = c("nFeature_RNA", "patient", "sampleorigin"))
+merged.feature$sampleorigin.pt <- paste0(merged.feature$patient, merged.feature$sampleorigin)
+
+medians.nonCD8 <- aggregate(nFeature_RNA ~ sampleorigin.pt, data = merged.feature, median)
+write.xlsx(medians.nonCD8, file = "../xlsx_output/median.features.nonCD8.harmony.xlsx")
+
+CD4.harmony <- readRDS("../objects/CD4finalwPrimaryCluster.rds")
+write.xlsx(as.data.frame(table(CD4.harmony$sample)), "../xlsx_output/tissue.distribution.CD4.harmony.xlsx")
+
+write.xlsx(as.data.frame.matrix(table(CD8.harmony$HasClonotype, CD8.harmony$sample)), "../xlsx_output/CD8.has.clonotype.sample.xlsx")
+write.xlsx(as.data.frame.matrix(table(CD4.harmony$HasClonotype, CD4.harmony$sample)), "../xlsx_output/CD4.has.clonotype.sample.xlsx")
+
+CD8.harmony.tumor <- subset(CD8.harmony, subset = sampleorigin == "Tumor")
+CD8.harmony.met <- subset(CD8.harmony, subset = sampleorigin == "Met")
+CD8.harmony.normal <- subset(CD8.harmony, subset = sampleorigin == "Normal")
+
+
+unique_tcr_per_patient <- CD8.harmony.tumor@meta.data %>%
+  group_by(patient) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone))
+
+unique_tcr_per_patient <- CD8.harmony.met@meta.data %>%
+  group_by(patient) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone))
+
+unique_tcr_per_patient <- CD8.harmony.normal@meta.data %>%
+  group_by(patient) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone))
+
+CD4.harmony.tumor <- subset(CD4.harmony, subset = sampleorigin == "Tumor")
+CD4.harmony.met <- subset(CD4.harmony, subset = sampleorigin == "Met")
+CD4.harmony.normal <- subset(CD4.harmony, subset = sampleorigin == "Normal")
+
+unique_tcr_per_patient <- CD4.harmony.tumor@meta.data %>%
+  group_by(patient) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone))
+
+unique_tcr_per_patient <- CD4.harmony.met@meta.data %>%
+  group_by(patient) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone))
+
+unique_tcr_per_patient <- CD4.harmony.normal@meta.data %>%
+  group_by(patient) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone))
+
+meta <- as.data.frame(CD8.harmony@meta.data)
+
+# Ensure proper types
+meta$sample <- as.character(meta$sample)
+meta$PrimaryCluster <- as.character(meta$PrimaryCluster)
+meta$TCR.Clone <- as.character(meta$TCR.Clone)
+
+# Group and count unique TCR clones
+tcr_counts <- meta %>%
+  group_by(sample, PrimaryCluster) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone), .groups = "drop")
+
+# Optionally pivot wider for easier viewing
+tcr_wide <- tcr_counts %>%
+  pivot_wider(names_from = PrimaryCluster, values_from = n_unique_TCR, values_fill = 0)
+write.xlsx(tcr_wide, file = "../xlsx_output/CD8TCRs.by.sample.PrimaryCluster.xlsx")
+
+meta <- as.data.frame(CD4.harmony@meta.data)
+
+# Ensure proper types
+meta$sample <- as.character(meta$sample)
+meta$PrimaryCluster <- as.character(meta$PrimaryCluster)
+meta$TCR.Clone <- as.character(meta$TCR.Clone)
+
+# Group and count unique TCR clones
+tcr_counts <- meta %>%
+  group_by(sample, PrimaryCluster) %>%
+  summarize(n_unique_TCR = n_distinct(TCR.Clone), .groups = "drop")
+
+# Optionally pivot wider for easier viewing
+tcr_wide <- tcr_counts %>%
+  pivot_wider(names_from = PrimaryCluster, values_from = n_unique_TCR, values_fill = 0)
+write.xlsx(tcr_wide, file = "../xlsx_output/CD4TCRs.by.sample.PrimaryCluster.xlsx")
+```
+
+```{R}
+#For Figure 1f, calculation and adjustment of p values for T cell comparison
+merged.cluster.frequencies <- read.xlsx("../Supplementary Tables/merged.cluster.frequencies.xlsx")
+
+cols <- colnames(merged.cluster.frequencies)
+
+# Step 2: Find all pairs ending in - and +
+minus_cols <- cols[grepl("\\-$", cols)]
+minus_cols <- minus_cols[c(3,4,5,6,7,26,27)] #take only T cell clusters
+plus_cols <- gsub("\\-$", "+", minus_cols)  # get matching '+' columns
+
+# Step 3: Initialize
+p_vals <- c()
+labels <- c()
+
+for (i in seq_along(minus_cols)) {
+  col_minus <- as.numeric(merged.cluster.frequencies[[minus_cols[i]]])
+  col_plus  <- as.numeric(merged.cluster.frequencies[[plus_cols[i]]])
+  
+  col_minus_clean <- col_minus[!is.na(col_minus)]
+  col_plus_clean  <- col_plus[!is.na(col_plus)]
+  
+  if (length(col_minus_clean) > 0 && length(col_plus_clean) > 0) {
+    test <- wilcox.test(col_minus_clean, col_plus_clean, paired = FALSE)
+    p_vals <- c(p_vals, test$p.value)
+    labels <- c(labels, paste0(minus_cols[i], " vs ", plus_cols[i]))
+  }
+}
+
+# Step 5: Multiple testing correction
+adj_p <- p.adjust(p_vals, method = "BH")
+
+# Step 6: Output results
+results <- data.frame(
+  comparison = labels,
+  raw_p = p_vals,
+  adj_p = adj_p
+)
+```
