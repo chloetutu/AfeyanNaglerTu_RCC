@@ -1,0 +1,2258 @@
+---
+title: "Afeyan Nagler Tu et al. 2025 spatial RNA DEG processing"
+output: html_document
+date: "2025-05-30"
+description: "This script loads and processes Slide-seq puck datasets from multiple RCC patients, harmonizes them into a single Seurat object (with SCTransform, PCA/UMAP and Harmony batch correction), then performs a series of spatial proximity and differential-expression analyses that compare tumor-specific, virus-reactive, exhausted vs memory T-cell clonotypes—and their surrounding micro-environments—across varying radii, exporting figures and tables for manuscript figures."
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+# knitr::opts_knit$set(root.dir = '/your/path/here')  # Uncomment and edit if needed
+```
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(Seurat)
+library(SeuratWrappers)
+library(dplyr)
+library(harmony)
+library(tidyverse)
+library(reticulate)
+library(anndata)
+library(stringr)
+library(reshape2)
+library(RANN)
+library(MAST)
+library(EnhancedVolcano)
+library(xlsx)
+library(presto)
+library(patchwork)
+library(broom)
+library(ggplot2)
+library(ggalluvial)
+
+knitr::opts_knit$set(root.dir = 'slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/')
+
+#all analyses not featured here were performed in GraphPad Prism 10, using exported data from these objects.
+```
+
+###### for normal pucks, we performed SCTransformation separately #######
+```{R}
+## 102NA Puck 26
+# Load RNA puck
+P102NA_26_RNA <- load_slideseq(gene_exp_dir = "slideseq_data/raw_data/RCC_pucks/2024-01-26_Puck_221101_26_102NA_100M/gene_exp/", coords_dir = "slideseq_data/raw_data/RCC_pucks/2024-01-26_Puck_221101_26_102NA_100M/barcode_matching/Puck_221101_26_barcode_xy.txt.gz", project_name = "P102NA_26")
+
+P102NA_26_RNA$log_nCount_Spatial <- log(P102NA_26_RNA$nCount_Spatial)
+  
+P102NA_26_RNA$log_nFeature_Spatial <- log(P102NA_26_RNA$nFeature_Spatial)
+
+SpatialFeaturePlot(P102NA_26_RNA, features = c("log_nCount_Spatial", "log_nFeature_Spatial"))
+```
+
+# Open rctd objects
+```{r}
+P102NA_26_rctd <- readRDS("slideseq_data/tcr_analysis/RCC_neovax_pucks/rctd_references/rctd_results_rds/2024-01-26_Puck_221101_26_102NA_100M_rctd_results_031324.rds")
+# Remove reject beads and normalize RCTD weights, processed in the same way as other pucks
+
+P102NA_26_rctd@results[["results_df"]] <- P102NA_26_rctd@results[["results_df"]] %>%
+  filter(spot_class != "reject")
+
+P102NA_26_weights <- as.data.frame(normalize_weights(P102NA_26_rctd@results$weights))
+
+P102NA_26_RNA <- AddMetaData(P102NA_26_RNA, P102NA_26_rctd@results[["results_df"]])
+P102NA_26_RNA <- AddMetaData(P102NA_26_RNA, P102NA_26_weights)
+
+P102NA_26_RNA@meta.data <- P102NA_26_RNA@meta.data %>%
+  mutate(B = case_when(is.na(B) ~ 0,
+                       !is.na(B) ~ B),
+         `CD4+T` = case_when(is.na(`CD4+T`) ~ 0,
+                       !is.na(`CD4+T`) ~ `CD4+T`),
+         `CD8+T` = case_when(is.na(`CD8+T`) ~ 0,
+                       !is.na(`CD8+T`) ~ `CD8+T`),
+         NK = case_when(is.na(NK) ~ 0,
+                       !is.na(NK) ~ NK),
+         Myeloid = case_when(is.na(Myeloid) ~ 0,
+                       !is.na(Myeloid) ~ Myeloid),
+         Endothelial = case_when(is.na(Endothelial) ~ 0,
+                       !is.na(Endothelial) ~ Endothelial),
+         Tumor = case_when(is.na(Tumor) ~ 0,
+                       !is.na(Tumor) ~ Tumor))
+```
+
+### View RCTD called cell types
+```{r}
+SpatialDimPlot(P102NA_26_RNA, group.by = "first_type", alpha = 0.9, stroke = 0) + fill_cols
+
+P102NA_26_RNA <- NormalizeData(P102NA_26_RNA, verbose = FALSE) %>%
+    FindVariableFeatures(selection.method = "vst", nfeatures = 2000, verbose = FALSE) %>%
+    ScaleData(verbose = FALSE)
+
+saveRDS(P102NA_26_RNA, "102NA_26_RNA_AA101124.rds")
+```
+
+### repeated for 108 NA puck 12
+```{R}
+P108NA_12_RNA <- load_slideseq(gene_exp_dir = "slideseq_data/raw_data/RCC_pucks/2023-07-19_Puck_230206_12_108NA_100M/gene_exp/", coords_dir = "slideseq_data/raw_data/RCC_pucks/2023-07-19_Puck_230206_12_108NA_100M/Puck_230206_12_barcode_xy.txt.gz", project_name = "P108NA_12")
+
+dim(P108NA_12_RNA)
+```
+
+```{r}
+RNA_xy <- P108NA_12_RNA@images$image@coordinates %>%
+  mutate(barcode = rownames(.)) %>%
+  dplyr::rename("RNA_x" = "x", 
+                "RNA_y" = "y", 
+                "RNA_barcode" = "barcode")
+
+rownames(RNA_xy) <- RNA_xy$barcode
+```
+
+```{r}
+# P102TA_39_RNA$log_nFeature_TCR <- log(P102TA_39_RNA$nFeature_TCR)
+# P102TA_39_RNA$log_nCount_TCR <- log(P102TA_39_RNA$nCount_TCR)
+
+P108NA_12_RNA$log_nFeature_Spatial <- log(P108NA_12_RNA$nFeature_Spatial)
+P108NA_12_RNA$log_nCount_Spatial <- log(P108NA_12_RNA$nCount_Spatial)
+```
+
+# Flip the XY coordinates to match the orientation of the H&E stain
+```{r}
+P108NA_12_xy <- P108NA_12_RNA@images$image@coordinates
+
+# # flip vertically
+# P108NA_12_xy <- P108NA_12_xy %>%
+#   dplyr::rename("orig_x" = "x",
+#                 "orig_y" = "y") %>%
+#   mutate(x = -orig_y+5000,
+#          y = -orig_x+5000) %>%
+#   select(-orig_x,-orig_y)
+
+# P108NA_12_xy@images$image@coordinates <- P102TA_39_xy
+
+SpatialFeaturePlot(P108NA_12_RNA, features = c("log_nFeature_Spatial"), alpha = c(0,1))
+```
+
+# Finished joining TCR and RNA data
+# Save merged object
+```{r}
+plot_coords <- P108NA_12_RNA@images$image@coordinates %>%
+  mutate(plot_x = x,
+         plot_y = y)
+
+P108NA_12_RNA <- AddMetaData(P108NA_12_RNA, plot_coords)
+P108NA_12_RNA$area <- "Normal"
+```
+
+# Open rctd objects
+```{r}
+P108NA_12_rctd <- readRDS("slideseq_data/tcr_analysis/RCC_neovax_pucks/rctd_references/rctd_results_rds/P108NA_12_rctd_results_022624.rds")
+```
+
+# Remove reject beads and normalize RCTD weights
+```{r}
+# Remove reject beads
+rejects <- P108NA_12_rctd@results[["results_df"]] %>%
+  filter(spot_class == "reject") %>%
+  rownames()
+
+P108NA_12_weights <- as.data.frame(normalize_weights(P108NA_12_rctd@results$weights)) %>%
+  # Remove reject beads
+  filter(!(rownames(.) %in% rejects))
+
+write.csv(P108NA_12_weights, "xlsx_output/c12_108NA_rctd_norm_weights.csv")
+```
+
+# Add RCTD weights
+```{r}
+rctd_weights <- read.csv("xlsx_output/c12_108NA_rctd_norm_weights.csv", row.names = 1)
+
+P108NA_12_RNA <- AddMetaData(P108NA_12_RNA, rctd_weights)
+
+P108NA_12_RNA@meta.data <- P108NA_12_RNA@meta.data %>%
+  mutate(B = ifelse(is.na(B), 0, B),
+         CD4.T = ifelse(is.na(CD4.T), 0, CD4.T),
+         CD8.T = ifelse(is.na(CD8.T), 0, CD8.T),
+         Endothelial = ifelse(is.na(Epithelial), 0, Epithelial),
+         Myeloid = ifelse(is.na(Myeloid), 0, Myeloid),
+         NK = ifelse(is.na(NK), 0, NK),
+         Tumor = ifelse(is.na(Tumor), 0, Tumor))
+```
+
+# Plot myeloid signature, CD4T, CD8, B cell signature for TLS and myeloid rich tumor annotations
+```{r}
+saveRDS(P108NA_12_RNA, "objects/01_108NA_12_RNA101524")
+```
+
+######P109NA#######
+```{r}
+P109NA_03_RNA <- load_slideseq(gene_exp_dir = "slideseq_data/raw_data/RCC_pucks/2024-01-26_Puck_231101_03_109NA/gene_exp/", coords_dir = "slideseq_data/raw_data/RCC_pucks/2024-01-26_Puck_231101_03_109NA/Puck_231101_03_barcode_xy.txt.gz", project_name = "P109NA_03")
+
+dim(P109NA_03_RNA)
+```
+
+```{r}
+RNA_xy <- P109NA_03_RNA@images$image@coordinates %>%
+  mutate(barcode = rownames(.)) %>%
+  dplyr::rename("RNA_x" = "x", 
+                "RNA_y" = "y", 
+                "RNA_barcode" = "barcode")
+
+rownames(RNA_xy) <- RNA_xy$barcode
+```
+
+# Log scale the rna and tcr features and umi
+```{r}
+P109NA_03_RNA$log_nFeature_Spatial <- log(P109NA_03_RNA$nFeature_Spatial)
+P109NA_03_RNA$log_nCount_Spatial <- log(P109NA_03_RNA$nCount_Spatial)
+```
+
+# Save merged object
+```{r}
+plot_coords <- P109NA_03_RNA@images$image@coordinates %>%
+  mutate(plot_x = x,
+         plot_y = y)
+
+P109NA_03_RNA <- AddMetaData(P109NA_03_RNA, plot_coords)
+P109NA_03_RNA$area <- "Normal"
+```
+
+# Open rctd objects
+```{r}
+P109NA_03_rctd <- readRDS("slideseq_data/tcr_analysis/RCC_neovax_pucks/rctd_references/rctd_results_rds/2024-01-26_Puck_231101_03_109NA_100M_rctd_results_031324.rds")
+```
+
+# Remove reject beads and normalize RCTD weights
+```{r}
+# Remove reject beads
+rejects <- P109NA_03_rctd@results[["results_df"]] %>%
+  filter(spot_class == "reject") %>%
+  rownames()
+
+P109NA_03_weights <- as.data.frame(normalize_weights(P109NA_03_rctd@results$weights)) %>%
+  # Remove reject beads
+  filter(!(rownames(.) %in% rejects))
+
+write.csv(P109NA_03_weights, "xlsx_output/c03_109NA_rctd_norm_weights.csv")
+```
+
+# Add RCTD weights
+```{r}
+rctd_weights <- read.csv("xlsx_output/c03_109NA_rctd_norm_weights.csv", row.names = 1)
+
+P109NA_03_RNA <- AddMetaData(P109NA_03_RNA, rctd_weights)
+
+P109NA_03_RNA@meta.data <- P109NA_03_RNA@meta.data %>%
+  mutate(B = ifelse(is.na(B), 0, B),
+         CD4.T = ifelse(is.na(CD4.T), 0, CD4.T),
+         CD8.T = ifelse(is.na(CD8.T), 0, CD8.T),
+         Endothelial = ifelse(is.na(Endothelial), 0, Endothelial),
+         Myeloid = ifelse(is.na(Myeloid), 0, Myeloid),
+         NK = ifelse(is.na(NK), 0, NK),
+         Tumor = ifelse(is.na(Tumor), 0, Tumor))
+
+saveRDS(P109NA_03_RNA, "objects/01_109NA_03_RNA101524")
+```
+
+###### Merge objects ######
+```{R load in objects to be merged}
+#first goal is combine all samples, and perform DEG comparison between TS-TCR beads (and the beads directly around them), compared to nonTS-TCRs
+##P102
+#TA
+P102TA.puck10 <- readRDS("objects/02_area_annotation/02_Puck10_102TA_TCR_RNA_area_111124.Rds") #1
+P102TA.puck17 <- readRDS("objects/02_area_annotation/02_Puck17_102TA_TCR_RNA_area_111124.Rds") #2
+P102TA.puck33 <- readRDS("objects/02_area_annotation/02_Puck33_102TA_TCR_RNA_area_111124.Rds") #3
+P102TA.puck.39 <- readRDS("slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck39_102TA_TCR_RNA_area_111224.Rds") #4
+#NA
+P102NA.puck26.aa <- readRDS("slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/") #not annotated for area beyond "normal" #5
+
+##P107
+#TA
+P107TA.puck15 <- readRDS("objects/02_area_annotation/02_Puck15_107TA_TCR_RNA_area_111124.Rds") #6
+P107TA.puck18 <- readRDS("objects/02_area_annotation/02_Puck18_107TA_TCR_RNA_area_111124.Rds") #7
+P107TA.puck20 <- readRDS("objects/02_area_annotation/02_Puck20_107TA_TCR_RNA_area_111124.Rds") #8
+
+##P108
+#TA
+P108TA.puck26 <- readRDS("objects/02_area_annotation/02_Puck26_108TA_TCR_RNA_area_111124.Rds") #9
+P108TA.puck29 <- readRDS("objects/02_area_annotation/02_Puck29_108TA_TCR_RNA_area_111124.Rds") #10
+P108TA.puck30 <- readRDS("objects/02_area_annotation/02_Puck30_108TA_TCR_RNA_area_111124.Rds") #11
+P108TA.puck32 <- readRDS("objects/02_area_annotation/02_Puck32_108TA_TCR_RNA_area_111124.Rds") #12
+#TB 
+P108TB.puck6 <- readRDS("objects/02_area_annotation/02_Puck06_108TB_TCR_RNA_area_111224.Rds") #13
+P108TB.puck14 <- readRDS("objects/02_area_annotation/02_Puck14_108TB_TCR_RNA_area_111224.Rds") #14
+#MB
+P108MB.puck27 <- readRDS("objects/02_area_annotation/02_Puck27_108MB_TCR_RNA_area_111224.Rds") #15
+P108MB.puck40 <- readRDS("objects/02_area_annotation/02_Puck40_108MB_TCR_RNA_area_111224.Rds") #16
+#NA
+P108NA.puck12.aa <- readRDS("objects/108NA_12_RNA_SCTransform.rds") #not annotated for area beyond "normal" #17
+
+##P109
+#TB
+P109TB.puck23 <- readRDS("objects/02_area_annotation/02_Puck23_109TB_TCR_RNA_area_111224.Rds") #18
+P109TB.puck34 <- readRDS("objects/02_area_annotation/02_Puck34_109TB_TCR_RNA_area_111224.Rds") #19
+#NA
+P109NA.puck03.aa <- readRDS("objects/puck03_109_RNA_SCTransform.rds") #not annotated for area beyond "normal" #20
+
+##P110
+#TB
+P110TA.puck28 <- readRDS("objects/02_area_annotation/02_Puck28_110TA_TCR_RNA_area_040225.Rds") #21
+P110TA.puck30 <- readRDS("objects/02_area_annotation/02_Puck30_110TA_TCR_RNA_area_040225.Rds") #22
+
+##P111
+#TA
+P111TA.puck32 <- readRDS("objects/02_area_annotation/02_Puck32_111TA_TCR_RNA_area_111224.Rds") #23
+P111TA.puck37 <- readRDS("objects/02_area_annotation/02_Puck37_111TA_TCR_RNA_area_111224.Rds") #24
+
+##23 objects
+#load all the objects I need to process together
+objects.to.process <- ls(pattern = "\\.puck")
+objects.to.process <- objects.to.process[!grepl("aa",objects.to.process)] #remove the ones I already processed above
+objects.to.process <- mget(objects.to.process) #make a list of the objects
+objects.to.process <- lapply(seq_along(objects.to.process), function(x)
+  RenameCells(objects.to.process[[x]], add.cell.id = names(objects.to.process)[x])) #rename all barcodes to have a unique identifier based on their puck identity
+
+lapply(objects.to.process, function(x) SpatialDimPlot(x, group.by = "area")) #confirm spatial mapping was successful for all samples
+objects.to.process <- lapply(objects.to.process, function(obj) {
+  obj %>% 
+    NormalizeData %>% 
+    subset(area == "Empty", invert = TRUE) %>% 
+    SCTransform(assay = "Spatial", verbose = FALSE) %>% 
+    RunPCA(assay = "SCT", verbose = FALSE) %>% 
+    FindNeighbors(reduction = "pca", dims = 1:30) %>% 
+    FindClusters(verbose = FALSE) %>% 
+    RunUMAP(reduction = "pca", dims = 1:30)
+})
+
+lapply(objects.to.process, function(x) SpatialDimPlot(x)) #clustered independently, now must add back in the objects I had done this for already, and merge and recluster
+objects.to.process.all <- objects.to.process
+objects.to.process.all[[22]] <- P102NA.puck26.aa
+objects.to.process.all[[23]] <- P108NA.puck12.aa
+objects.to.process.all[[24]] <- P109NA.puck03.aa
+#need to make sure each sample has a patient identifier and a tissue identifier
+names.of.objects <- unlist(lapply(objects.to.process.all, function(x) x@project.name))
+
+objects.to.process.all <- lapply(objects.to.process.all, function(x){
+  x$sample.id <- x@project.name
+  x$patient <- substr(x@project.name, start = 2, stop = 4)
+  x$sample.origin <- substr(x@project.name, start = 4, stop = 4)
+  return(x)
+})
+
+#should save at this point to ensure the merge goes well
+saveRDS(objects.to.process.all, "objects/slide.seq.all.rds")
+objects.to.process.all <- readRDS("objects/slide.seq.all.rds")
+```
+
+```{R merge and join layers}
+merged.slides <- Reduce(function(x, y) merge(x, y), objects.to.process.all)
+unique(merged.slides$sample.id) 
+table(merged.slides$sample.id) #quality check that all the samples made it
+sum(sapply(objects.to.process.all, function(x) dim(x)[2])) #check that all cells made it through to this object
+
+saveRDS(merged.slides, "objects/slide.seq.all.merged.rds")
+merged.slides <- readRDS("objects/slide.seq.all.merged.rds")
+
+DefaultAssay(merged.slides) <- "SCT" #set default assay to draw from as the normalized version
+all_variable_features <- unique(unlist(lapply(objects.to.process.all, VariableFeatures))) #drawing all the variable features from the component objects
+VariableFeatures(merged.slides) <- all_variable_features
+
+merged.slides <- JoinLayers(merged.slides, assay = "TCR")
+merged.slides <- JoinLayers(merged.slides, assay = "Spatial")
+
+merged.slides <- merged.slides %>%
+  NormalizeData() %>%
+  ScaleData() %>% #the scale data disappears because SCTransform goes from raw data and a ton of genes are empty for many of these patients
+  RunPCA()
+
+merged.slides <- merged.slides %>%
+  FindNeighbors(dims = 1:30) %>%
+  FindClusters() %>%
+  RunUMAP(dims = 1:30)
+
+SpatialDimPlot(merged.slides, ncol = 3)
+SpatialDimPlot(merged.slides, group.by = "area", ncol = 3)
+
+saveRDS(merged.slides, "objects/slide.seq.all.merged.preharmony.rds")
+merged.slides <- readRDS("objects/slide.seq.all.merged.preharmony.rds")
+
+merged.slides.harmony <- merged.slides %>%
+  RunHarmony("sample.id") %>%
+  FindNeighbors(reduction = "harmony") %>%
+  FindClusters(resolution = 0.4) %>%
+  RunUMAP(reduction = "harmony",  dims = 1:20) #attempt to run harmony on SCT data
+
+saveRDS(merged.slides.harmony, "objects/slide.seq.all.harmony.rds")
+
+merged.slides.harmony <- readRDS("objects/slide.seq.all.harmony.rds")
+```
+
+```{R harmony on Spatial Assay}
+merged.slides.harmony.Spatial <- merged.slides.harmony
+DefaultAssay(merged.slides.harmony.Spatial) <- "Spatial" #discovered that SCTransform with this many pucks was not possible to run from a memory perspective, and merging cleared the SCTransform data; this strategy follows what was performed for single-cell RNA-seq for harmonization and data normalization.
+
+merged.slides.harmony.Spatial <- merged.slides.harmony.Spatial %>%
+  NormalizeData() %>%
+  ScaleData() %>% 
+  RunPCA()
+
+merged.slides.harmony.Spatial <- merged.slides.harmony.Spatial %>%
+  RunHarmony("sample.id") %>%
+  FindNeighbors(reduction = "harmony") %>%
+  FindClusters(resolution = 0.4) %>%
+  RunUMAP(reduction = "harmony",  dims = 1:20)
+
+merged.slides.harmony.Spatial <- readRDS("objects/slide.seq.all.merged.harmonyonSpatial.rds")
+```
+
+```{R data visualization for pucks}
+area_colors <- c(
+    "Tumor" = "#8C4503",
+    "Boundary" = "#ff8f1b",
+    "TLS2" = "#009051",
+    "M2" = "#009051",
+    "TLS1" = "#397052",
+    "TLS3" = "#53BA74",
+    "TLS4" = "#707E4A",
+    "NA" =  "#f2f0f0",
+    "Normal" = "grey"
+)
+
+puck = "P108TA_29"
+puck.subset <- split_slides[[puck]]
+
+tmem_beads <- puck.subset@meta.data %>%
+  filter(str_detect(PrimaryCluster, "Tmem"))
+tex_beads <- puck.subset@meta.data %>%
+  filter(str_detect(PrimaryCluster, "Tex"))
+
+tmem_beads$TexorTmem <- "Tmem"
+tex_beads$TexorTmem <- "Tex"
+
+beadstoplot <- rbind(tmem_beads[,c("TexorTmem","barcode", "plot_x", "plot_y")], tex_beads[,c("TexorTmem","barcode", "plot_x", "plot_y")])
+beadstoplot$barcode <- rownames(beadstoplot)
+beadstoplot$beadcolor <- ifelse(beadstoplot$TexorTmem == "Tex", "red", "blue")
+
+
+SpatialDimPlot(puck.subset, group.by = "area", alpha = 1, stroke = 0, cols = area_colors) +
+  geom_point(data = beadstoplot,
+             aes(x = plot_x, y = plot_y, color = beadcolor),  # map color from column
+             size = 1, inherit.aes = FALSE) +
+  scale_color_identity() +  # tells ggplot not to create a legend, use colors as-is
+  theme(legend.position = "none")
+ggsave(paste0("Graphics/", puck,"_texvtmem.pdf"), width = 4, height = 4) #for Fig. 3a and 3g
+
+SpatialDimPlot(puck.subset, group.by = "area", alpha = 0.7, stroke = 0, cols = area_colors) +
+  scale_color_identity() +  # tells ggplot not to create a legend, use colors as-is
+  theme(legend.position = "none")
+
+gene_exp <- as.matrix(puck.subset[["Spatial"]]$data[c("APOE", "CD163"),]) %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(barcode = rownames(.))
+coords <- puck.subset@meta.data[,c("plot_x", "plot_y", "area")]
+coords$barcode <- rownames(coords)
+
+combined <- full_join(gene_exp, coords) %>%
+  column_to_rownames(var = "barcode")
+
+cols.bg <- c("#C1DFFC")
+names(cols.bg) <- puck
+
+SpatialDimPlot(puck.subset, group.by = "orig.ident", stroke = 0, alpha = 0.3, cols = cols.bg) + 
+  geom_point(data = combined, 
+             aes(x = plot_x, y = plot_y, alpha = APOE),
+             shape = 21, fill = "purple", color = "black", stroke = 0, size = 1.5) +
+  geom_point(data = combined, 
+             aes(x = plot_x, y = plot_y, alpha = CD163),
+             shape = 21, fill = "darkred", color = "black", stroke = 0, size = 1.5) +
+  scale_alpha(range = c(0, 1))
+ggsave(paste0("Graphics/", puck,"_areaAPOECD163wlegend.pdf"), width = 4, height = 4) #Fig. 3g
+```
+
+```{R identify shared TCRs at multiple radii and thresholds}
+sample <- readRDS("objects/slide.seq.all.merged.harmonyonSpatial.rds")
+
+gene_signatures <- list(cytotoxicity = c("PRF1", "GZMH", "GZMK", "GZMB", "GZMA", "GNLY", "IFNG", "FASLG"), exhaustion = c('PDCD1', 'TIGIT', 'LAG3', 'HAVCR2', 'CTLA4', 'TOX'), memory = c('TCF7', 'SELL', 'IL7R', 'CCR7', 'CD28'), proliferation = c('MKI67', 'TOP2A', 'STMN1'), mel_tumor_specific = c('KRT86', 'RDH10', 'TYMS', 'HMOX1', 'GNG4', 'CXCL13', 'AFAP1L2', 'ACP5', 'MYO1E', 'LAYN', 'TNS3', 'TNFSF4', 'AKAP5', 'HAVCR2', 'ENTPD1', 'SLC2A8', 'AC243829', 'ZBED2', 'MCM5', 'CAV1', 'GOLIM4', 'TRAV21', 'VCAM1', 'PON2', 'MTSS1', 'CD38', 'TRBV11-2', 'MS4A6A', 'TOX2', 'CSF1', 'GALNT2', 'FXYD2', 'PLPP1', 'LMCD1', 'MYL6B', 'LAG3', 'HLA-DRA', 'IGFLR1', 'CCDC50', 'CD27', 'KIAA1324', 'CDKN2A', 'CD70', 'ABHD6', 'CTLA4', 'PDCD1', 'GEM', 'NUSAP1', 'TOX', 'CXCR6', 'NMB', 'HOPX', 'CLIC3', 'INPP5F', 'SNAP47', 'TSHZ2', 'HLA-DMA', 'SIT1', 'HLA-DRB1', 'TUBB', 'PYCARD', 'ADGRG1', 'HLA-DQA1', 'PRF1', 'HLA-DPA1', 'PTMS', 'CKS1B', 'HIPK2', 'CHST12', 'LSP1', 'FAM3C', 'SLC1A4', 'NUDT1', 'DNPH1'), mel_virus_specific = c('RARA', 'GADD45B', 'C1orf21', 'AOAH', 'MATK', 'SATB1', 'MBP', 'ANTXR2', 'RORA', 'CCR7', 'ANXA1', 'BACH2', 'GLUL', 'TNFSF14', 'AUTS2', 'PERP', 'EPHA4', 'TCF7', 'SELL', 'MYC', 'IL7R', 'CD300A', 'ITGA5', 'GPR183', 'KLF3', 'S1PR1'), M2.sig = c("APOE", "C1QC", "TREM2", "GPNMB", "SLCO2B1", "APOC1", "SDS", "C1QB", "C1QA", "SLC1A3", "OLFML3", "MSR1", "OLR1", "C3", "KCNMA1", "PLTP", "VSIG4", "LGMN", "GPR34", "LILRB4", "FMNL2", "DOCK4", "FCGR1A", "MARCKS", "MS4A4A", "ADAP2", "PLXDC2", "CD14", "PLD4", "FN1", "SERPINF1", "CEBPA", "CD163", "CSF2RA", "A2M", "TNFSF13", "CXCL16", "SLC15A3", "IL18", "TIMP2", "FCGR2A", "CTSL", "HLA-DRA", "LPCAT2", "TM6SF1", "TLR2", "HTRA1", "CD68", "BMP2K", "CTSZ", "VASH1", "CYFIP1", "RAB32", "MAFB", "RAB20", "MS4A6A", "ABCA1", "LTC4S", "OTUD1", "ALDH2", "GRN"), Class.Mono = c("S100A12", "S100A8", "S100A9", "VCAN", "EREG", "CLEC4E", "THBS1", "CD36", "FCN1", "CD300E", "TREM1", "APOBEC3A", "ASGR1", "CSTA", "LYZ", "LGALS2", "CFP", "FPR1", "MPEG1", "CSF3R", "IL1B", "SLC11A1", "NCF2", "CXCL2", "DMXL2", "C19orf38", "LILRA5", "LINC00936", "MNDA", "IRAK3", "CXCL8", "PLBD1", "CLEC4A", "CD163", "TIMP1", "ATP2B1-AS1"), NonClass.Mono = c("SMIM25", "RP11-290F20.3", "LILRA5", "GPBAR1", "LILRA1", "TCF7L2", "ZNF703", "LILRB2", "CDKN1C", "LST1", "HES4", "HK3", "CFP", "APOBEC3A", "LRRC25", "C19orf38", "VMO1", "HCK", "TBC1D8", "SIGLEC10", "FCN1", "CD300LF", "SECTM1", "RNF144B", "PILRA", "SLC2A6", "CHST15", "CD300E", "C5AR1", "LILRA2", "MS4A7", "BCL2A1", "STXBP2", "LILRB3", "PRAM1", "IRAK3", "LYN", "CFD", "LILRB1", "SIDT2", "CDA", "FAM26F", "SCIMP", "SLC31A2", "AIF1", "RGS18", "NCF2", "WARS", "SERPINA1", "TIMP1", "SPI1", "MTSS1", "MPEG1", "IFITM3", "DMXL2", "CPPED1"), Zheng.TCF7 = c("LHFP", "CD200", "GNG4", "CXCL13", "TNFRSF4", "IGFL2", "CPM", "NMB", "SESN3", "EBI3",
+  "BTLA", "TSHZ2", "IGFBP4", "MS4A6A", "PASK", "CHN1", "CHGB", "PTPN13", "CAV1", "TCF7",
+  "NR3C1", "COL9A2", "C1orf228", "GK", "TBC1D4", "FAAH2", "MAGEH1", "THADA", "CD79A",
+  "PHACTR2", "SMCO4", "LIMS2", "LY96", "ITM2A", "UNQ6494", "PTPN14", "MYL6B", "RPS8", "CCR7",
+  "EPHX2", "SELL", "FGFR1", "GEM", "CD27", "TIGIT", "TOX", "EEF1A1", "IL6R", "CORO1B",
+  "BATF", "CD28", "KIAA1324", "LIMS1", "IKZF4", "FKBP5", "STAM", "TTN", "METTL8", "STAC",
+  "RPL11", "CYSLTR1", "CTSL", "SH2D1A", "CXorf21", "CNIH1", "PHEX", "DUSP4", "CD80", "SEPT6",
+  "RNF19A", "DNPH1", "SARDH", "NAB1", "ICOS", "PTK2", "TESPA1", "SMPDL3A", "DGKA", "TNFSF8",
+  "CYBRD1", "CTHRC1", "CD40LG", "ELMO1", "RPL8", "AP3S1", "GPX4", "RPLP1", "SIRPG", "LRRC8D",
+  "ZC2HC1A", "IFNAR2", "RPL12", "TNFRSF25", "RPL6", "NDFIP2", "RPL18", "C16orf45", "ATP5G2",
+  "SMAP2", "BIRC3", "CTSB", "C9orf16", "RPL15", "ST8SIA1", "NINJ2", "NFATC1", "APP", "PRDX2",
+  "MSI2", "RPL29", "PKIA", "RPS5", "RPS24", "CD82", "PELI1", "TSPAN5", "RGS2", "RBPJ",
+  "PIK3IP1", "AHI1", "SOD1", "BARX2", "TLK1", "RHBDD2", "ZNRF1", "SYPL1", "CD84", "ZBTB46",
+  "PEBP1", "ZEB1", "RPS23", "ADPRH", "VOPP1", "RPS28", "SH3BGRL2", "FXYD5", "SGPP2", "EEF2",
+  "ZC3H7A", "CCDC6", "EEF1G", "RPL19", "RPL22", "GPX1", "PPP1CC", "KAT6B", "PON2", "GRSF1",
+  "CAMK1", "RPS2", "FABP5", "CD79B", "HMGN1", "HIF1A", "PARK7", "ANP32B", "RPS4X", "FBXO32",
+  "ACTN1", "RPL4", "PMAIP1", "PTP4A3", "RPL32", "EIF3F", "TMEM123", "ACTG1", "RPS3A", "RPS13",
+  "RPL10A", "SPOCK2", "HNRNPA1", "CIRBP", "RPL5", "SREBF2", "RPL7", "NAP1L1", "TNFRSF9",
+  "EIF3L", "TNIK", "EIF3E", "LIMA1", "ANKS1B", "TMEM245", "SMS", "RPL13", "LRMP", "VDR",
+  "CCR4", "ZC3H12D", "OXA1L", "RPL7A", "FCRL3", "NCOA7", "RAB30", "TSHR", "NAP1L4", "KCNK5",
+  "SMAD1", "C12orf57", "PPP1R2", "CCDC141", "INPP1", "RPL18A", "RPL37", "DGKH", "FHIT",
+  "RPS6", "MARCH3", "RAB11FIP1", "UCP2", "MAGEF1", "BEX2", "EVI5", "TMEM243", "RPS18",
+  "EIF3H", "TRAF1", "SLC7A6", "PAM", "EID1", "ITGB2-AS1", "RPL9", "LINC00158", "TP53INP1",
+  "PPM1G", "RGS10", "GYPC", "SLC25A6", "MYCBP2", "SEC11A", "EEF1B2", "SFXN1", "RPS9",
+  "GADD45G", "HS3ST1", "RPL3", "HNRNPLL", "FAM184A", "FAM107B", "HECTD2", "LDHB", "LYST",
+  "HYI", "RPS7", "RPL10", "PYCR1", "KIAA0319L", "NUDT16", "TBXAS1", "NACA", "NTRK2",
+  "CALM3", "TMEM64", "ZNF706", "GRAMD1A", "RNASET2", "MAML2", "CCNI", "SLC25A46", "ZNF580",
+  "RPL36", "SLA", "EIF4B", "PSIP1", "FZD6", "MPST", "HBS1L", "PJA2", "ST13", "SPCS1", "RPL24",
+  "MTUS1", "AHR", "ANXA7", "SFI1", "BEX4", "EIF3D", "MAPKAPK3", "BCL6", "CLPP", "GRHPR",
+  "KDM5B", "LAT", "HPCAL1", "RMND5B", "STT3B", "PRDX1", "RPS26", "NME2", "CLNS1A", "TIAM2",
+  "ARID4B", "SIAH2", "PAK2", "ATM", "NIT1", "NME3", "SRGAP3", "CARHSP1", "RPS10", "SIPA1L1",
+  "PFDN5", "NBEAL1", "EVC", "SV2A", "RPL41", "PGLS", "ISCU", "ALKBH7", "WBP1", "TACC3",
+  "COX4I1", "EDF1", "TMBIM4", "MZT2A", "PABPC1", "SLC35A2", "IL10RB", "ZBED5", "STAMBPL1",
+  "ITPKB", "LIMD2", "TMEM134", "AMPD3", "ZNF292", "RANGAP1", "PHB2", "RPL34", "RPUSD3",
+  "GOLGA8B", "ZNF638", "RPL23", "COMMD6", "GDI2", "CD151", "MTA3", "TSPO", "CRTAP", "BTF3L4",
+  "GRB2", "SMARCE1", "CARS", "NPAT", "EVC2", "DALRD3", "TOMM34", "SDCCAG8", "WDR83OS", "APEX1",
+  "C1orf43", "EIF2S3", "HMGN3", "C19orf53", "TCEAL8", "ALDH6A1", "SRFBP1", "TAF9B", "RPL35A",
+  "ERGIC3", "TMEM2", "RPL22L1", "ZNF610", "EIF2D", "TSPAN14", "SH3KBP1", "COX8A", "SPTAN1",
+  "CEP170", "SCCPDH", "ANAPC16", "MAN2B1", "MRPL3", "HNRNPK", "MRPS21", "C20orf196", "TMEM256-PLSCR3",
+  "P2RY10", "MBOAT7", "TSR3", "ASNS", "COX5B", "MRPL35", "NSF", "NPM1", "IMPDH2", "ATP5D",
+  "NDUFB1", "NDUFAF3", "NUDT21", "RNFT1", "MEAF6", "PCMTD2", "BANF1", "ASAP1", "SFXN2", "CTTNBP2NL",
+  "DLD"), #LHFP, C1orf228, UNQ6494, SEPT6, C16orf45, ATP5G2, GPX1, TMEM2, C20orf196, TMEM256-PLSCR3, ATP5D not present in spatial
+  Oliveira.TPEX = c("CAV1", "GNG4", "XCL1", "SERPINH1", "CRTAM", "NMB", "BAG3", "CXCL13", "GEM", "XCL2", 
+  "HLA-DQA1", "HSPA1A", "HSPA6", "HLA-DRA", "DNAJB1", "FABP5", "ZFAND2A", "HLA-DRB1", "HSPB1", 
+  "HSPA1B", "TOX", "CMC1", "GK", "HLA-DPA1", "RGS2", "ENC1", "DEDD2", "HLA-DMA", "HSPD1", 
+  "HLA-DPB1", "CD74", "HSPE1", "CD82"),
+  Chen_TCF7.PD1.CD8.log2 = c("CD3E", "CCR5", "GZMK", "EOMES", "KLRG1", "CXCR6", "CD2", "CD27", "PTPRC", "GZMA",
+    "ISG20", "CD3D", "TRAC", "CD69", "CD3G", "CD247", "LAG3", "CCR4", "PRF1", "CCL5",
+    "IL2RG", "CD8A", "CST7", "IL2RB", "PDCD1", "TOX", "FASLG", "SELL", "TCF7", "TIGIT",
+    "CXCR3", "CXCR5", "CD7", "ITGB7", "GATA3", "FLI1", "CCL4", "CD38", "CXCR4", "CTLA4",
+    "PSMB9", "MZB1", "CCR7", "ITGAE", "TNFRSF1B", "TNFRSF25", "TRDC", "S1PR1", "IL32",
+    "GBP4", "NOTCH1", "FOXP3", "IL18RAP", "PRDM1", "MX1", "CD79A", "TNF", "IFNG", "B3GAT1",
+    "TRGC1", "S1PR4", "IL7R", "HAVCR2", "IRF1", "CD40LG", "TBX21", "CXCL10", "ZNF683",
+    "CCL3", "CCR8", "GPR183", "IKZF2", "IL18R1"),
+  SadeFeldmanTPEXfromBi = c("IL7R", "GPR183", "LMNA", "NR4A3", "TCF7", "MGAT4A", "CD55", "AIM1", "PER1", "FOSL2", "EGR1", 
+                            "TSPYL2", "YPEL5", "CSRNP1", "REL", "SKIL", "PIK3R1", "FOXP1", "RGCC", "PFKFB3", "MYADM", 
+                            "ZFP36L2", "USP36", "TC2N", "FAM177A1", "BTG2", "TSC22D2", "FAM65B", "STAT4","RGPD5", "NEU1", 
+                            "IFRD1", "PDE4B", "NR4A1"), #AIM1, FAM65B not present in spatial
+  SadeFeldmanTermfromBi = c("NKG7", "RAC2", "CLIC1", "GZMA", "PRF1", "APOBEC3C", "RHOA", "CCL4", "COTL1", "PSME2", 
+    "HLA-DPA1", "HMGN2", "LSP1", "PSMB9", "LCK", "SRP14", "ARPC3", "ARPC1B", "TPI1", "APOBEC3G", 
+    "HLA-DPB1", "LDHB", "ATP5G2", "MYL12B", "PSMB8", "PSMA7", "HLA-DRB1", "SUB1", "ARPC4", "CTSW", 
+    "SUMO2", "TAP1", "GZMB", "RARRES3", "CAP1", "UCP2", "PPIB", "RAN", "CHCHD2", "PARK7", "HCST", 
+    "GABARAP", "HLA-DRA", "SOD1", "CAPZB", "S100A4", "RNASEK", "PPP1CA", "PKM", "IFI16", "ACTR3", 
+    "ITM2A", "SLC25A5", "PGAM1", "ANXA6", "CD27", "ATP5B", "LYST", "PSMB10", "MIF", "LY6E", 
+    "ANKRD10", "CTSD", "UBE2L6", "EDF1", "NONO", "TIGIT", "FKBP1A", "IL2RB", "HMGN1", "ATP5L", 
+    "GZMH", "STAT1", "GPI", "LCP2", "GBP2", "ARL6IP5", "CCL4L1", "PRDM1", "OST4", "PDCD1", "HINT1", 
+    "HNRNPF", "GBP5", "COX7C", "ARPC5", "GIMAP4", "XRCC6", "C17orf62", "PRR13", "HLA-DRB5", "WDR1", 
+    "ARL6IP1", "ISG15", "ATP5A1", "EWSR1", "COPE", "HAVCR2", "EIF3H", "ANXA5", "C11orf58", "IFI6", 
+    "SIRPG", "CALM3", "SHISA5", "DENND2D", "MAP4K1", "BUB3", "IKZF3", "SNRPB", "EID1", "PSMB1", 
+    "PTPN6", "NDUFA13", "SSR4", "COX8A", "PTPN7", "MAT2B", "PSTPIP1", "GSTP1", "PSMB3", "IRF9", 
+    "TRAF3IP3", "GIMAP7", "PSMA2", "SASH3", "CD164", "ETNK1", "S100A11", "KLRD1", "MOB1A", "SH2D1A", 
+    "UBE2V1", "SH3KBP1", "ATP5G3", "PSMA5", "MT2A", "LAT", "IFNG", "RAB27A", "COX5A", "DDOST", 
+    "PSMB4", "SRP9", "BRK1", "TNFRSF1B", "EIF4H", "GMFG", "ANXA2", "TCEB2", "RBPJ", "COX6A1", 
+    "UBXN1", "PSMD8", "CD63", "ATP6V0E1", "NDUFB8", "CTSC", "SNRPD2", "ATP5C1", "PRELID1", "COX7A2", 
+    "PSMA6", "ECH1", "U2AF1", "HMGB2", "FAM49B", "CD38", "TSPO", "IDH2", "CASP4", "CCL3", "TRMT112", 
+    "SURF4", "PSMA1", "YWHAE", "LASP1", "PYHIN1", "ANAPC16", "TUBB", "CSNK2B", "PRKAR1A", "SLAMF7", 
+    "GNG5", "PRDX1", "RQCD1", "CCNDBP1", "INPP4B", "CDK2AP2", "CBX3", "RPN1", "SPCS1", "PSMA3", 
+    "SIT1", "XRCC5", "EIF3C", "CXCR6", "COX6C", "M6PR", "ANP32E"), #ATP5G2, RARRES3, ATP5B, ATP5L, CCL4L1, C17orf62, ATP5A1, ATP5G3, TCEB2, ATP5C1, RQCD1 not present in spatial
+  HaoLiTLS.TPEX = c("CXCL13", "TCF7", "PDCD1"),
+  HaoLiTLS.TEXTERM = c("TOX", "HAVCR2", "CD101", "PDCD1", "LAG3", "CXCL13", "ENTPD1", "TIGIT"))
+
+for (sig_name in names(gene_signatures)) {
+  sample <- AddModuleScore(sample, features = list(gene_signatures[[sig_name]]), name = sig_name)
+}
+
+# Extract relevant samples
+sample.onlytumorwTLS <- sample[, grepl("102T|107T|108T", sample$sample.id)]
+split_slides.onlytumorwTLS <- SplitObject(sample.onlytumorwTLS, split.by = "orig.ident")
+
+# Iterate over each combination of r and min_cells
+TCR_results <- list()
+r_values <- c(0, 15, 30, 45)
+min_cells_values <- c(5, 3, 2)
+
+# Compute TCRs once for each min_cells value
+for (min_cells in min_cells_values) {
+    
+    # Process TCR localization
+    TCRs.loc <- lapply(split_slides.onlytumorwTLS, function(slide) {
+        TCR.loc <- as.data.frame.matrix(table(slide$area, slide$sctcr_clone))
+        TLS.TCR.loc <- colSums(TCR.loc[grepl("TLS|M2", rownames(TCR.loc)), ])
+        nonTLS.TCR.loc <- colSums(TCR.loc[!grepl("TLS|M2", rownames(TCR.loc)), ])
+        TCR.loc <- as.data.frame(rbind(TLS.TCR.loc, nonTLS.TCR.loc))
+        new_df <- data.frame(row.names = rownames(TCR.loc))
+        for (col in colnames(TCR.loc)) {
+            if (grepl(",", col)) {
+                split_names <- unlist(strsplit(col, split = ","))
+                for (new_col in split_names) {
+                    if (new_col %in% colnames(new_df)) {
+                        new_df[[new_col]] <- new_df[[new_col]] + TCR.loc[[col]]
+                    } else {
+                        new_df[[new_col]] <- TCR.loc[[col]]
+                    }
+                }
+            } else {
+                if (col %in% colnames(new_df)) {
+                    new_df[[col]] <- new_df[[col]] + TCR.loc[[col]]
+                } else {
+                    new_df[[col]] <- TCR.loc[[col]]
+                }
+            }
+        }
+        return(new_df)
+    })
+
+    # Merge TCR tables for 102, 107, 108
+    merge_TCR_tables <- function(indices) {
+        combined <- TCRs.loc[[indices[1]]]
+        for (i in indices[-1]) {
+            for (col in colnames(TCRs.loc[[i]])) {
+                if (col %in% colnames(combined)) {
+                    combined[[col]] <- combined[[col]] + TCRs.loc[[i]][[col]]
+                } else {
+                    combined[[col]] <- TCRs.loc[[i]][[col]]
+                }
+            }
+        }
+        return(combined)
+    }
+
+    combined_102 <- merge_TCR_tables(c(1:4))
+    combined_107 <- merge_TCR_tables(c(5:7))
+    combined_108 <- merge_TCR_tables(c(8:13))
+
+    # Remove "NA" columns
+    combined_102 <- combined_102[, !colnames(combined_102) == "NA"]
+    combined_107 <- combined_107[, !colnames(combined_107) == "NA"]
+    combined_108 <- combined_108[, !colnames(combined_108) == "NA"]
+
+    # Filter TCRs with presence in both TLS and nonTLS
+    combined_102 <- combined_102[, combined_102[1, ] > 0 & combined_102[2, ] > 0]
+    combined_107 <- combined_107[, combined_107[1, ] > 0 & combined_107[2, ] > 0]
+    combined_108 <- combined_108[, combined_108[1, ] > 0 & combined_108[2, ] > 0]
+
+    # Select TCRs meeting min_cells criteria
+    use.102 <- colnames(combined_102[, combined_102[1, ] >= min_cells & combined_102[2, ] >= min_cells])
+    use.107 <- colnames(combined_107[, combined_107[1, ] >= min_cells & combined_107[2, ] >= min_cells])
+    use.108 <- colnames(combined_108[, combined_108[1, ] >= min_cells & combined_108[2, ] >= min_cells])
+
+    # Extract cell counts for each TCR
+    TLS_counts_102 <- combined_102[1, use.102, drop = FALSE]
+    nonTLS_counts_102 <- combined_102[2, use.102, drop = FALSE]
+    TLS_counts_107 <- combined_107[1, use.107, drop = FALSE]
+    nonTLS_counts_107 <- combined_107[2, use.107, drop = FALSE]
+    TLS_counts_108 <- combined_108[1, use.108, drop = FALSE]
+    nonTLS_counts_108 <- combined_108[2, use.108, drop = FALSE]
+
+    # Store the TCR selection results (independent of radius)
+    TCR_results[[paste0("min_", min_cells)]] <- list(
+        use.102 = data.frame(TCR = use.102, TLS_count = as.numeric(TLS_counts_102), nonTLS_count = as.numeric(nonTLS_counts_102)),
+        use.107 = data.frame(TCR = use.107, TLS_count = as.numeric(TLS_counts_107), nonTLS_count = as.numeric(nonTLS_counts_107)),
+        use.108 = data.frame(TCR = use.108, TLS_count = as.numeric(TLS_counts_108), nonTLS_count = as.numeric(nonTLS_counts_108))
+    )
+}
+
+#for the final figure, used min_cells = 2
+```
+
+```{R differential gene expression analysis for each TCR, at each distance and with each shared TCR threshold}
+#for Fig. 4f,g and Extended Data fig 9e, min_cells = 2, distance = 30 pixels ~ 20.95 µm
+#108
+for (r in c(0,15,30,45,60,75,90,105,120,135)){
+  for (min_cells in c(2,3,5)){
+max_neighbors <- 50
+puck_coords <- lapply(sample.onlytumorwTLS@images, function(puck){
+  puck@coordinates %>%
+    dplyr::select(x, y)
+}) 
+#grab the coordinates of all pucks and put them in a list 
+#must be separated because the barcodes close to one another on one puck are not close to each other on other pucks
+close_beads <- lapply(puck_coords, function(coords){ 
+  nn2(data = coords, 
+  k = max_neighbors, 
+  treetype = "kd", 
+  searchtype = "radius", 
+  radius = r, eps = 0)[[1]]
+})
+
+#add barcodes in (must happen after nn2)
+puck_coords <- lapply(puck_coords, function(slide){
+  slide %>%
+    mutate(barcode = rownames(.))
+})
+
+#reorder close_beads to match the split_slides order
+order <- paste0("image.", names(split_slides.onlytumorwTLS))
+order[1] <- "image"
+close_beads <- close_beads[order]
+
+use.108 <- TCR_results[[paste0("min_",min_cells)]]$use.108[,1]
+use.combined.loc.108 <- list()
+k <- 1
+for (i in seq_along(use.108)) {
+  for (j in 8:13) {
+    pattern <- paste0("(^|,)", use.108[i], "(,|$)")  # Match TCR as an exact value within comma-separated strings
+    use.combined.loc.108[[k]] <- grepl(pattern, split_slides.onlytumorwTLS[[j]]$sctcr_clone)
+    names(use.combined.loc.108)[[k]] <- paste(names(split_slides.onlytumorwTLS)[[j]], use.108[i], sep = ".")
+    k <- k + 1
+  }
+}
+
+TCR.logicals.108 <- setNames(
+  lapply(seq_along(use.108), function(i) {
+    use.combined.loc.108[((i-1)*6+1):(i*6)]
+  }),
+  paste0(use.108, ".list")
+)
+
+tls_bool <- lapply(TCR.logicals.108, function(tcrlist) {
+  mapply(function(TrueFalse, slide) {
+    TrueFalse & (str_detect(slide$area, "TLS") | str_detect(slide$area, "M2"))
+  }, tcrlist, split_slides.onlytumorwTLS[8:13], SIMPLIFY = FALSE)
+})
+
+#Extract close bead indices based on the tls_bool
+close_beads108 <- close_beads[8:13]
+tls_close_indicies <- lapply(tls_bool, function(boolean){
+  mapply(function(close_beads108,bool){
+    close_beads108[bool, , drop = FALSE]
+  }, close_beads108, boolean, SIMPLIFY = FALSE)})
+
+#rename this list
+lapply(tls_close_indicies, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[8:13]})
+
+# Push each T cell in TLS and their nearby beads into a dataframe, and remove duplicate beads inside this dataframe
+puck_coords.108 <- puck_coords[8:13]
+tls_close.list <- list()
+tls_close.list <- lapply(tls_close_indicies, function(TCR){
+  lapply(seq_along(TCR), function(i){
+  # Check if there are rows to process
+  if (dim(TCR[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(TCR[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- TCR[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords.108[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(TCR[[i]])
+  }
+})
+})
+
+#Check if inverse boolean vector matches the number of barcodes in close_beads
+nontls_bool <- lapply(TCR.logicals.108, function(tcrlist) {
+  mapply(function(TrueFalse, slide) {
+    TrueFalse & !(str_detect(slide$area, "TLS") | str_detect(slide$area, "M2"))
+  }, tcrlist, split_slides.onlytumorwTLS[8:13], SIMPLIFY = FALSE)
+})
+
+nontls_close_indicies <- lapply(nontls_bool, function(boolean){
+  mapply(function(close_beads108,bool){
+    close_beads108[bool, , drop = FALSE]
+  }, close_beads108, boolean, SIMPLIFY = FALSE)})
+
+#rename this list
+lapply(nontls_close_indicies, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[8:13]})
+
+
+nontls_close.list <- list()
+nontls_close.list <- lapply(nontls_close_indicies, function(TCR){
+  lapply(seq_along(TCR), function(i){
+  # Check if there are rows to process
+  if (dim(TCR[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(TCR[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- TCR[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords.108[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(TCR[[i]])
+  }
+})
+})
+
+tls_close.list <- lapply(tls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[8:13]
+  TCR})
+nontls_close.list <- lapply(nontls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[8:13]
+  TCR})
+
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df) <- c("barcode","x", "y")
+#find the shared barcodes among both lists for all slides
+shared.list <- lapply(seq_along(tls_close.list), function(i) {
+  lapply(seq_along(tls_close.list[[i]]), function(slide) {
+    
+    if (is.data.frame(tls_close.list[[i]][[slide]]) && nrow(tls_close.list[[i]][[slide]]) > 0 &&
+        is.data.frame(nontls_close.list[[i]][[slide]]) && nrow(nontls_close.list[[i]][[slide]]) > 0) {
+      
+      return(nontls_close.list[[i]][[slide]][nontls_close.list[[i]][[slide]]$barcode %in% tls_close.list[[i]][[slide]]$barcode, ])
+    
+    } else {
+      return(df)  # Return an empty dataframe if no valid data
+    }
+  })
+})
+names(shared.list) <- names(tls_close.list)
+shared.list <- lapply(shared.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[8:13]
+  TCR})
+
+
+#Remove the shared beads in both TLS and nonTLS lists
+#TLS
+tls_close.list <- lapply(seq_along(tls_close.list), function(j){
+  lapply(seq_along(tls_close.list[[j]]), function(i){
+  if(dim(shared.list[[j]][[i]])[1] > 0){
+    return(tls_close.list[[j]][[i]][!(tls_close.list[[j]][[i]]$barcode %in% shared.list[[j]][[i]]$barcode),])
+  }
+  else{
+    return(tls_close.list[[j]][[i]])
+  }
+})
+  })
+
+nontls_close.list <- lapply(seq_along(nontls_close.list), function(j){
+  lapply(seq_along(nontls_close.list[[j]]), function(i){
+  if(dim(shared.list[[j]][[i]])[1] > 0){
+    return(nontls_close.list[[j]][[i]][!(nontls_close.list[[j]][[i]]$barcode %in% shared.list[[j]][[i]]$barcode),])
+  }
+  else{
+    return(nontls_close.list[[j]][[i]])
+  }
+})
+  })
+
+names(tls_close.list) <- names(shared.list)
+names(nontls_close.list) <- names(shared.list)
+tls_close.list <- lapply(tls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[8:13]
+  TCR})
+nontls_close.list <- lapply(nontls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[8:13]
+  TCR})
+
+tls_close.list.filt <- lapply(tls_close.list, function(TCR){Reduce(function(x, y) rbind(x, y), TCR)})
+nontls_close.list.filt <- lapply(nontls_close.list, function(TCR){Reduce(function(x, y) rbind(x, y), TCR)})
+
+inTLSvnotinTLS.perTCRdeg <- lapply(seq_along(tls_close.list.filt), function(i){if(dim(tls_close.list.filt[[i]])[1]>2){FindMarkers(sample, ident.1 = tls_close.list.filt[[i]]$barcode, ident.2 = nontls_close.list.filt[[i]]$barcode)}
+  else as.data.frame(0)})
+names(inTLSvnotinTLS.perTCRdeg) <- names(tls_close.list.filt)
+inTLSvnotinTLS.perTCRdeg <- lapply(inTLSvnotinTLS.perTCRdeg, function(TCR) {
+  TCR$gene <- rownames(TCR)
+  TCR
+}) #interestingly, after the shared_list analysis, some of these TCRs become <3 beads, so incompatible
+
+#for all the genes in these comparisons, i want to note which of the 5 patients are positive
+all_genes <- unique(unlist(lapply(inTLSvnotinTLS.perTCRdeg, function(df) df$gene)))
+
+# Initialize the consolidated DataFrame
+consolidated_df <- data.frame(Gene = all_genes)
+
+# Add columns for each list
+for (list_name in names(inTLSvnotinTLS.perTCRdeg)) {
+  # Subset the data for the current list
+  if(dim(inTLSvnotinTLS.perTCRdeg[[list_name]])[1]>1){
+  marker_data <- inTLSvnotinTLS.perTCRdeg[[list_name]]
+  
+  # Create a vector indicating if the gene has p_adj < 0.05
+  consolidated_df[[paste0(list_name, "_Significant")]] <- ifelse(
+    consolidated_df$Gene %in% marker_data$gene[!is.na(marker_data$p_val_adj) & marker_data$p_val_adj < 0.05], 
+    "Yes", 
+    "No"
+  )
+  
+  # Create a vector for avg_log2FC if p_adj < 0.05, otherwise NA
+  consolidated_df[[paste0(list_name, "_avg_log2FC")]] <- sapply(
+    consolidated_df$Gene, 
+    function(gene) {
+      # Check if the gene exists in the current marker data
+      if (gene %in% marker_data$gene) {
+        row <- marker_data[marker_data$gene == gene, ]
+        # Ensure that the row has valid p_adj and it's less than 0.05
+        if (nrow(row) > 0 && !is.na(row$p_val_adj)) {
+          return(row$avg_log2FC)
+        }
+      }
+      return(NA)
+    }
+  )
+  }
+}
+
+for (i in 1:dim(consolidated_df)[1]){
+  consolidated_df$numbersig[i] <- sum(grepl("Yes", consolidated_df[i,]))
+}
+
+writexl::write_xlsx(x = inTLSvnotinTLS.perTCRdeg, path = paste0("xlsx_output/inTLSvnotinTLSbyTCR.108r",r,"pixel.mincells",min_cells, ".xlsx"))
+writexl::write_xlsx(consolidated_df, paste0("xlsx_output/consolidated.inTLSvnotinTLSbyTCR108r",r,"pixel.mincells",min_cells, ".xlsx"))
+  }
+}
+
+#102
+for (r in c(0, 15, 30, 45, 60,75,90,105,120,135)){
+  for (min_cells in c(5,3,2)){
+max_neighbors <- 50
+puck_coords <- lapply(sample.onlytumorwTLS@images, function(puck){
+  puck@coordinates %>%
+    dplyr::select(x, y)
+}) 
+#grab the coordinates of all pucks and put them in a list 
+#must be separated because the barcodes close to one another on one puck are not close to each other on other pucks
+close_beads <- lapply(puck_coords, function(coords){ 
+  nn2(data = coords, 
+  k = max_neighbors, 
+  treetype = "kd", 
+  searchtype = "radius", 
+  radius = r, eps = 0)[[1]]
+})
+
+#add barcodes in (must happen after nn2)
+puck_coords <- lapply(puck_coords, function(slide){
+  slide %>%
+    mutate(barcode = rownames(.))
+})
+
+#reorder close_beads to match the split_slides order
+order <- paste0("image.", names(split_slides.onlytumorwTLS))
+order[1] <- "image"
+close_beads <- close_beads[order]
+
+use.102 <- TCR_results[[paste0("min_",min_cells)]]$use.102[,1]
+use.combined.loc.102 <- list()
+k <- 1
+for (i in seq_along(use.102)) {
+  for (j in c(1:4)) {
+    pattern <- paste0("(^|,)", use.102[i], "(,|$)")  # Match TCR as an exact value within comma-separated strings
+    use.combined.loc.102[[k]] <- grepl(pattern, split_slides.onlytumorwTLS[[j]]$sctcr_clone)
+    names(use.combined.loc.102)[[k]] <- paste(names(split_slides.onlytumorwTLS)[[j]], use.102[i], sep = ".")
+    k <- k + 1
+  }
+}
+
+TCR.logicals.102 <- setNames(
+  lapply(seq_along(use.102), function(i) {
+    use.combined.loc.102[((i-1)*4+1):(i*4)]
+  }),
+  paste0(use.102, ".list")
+)
+
+tls_bool <- lapply(TCR.logicals.102, function(tcrlist) {
+  mapply(function(TrueFalse, slide) {
+    TrueFalse & (str_detect(slide$area, "TLS") | str_detect(slide$area, "M2"))
+  }, tcrlist, split_slides.onlytumorwTLS[c(1:4)], SIMPLIFY = FALSE)
+})
+
+#Extract close bead indices based on the tls_bool
+close_beads102 <- close_beads[c(1:4)]
+tls_close_indicies <- lapply(tls_bool, function(boolean){
+  mapply(function(close_beads102,bool){
+    close_beads102[bool, , drop = FALSE]
+  }, close_beads102, boolean, SIMPLIFY = FALSE)})
+
+#rename this list
+lapply(tls_close_indicies, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(1:4)]})
+
+# Push each T cell in TLS and their nearby beads into a dataframe, and remove duplicate beads inside this dataframe
+puck_coords.102 <- puck_coords[c(1:4)]
+tls_close.list <- list()
+tls_close.list <- lapply(tls_close_indicies, function(TCR){
+  lapply(seq_along(TCR), function(i){
+  # Check if there are rows to process
+  if (dim(TCR[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(TCR[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- TCR[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords.102[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(TCR[[i]])
+  }
+})
+})
+
+#Check if inverse boolean vector matches the number of barcodes in close_beads
+nontls_bool <- lapply(TCR.logicals.102, function(tcrlist) {
+  mapply(function(TrueFalse, slide) {
+    TrueFalse & !(str_detect(slide$area, "TLS") | str_detect(slide$area, "M2"))
+  }, tcrlist, split_slides.onlytumorwTLS[c(1:4)], SIMPLIFY = FALSE)
+})
+
+nontls_close_indicies <- lapply(nontls_bool, function(boolean){
+  mapply(function(close_beads102,bool){
+    close_beads102[bool, , drop = FALSE]
+  }, close_beads102, boolean, SIMPLIFY = FALSE)})
+
+#rename this list
+lapply(nontls_close_indicies, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(1:4)]})
+
+
+nontls_close.list <- list()
+nontls_close.list <- lapply(nontls_close_indicies, function(TCR){
+  lapply(seq_along(TCR), function(i){
+  # Check if there are rows to process
+  if (dim(TCR[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(TCR[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- TCR[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords.102[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(TCR[[i]])
+  }
+})
+})
+
+tls_close.list <- lapply(tls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(1:4)]
+  TCR})
+nontls_close.list <- lapply(nontls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(1:4)]
+  TCR})
+
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df) <- c("barcode","x", "y")
+#find the shared barcodes among both lists for all slides
+shared.list <- lapply(seq_along(tls_close.list), function(i) {
+  lapply(seq_along(tls_close.list[[i]]), function(slide) {
+    
+    if (is.data.frame(tls_close.list[[i]][[slide]]) && nrow(tls_close.list[[i]][[slide]]) > 0 &&
+        is.data.frame(nontls_close.list[[i]][[slide]]) && nrow(nontls_close.list[[i]][[slide]]) > 0) {
+      
+      return(nontls_close.list[[i]][[slide]][nontls_close.list[[i]][[slide]]$barcode %in% tls_close.list[[i]][[slide]]$barcode, ])
+    
+    } else {
+      return(df)  # Return an empty dataframe if no valid data
+    }
+  })
+})
+names(shared.list) <- names(tls_close.list)
+shared.list <- lapply(shared.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(1:4)]
+  TCR})
+
+
+#Remove the shared beads in both TLS and nonTLS lists
+#TLS
+tls_close.list <- lapply(seq_along(tls_close.list), function(j){
+  lapply(seq_along(tls_close.list[[j]]), function(i){
+  if(dim(shared.list[[j]][[i]])[1] > 0){
+    return(tls_close.list[[j]][[i]][!(tls_close.list[[j]][[i]]$barcode %in% shared.list[[j]][[i]]$barcode),])
+  }
+  else{
+    return(tls_close.list[[j]][[i]])
+  }
+})
+  })
+
+nontls_close.list <- lapply(seq_along(nontls_close.list), function(j){
+  lapply(seq_along(nontls_close.list[[j]]), function(i){
+  if(dim(shared.list[[j]][[i]])[1] > 0){
+    return(nontls_close.list[[j]][[i]][!(nontls_close.list[[j]][[i]]$barcode %in% shared.list[[j]][[i]]$barcode),])
+  }
+  else{
+    return(nontls_close.list[[j]][[i]])
+  }
+})
+  })
+
+names(tls_close.list) <- names(shared.list)
+names(nontls_close.list) <- names(shared.list)
+tls_close.list <- lapply(tls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(1:4)]
+  TCR})
+nontls_close.list <- lapply(nontls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(1:4)]
+  TCR})
+
+tls_close.list.filt <- lapply(tls_close.list, function(TCR){Reduce(function(x, y) rbind(x, y), TCR)})
+nontls_close.list.filt <- lapply(nontls_close.list, function(TCR){Reduce(function(x, y) rbind(x, y), TCR)})
+
+inTLSvnotinTLS.perTCRdeg <- lapply(seq_along(tls_close.list.filt), function(i){if(dim(tls_close.list.filt[[i]])[1]>2){FindMarkers(sample, ident.1 = tls_close.list.filt[[i]]$barcode, ident.2 = nontls_close.list.filt[[i]]$barcode)}
+  else as.data.frame(0)})
+names(inTLSvnotinTLS.perTCRdeg) <- names(tls_close.list.filt)
+inTLSvnotinTLS.perTCRdeg <- lapply(inTLSvnotinTLS.perTCRdeg, function(TCR) {
+  TCR$gene <- rownames(TCR)
+  TCR
+}) #interestingly, after the shared_list analysis, some of these TCRs become <3 beads, so incompatible
+
+#for all the genes in these comparisons, i want to note which of the 5 patients are positive
+all_genes <- unique(unlist(lapply(inTLSvnotinTLS.perTCRdeg, function(df) df$gene)))
+
+# Initialize the consolidated DataFrame
+consolidated_df <- data.frame(Gene = all_genes)
+
+# Add columns for each list
+for (list_name in names(inTLSvnotinTLS.perTCRdeg)) {
+  # Subset the data for the current list
+  if(dim(inTLSvnotinTLS.perTCRdeg[[list_name]])[1]>1){
+  marker_data <- inTLSvnotinTLS.perTCRdeg[[list_name]]
+  
+  # Create a vector indicating if the gene has p_adj < 0.05
+  consolidated_df[[paste0(list_name, "_Significant")]] <- ifelse(
+    consolidated_df$Gene %in% marker_data$gene[!is.na(marker_data$p_val_adj) & marker_data$p_val_adj < 0.05], 
+    "Yes", 
+    "No"
+  )
+  
+  # Create a vector for avg_log2FC if p_adj < 0.05, otherwise NA
+  consolidated_df[[paste0(list_name, "_avg_log2FC")]] <- sapply(
+    consolidated_df$Gene, 
+    function(gene) {
+      # Check if the gene exists in the current marker data
+      if (gene %in% marker_data$gene) {
+        row <- marker_data[marker_data$gene == gene, ]
+        # Ensure that the row has valid p_adj and it's less than 0.05
+        if (nrow(row) > 0 && !is.na(row$p_val_adj)) {
+          return(row$avg_log2FC)
+        }
+      }
+      return(NA)
+    }
+  )
+  }
+}
+
+for (i in 1:dim(consolidated_df)[1]){
+  consolidated_df$numbersig[i] <- sum(grepl("Yes", consolidated_df[i,]))
+}
+
+writexl::write_xlsx(x = inTLSvnotinTLS.perTCRdeg, path = paste0("xlsx_output/inTLSvnotinTLSbyTCR.102r",r,"pixel.mincells",min_cells, ".xlsx"))
+writexl::write_xlsx(consolidated_df, paste0("xlsx_output/consolidated.inTLSvnotinTLSbyTCR102r",r,"pixel.mincells",min_cells, ".xlsx"))
+  }
+}
+
+#107
+for (r in c(0,15,30,45,60,75,90,105,120,135)){
+  for (min_cells in c(2)){ #there are no TCRs with 5 or 3 in RCC107
+max_neighbors <- 50
+puck_coords <- lapply(sample.onlytumorwTLS@images, function(puck){
+  puck@coordinates %>%
+    dplyr::select(x, y)
+}) 
+#grab the coordinates of all pucks and put them in a list 
+#must be separated because the barcodes close to one another on one puck are not close to each other on other pucks
+close_beads <- lapply(puck_coords, function(coords){ 
+  nn2(data = coords, 
+  k = max_neighbors, 
+  treetype = "kd", 
+  searchtype = "radius", 
+  radius = r, eps = 0)[[1]]
+})
+
+#add barcodes in (must happen after nn2)
+puck_coords <- lapply(puck_coords, function(slide){
+  slide %>%
+    mutate(barcode = rownames(.))
+})
+
+#reorder close_beads to match the split_slides order
+order <- paste0("image.", names(split_slides.onlytumorwTLS))
+order[1] <- "image"
+close_beads <- close_beads[order]
+
+use.107 <- TCR_results[[paste0("min_",min_cells)]]$use.107[,1]
+use.combined.loc.107 <- list()
+k <- 1
+for (i in seq_along(use.107)) {
+  for (j in c(5:7)) {
+    pattern <- paste0("(^|,)", use.107[i], "(,|$)")  # Match TCR as an exact value within comma-separated strings
+    use.combined.loc.107[[k]] <- grepl(pattern, split_slides.onlytumorwTLS[[j]]$sctcr_clone)
+    names(use.combined.loc.107)[[k]] <- paste(names(split_slides.onlytumorwTLS)[[j]], use.107[i], sep = ".")
+    k <- k + 1
+  }
+}
+
+TCR.logicals.107 <- setNames(
+  lapply(seq_along(use.107), function(i) {
+    use.combined.loc.107[((i-1)*3+1):(i*3)]
+  }),
+  paste0(use.107, ".list")
+)
+
+tls_bool <- lapply(TCR.logicals.107, function(tcrlist) {
+  mapply(function(TrueFalse, slide) {
+    TrueFalse & (str_detect(slide$area, "TLS") | str_detect(slide$area, "M2"))
+  }, tcrlist, split_slides.onlytumorwTLS[c(5:7)], SIMPLIFY = FALSE)
+})
+
+#Extract close bead indices based on the tls_bool
+close_beads107 <- close_beads[c(5:7)]
+tls_close_indicies <- lapply(tls_bool, function(boolean){
+  mapply(function(close_beads107,bool){
+    close_beads107[bool, , drop = FALSE]
+  }, close_beads107, boolean, SIMPLIFY = FALSE)})
+
+#rename this list
+lapply(tls_close_indicies, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(5:7)]})
+
+# Push each T cell in TLS and their nearby beads into a dataframe, and remove duplicate beads inside this dataframe
+puck_coords.107 <- puck_coords[c(5:7)]
+tls_close.list <- list()
+tls_close.list <- lapply(tls_close_indicies, function(TCR){
+  lapply(seq_along(TCR), function(i){
+  # Check if there are rows to process
+  if (dim(TCR[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(TCR[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- TCR[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords.107[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(TCR[[i]])
+  }
+})
+})
+
+#Check if inverse boolean vector matches the number of barcodes in close_beads
+nontls_bool <- lapply(TCR.logicals.107, function(tcrlist) {
+  mapply(function(TrueFalse, slide) {
+    TrueFalse & !(str_detect(slide$area, "TLS") | str_detect(slide$area, "M2"))
+  }, tcrlist, split_slides.onlytumorwTLS[c(5:7)], SIMPLIFY = FALSE)
+})
+
+nontls_close_indicies <- lapply(nontls_bool, function(boolean){
+  mapply(function(close_beads107,bool){
+    close_beads107[bool, , drop = FALSE]
+  }, close_beads107, boolean, SIMPLIFY = FALSE)})
+
+#rename this list
+lapply(nontls_close_indicies, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(5:7)]})
+
+
+nontls_close.list <- list()
+nontls_close.list <- lapply(nontls_close_indicies, function(TCR){
+  lapply(seq_along(TCR), function(i){
+  # Check if there are rows to process
+  if (dim(TCR[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(TCR[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- TCR[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords.107[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(TCR[[i]])
+  }
+})
+})
+
+tls_close.list <- lapply(tls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(5:7)]
+  TCR})
+nontls_close.list <- lapply(nontls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(5:7)]
+  TCR})
+
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df) <- c("barcode","x", "y")
+#find the shared barcodes among both lists for all slides
+shared.list <- lapply(seq_along(tls_close.list), function(i) {
+  lapply(seq_along(tls_close.list[[i]]), function(slide) {
+    
+    if (is.data.frame(tls_close.list[[i]][[slide]]) && nrow(tls_close.list[[i]][[slide]]) > 0 &&
+        is.data.frame(nontls_close.list[[i]][[slide]]) && nrow(nontls_close.list[[i]][[slide]]) > 0) {
+      
+      return(nontls_close.list[[i]][[slide]][nontls_close.list[[i]][[slide]]$barcode %in% tls_close.list[[i]][[slide]]$barcode, ])
+    
+    } else {
+      return(df)  # Return an empty dataframe if no valid data
+    }
+  })
+})
+names(shared.list) <- names(tls_close.list)
+shared.list <- lapply(shared.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(5:7)]
+  TCR})
+
+
+#Remove the shared beads in both TLS and nonTLS lists
+#TLS
+tls_close.list <- lapply(seq_along(tls_close.list), function(j){
+  lapply(seq_along(tls_close.list[[j]]), function(i){
+  if(dim(shared.list[[j]][[i]])[1] > 0){
+    return(tls_close.list[[j]][[i]][!(tls_close.list[[j]][[i]]$barcode %in% shared.list[[j]][[i]]$barcode),])
+  }
+  else{
+    return(tls_close.list[[j]][[i]])
+  }
+})
+  })
+
+nontls_close.list <- lapply(seq_along(nontls_close.list), function(j){
+  lapply(seq_along(nontls_close.list[[j]]), function(i){
+  if(dim(shared.list[[j]][[i]])[1] > 0){
+    return(nontls_close.list[[j]][[i]][!(nontls_close.list[[j]][[i]]$barcode %in% shared.list[[j]][[i]]$barcode),])
+  }
+  else{
+    return(nontls_close.list[[j]][[i]])
+  }
+})
+  })
+
+names(tls_close.list) <- names(shared.list)
+names(nontls_close.list) <- names(shared.list)
+tls_close.list <- lapply(tls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(5:7)]
+  TCR})
+nontls_close.list <- lapply(nontls_close.list, function(TCR){
+  names(TCR) <- names(split_slides.onlytumorwTLS)[c(5:7)]
+  TCR})
+
+tls_close.list.filt <- lapply(tls_close.list, function(TCR){Reduce(function(x, y) rbind(x, y), TCR)})
+nontls_close.list.filt <- lapply(nontls_close.list, function(TCR){Reduce(function(x, y) rbind(x, y), TCR)})
+
+inTLSvnotinTLS.perTCRdeg <- lapply(seq_along(tls_close.list.filt), function(i){if(dim(tls_close.list.filt[[i]])[1]>2){FindMarkers(sample, ident.1 = tls_close.list.filt[[i]]$barcode, ident.2 = nontls_close.list.filt[[i]]$barcode)}
+  else as.data.frame(0)})
+names(inTLSvnotinTLS.perTCRdeg) <- names(tls_close.list.filt)
+inTLSvnotinTLS.perTCRdeg <- lapply(inTLSvnotinTLS.perTCRdeg, function(TCR) {
+  TCR$gene <- rownames(TCR)
+  TCR
+}) #interestingly, after the shared_list analysis, some of these TCRs become <3 beads, so incompatible
+
+#for all the genes in these comparisons, i want to note which of the 5 patients are positive
+all_genes <- unique(unlist(lapply(inTLSvnotinTLS.perTCRdeg, function(df) df$gene)))
+
+# Initialize the consolidated DataFrame
+consolidated_df <- data.frame(Gene = all_genes)
+
+# Add columns for each list
+for (list_name in names(inTLSvnotinTLS.perTCRdeg)) {
+  # Subset the data for the current list
+  if(dim(inTLSvnotinTLS.perTCRdeg[[list_name]])[1]>1){
+  marker_data <- inTLSvnotinTLS.perTCRdeg[[list_name]]
+  
+  # Create a vector indicating if the gene has p_adj < 0.05
+  consolidated_df[[paste0(list_name, "_Significant")]] <- ifelse(
+    consolidated_df$Gene %in% marker_data$gene[!is.na(marker_data$p_val_adj) & marker_data$p_val_adj < 0.05], 
+    "Yes", 
+    "No"
+  )
+  
+  # Create a vector for avg_log2FC if p_adj < 0.05, otherwise NA
+  consolidated_df[[paste0(list_name, "_avg_log2FC")]] <- sapply(
+    consolidated_df$Gene, 
+    function(gene) {
+      # Check if the gene exists in the current marker data
+      if (gene %in% marker_data$gene) {
+        row <- marker_data[marker_data$gene == gene, ]
+        # Ensure that the row has valid p_adj and it's less than 0.05
+        if (nrow(row) > 0 && !is.na(row$p_val_adj)) {
+          return(row$avg_log2FC)
+        }
+      }
+      return(NA)
+    }
+  )
+  }
+}
+
+for (i in 1:dim(consolidated_df)[1]){
+  consolidated_df$numbersig[i] <- sum(grepl("Yes", consolidated_df[i,]))
+}
+
+writexl::write_xlsx(x = inTLSvnotinTLS.perTCRdeg, path = paste0("xlsx_output/inTLSvnotinTLSbyTCR.107r",r,"pixel.mincells",min_cells, ".xlsx"))
+writexl::write_xlsx(consolidated_df, paste0("xlsx_output/consolidated.inTLSvnotinTLSbyTCR107r",r,"pixel.mincells",min_cells, ".xlsx"))
+  }
+}
+```
+
+```{R}
+genes_of_interest <- c("IGKC", "LAMP3",  "CD74", "APOE", "CD163", "CA9", "NDUFA4L2", "NAT8", "PDCD1", "ENTPD1", "LAG3", "HAVCR2", "TOX", "TOX2", "IL7R", "TCF7", "SELL", "CCR7", "IL2RA", "CX3CR1", "GNLY", "GZMH")
+
+# List of patients and distances
+patients <- c(102, 107, 108)
+r_values <- c(0, 15, 30, 45, 60, 75, 90, 105, 120, 135)
+
+# Read and combine data from multiple files
+data_list <- lapply(patients, function(patient) {
+  lapply(r_values, function(r) {
+    file_name <- paste0("Slide-seq Analyses/Alex Analyses/Outputs (XLSX)/RCC102107108 gene expression/consolidated.inTLSvnotinTLSbyTCR", patient, "r", r, "pixel.mincells2.xlsx")
+    df <- read.xlsx(file_name)
+    
+    # Add patient and distance columns
+    df$Sample <- as.character(patient)
+    df$r <- r
+    
+    return(df)
+  })
+}) %>% bind_rows()
+
+# Remove "numbersig" column(s) as they are not needed
+data_list <- data_list %>%
+  select(-matches("numbersig"))
+
+# Reshape data into long format (Fixing pivot_longer issue)
+data_long <- data_list %>%
+  pivot_longer(
+    cols = -c(Gene, Sample, r),  # Keep these columns fixed
+    names_to = c("TCR", ".value"),  # Separate TCR and data type
+    names_pattern = "(p\\d+_\\d+\\.list)_(Significant|avg_log2FC)"
+  ) %>%
+  filter(Gene %in% genes_of_interest)  # Keep only selected genes
+
+# Convert significance column to binary
+data_long <- data_long %>%
+  mutate(Significant = ifelse(Significant == "Yes", TRUE, FALSE))
+
+# Compute Wilcoxon test per gene per distance
+wilcox_results <- data_long %>%
+  group_by(Gene, r) %>%
+  summarise(
+    p_value = wilcox.test(avg_log2FC, mu = 0, alternative = "two.sided", exact = FALSE)$p.value,
+    .groups = "drop"
+  ) %>%
+  mutate(adj_p_value = p.adjust(p_value, method = "BH"),
+         box_significance = ifelse(adj_p_value < 0.05, "Significant", "Not Significant"))
+
+# Merge significance results into main dataset
+data_long <- left_join(data_long, wilcox_results, by = c("Gene", "r"))
+
+# Define patient fill colors
+sample_fill_colors <- c("102" = "#FF9300", "107" = "#FF85FF", "108" = "#009092")
+
+# Create boxplot FACETED BY DISTANCE
+data_long$Gene <- factor(data_long$Gene, levels = genes_of_interest)
+
+# Create the boxplot organized by **gene-first, then distance** - visualize effects over distance
+ggplot(data_long, aes(x = factor(r, levels = c(0, 15, 30, 45, 60, 75, 90, 105, 120, 135)), y = avg_log2FC, fill = box_significance)) +
+  geom_boxplot(outlier.shape = NA, alpha = 0.7, color = "black") +  
+  geom_jitter(aes(fill = Sample, color = ifelse(Significant, "red", "black")), 
+              width = 0.2, size = 2, shape = 22, stroke = 1.2) +  
+  scale_fill_manual(values = c(sample_fill_colors, "Significant" = "red", "Not Significant" = "white"), guide = "none") +  
+  scale_color_manual(values = c("red" = "red", "black" = "black")) +  
+  scale_x_discrete(labels = c("0" = "0", "15" = "10", "30" = "20", "45" = "30", "60" = "40", "75" = "50", "90" = "60", "105" = "70", "120" = "80", "135" = "90")) +  # Convert pixels to µm
+  facet_wrap(~ Gene, ncol = 4) +  
+  labs(title = "Gene Expression Enrichment in TLS vs. NonTLS",
+       x = "Distance (µm)",  # Corrected label
+       y = "Log2 Fold-Change (TLS vs. NonTLS)") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+
+data_wide <- data_long %>%
+  select(Gene, r, TCR, avg_log2FC) %>%  # Keep relevant columns
+  pivot_wider(names_from = TCR, values_from = avg_log2FC) %>%  # TCRs become columns
+  arrange(Gene, r)
+
+#used for Fig. 4f,g, ED Fig. 9e
+write.xlsx(x = data_long, file = "Supplementary Tables/TCRin.v.outTLS.geneexp.xlsx")
+```
+
+```{R spatial DEG TEx v nonTEx, to understand CD163 and APOE marker expression in proximity}
+#TEx v TMem analysis
+
+sample <- merged.slides.harmony.Spatial
+puck_coords <- list()
+close_beads <- list()
+
+#split up the object for easy manipulation of boolean and other steps
+options(warn = -1)
+split_slides <- SplitObject(sample, split.by = "orig.ident") 
+options(warn = 0)
+
+for (r in c(0,15,30,45)){
+#find close beads within 15 pixels
+max_neighbors <- 50
+puck_coords <- lapply(sample@images, function(puck){
+  puck@coordinates %>%
+    dplyr::select(x, y)
+}) 
+#grab the coordinates of all pucks and put them in a list 
+#must be separated because the barcodes close to one another on one puck are not close to each other on other pucks
+close_beads <- lapply(puck_coords, function(coords){ 
+  nn2(data = coords, 
+  k = max_neighbors, 
+  treetype = "kd", 
+  searchtype = "radius", 
+  radius = r, eps = 0)[[1]]
+})
+
+#add barcodes in (must happen after nn2)
+puck_coords <- lapply(puck_coords, function(slide){
+  slide %>%
+    mutate(barcode = rownames(.))
+})
+
+#reorder close_beads to match the split_slides order
+order <- paste0("image.", names(split_slides))
+order[1] <- "image"
+close_beads <- close_beads[order]
+
+#set TRUE/FALSE per slide
+tls_bool <- lapply(split_slides, function(slide){
+  str_detect(slide$PrimaryCluster, "Tex|TEx")
+})
+
+#Check if TEx boolean vector matches the number of barcodes in close_beads
+validation_results <- sapply(seq_along(tls_bool), function(i) {print(paste0(" Does the TEx boolean vector have the correct number of barcodes? ", length(tls_bool[[i]]) == nrow(close_beads[[i]])))})
+print(validation_results)
+
+#Extract close bead indices based on the tls_bool
+tls_close_indicies <- mapply(function(close_beads,bool){close_beads[bool, , drop = FALSE]
+  }, close_beads, tls_bool, SIMPLIFY = FALSE)
+
+#rename this list
+names(tls_close_indicies) <- names(split_slides)
+
+# Push each T cell in TLS and their nearby beads into a dataframe, and remove duplicate beads inside this dataframe
+tls_close.list <- list()
+tls_close.list <- lapply(seq_along(tls_close_indicies), function(i){
+  # Check if there are rows to process
+  if (dim(tls_close_indicies[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(tls_close_indicies[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- tls_close_indicies[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(tls_close_indicies[[i]])
+  }
+})
+
+#Check if inverse boolean vector matches the number of barcodes in close_beads
+nontls_bool <- lapply(split_slides, function(slide){
+  str_detect(slide$PrimaryCluster, "Tmem")
+})
+
+validation_results <- sapply(seq_along(nontls_bool), function(i) {print(paste0(" Does the TMem boolean vector have the correct number of barcodes? ", length(nontls_bool[[i]]) == nrow(close_beads[[i]])))})
+print(validation_results)
+
+#Extract close bead indices based on the tls_bool
+nontls_close_indicies <- mapply(function(close_beads,bool){close_beads[bool, , drop = FALSE]
+  }, close_beads, nontls_bool, SIMPLIFY = FALSE)
+
+#rename this list
+names(nontls_close_indicies) <- names(split_slides)
+
+nontls_close.list <- list()
+nontls_close.list <- lapply(seq_along(nontls_close_indicies), function(i){
+  # Check if there are rows to process
+  if (dim(nontls_close_indicies[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(nontls_close_indicies[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- nontls_close_indicies[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(nontls_close_indicies[[i]])
+  }
+})
+
+names(tls_close.list) <- names(split_slides)
+names(nontls_close.list) <- names(split_slides)
+
+# Are there any beads in the proximity of both TLS TEx and nonTLS TEx beads?
+validation <- sapply(seq_along(tls_close.list), function(slide){
+  if(dim(tls_close.list[[slide]])[1] > 0){
+  paste0("Nearby beads both TLS TEx and nonTLS TEx: ", count(tls_close.list[[slide]]$barcode %in% nontls_close.list[[slide]]$barcode == TRUE))
+  }
+})
+print(validation)
+
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df) <- c("barcode","x", "y")
+#find the shared barcodes among both lists for all slides
+shared.list <- lapply(seq_along(tls_close.list), function(slide){
+  if(dim(tls_close.list[[slide]])[1] > 0){
+    return(nontls_close.list[[slide]][nontls_close.list[[slide]]$barcode %in% tls_close.list[[slide]]$barcode,])
+  }
+  else{
+    return(df)
+  }
+})
+names(shared.list) <- names(split_slides)
+
+
+# Remove the shared beads in both TLS and nonTLS lists
+#TLS
+tls_close.list <- lapply(seq_along(tls_close.list), function(i){
+  if(dim(shared.list[[i]])[1] > 0){
+    return(tls_close.list[[i]][!(tls_close.list[[i]]$barcode %in% shared.list[[i]]$barcode),])
+  }
+  else{
+    return(tls_close.list[[i]])
+  }
+})
+
+#nonTLS
+nontls_close.list <- lapply(seq_along(nontls_close.list), function(i){
+  if(dim(shared.list[[i]])[1] > 0){
+    return(nontls_close.list[[i]][!(nontls_close.list[[i]]$barcode %in% shared.list[[i]]$barcode),])
+  }
+  else{
+    return(nontls_close.list[[i]])
+  }
+})
+
+names(tls_close.list) <- names(split_slides)
+names(nontls_close.list) <- names(split_slides)
+
+tls_close.list.filt <- Reduce(function(x, y) rbind(x, y), tls_close.list)
+nontls_close.list.filt <- Reduce(function(x, y) rbind(x, y), nontls_close.list)
+
+#I don't want met here
+tls_close.list.filt <- tls_close.list.filt[!str_detect(tls_close.list.filt$barcode, "P108M"),]
+nontls_close.list.filt <- nontls_close.list.filt[!str_detect(nontls_close.list.filt$barcode, "P108M"),]
+
+TexTmem.barcodes <- c(tls_close.list.filt$barcode, nontls_close.list.filt$barcode)
+TexTmem <- FetchData(subset(sample, cells = TexTmem.barcodes), c("APOE", "CD74", "CD163", "MRC1", "FOLR2", "IGKC", "LGALS3", "CD274", "Myeloid", "MSR1", "patient", "M2.sig1")) #analyzed several markers and selected APOE and CD163
+TexTmem$barcode <- rownames(TexTmem)
+TexTmem$Tex <- ifelse(TexTmem$barcode %in% tls_close.list.filt$barcode, "TRUE", "FALSE")
+writexl::write_xlsx(TexTmem, paste0("xlsx_output/TexvTmemTCR.r",r, "p.M2.markers.bycell.xlsx"))
+}
+```
+
+```{R}
+#load to produce regression and alluvial plots (Fig. 3h,i)
+df0 <- openxlsx::read.xlsx("Supplementary Tables/TEx v TMem/TexvTmemTCR.r0p.M2.markers.bycell.xlsx")
+
+df15 <- openxlsx::read.xlsx("Supplementary Tables/TEx v TMem/TexvTmemTCR.r15p.M2.markers.bycell.xlsx")
+
+df30 <- openxlsx::read.xlsx("Supplementary Tables/TEx v TMem/TexvTmemTCR.r30p.M2.markers.bycell.xlsx")
+
+df45 <- openxlsx::read.xlsx("Supplementary Tables/TEx v TMem/TexvTmemTCR.r45p.M2.markers.bycell.xlsx")
+
+df0$barcode <- trimws(as.character(df0$barcode))
+df15$barcode <- trimws(as.character(df15$barcode))
+df30$barcode <- trimws(as.character(df30$barcode))
+df45$barcode <- trimws(as.character(df45$barcode))
+
+df0.min <- df0[,c("barcode", "patient", "Tex", "APOE", "CD163")]
+df0.min$Tex_Status <- ifelse(df0.min$Tex == "TRUE", "TEx", "TMem")
+df0.min$TLS_Status <- ifelse(df0.min$patient %in% c("102", "107", "108"), "TLS+", "TLS-")
+df0.min$Distance_Continuous <- 0
+df0.min$At_Least_One_Positive <- ifelse((df0.min$APOE != 0 | df0.min$CD163 != 0), 1, 0)
+
+df15.min <- df15[!(df15$barcode %in% df0$barcode),c("barcode", "patient", "Tex", "APOE", "CD163")]
+df15.min$Tex_Status <- ifelse(df15.min$Tex == "TRUE", "TEx", "TMem")
+df15.min$TLS_Status <- ifelse(df15.min$patient %in% c("102", "107", "108"), "TLS+", "TLS-")
+df15.min$Distance_Continuous <- 15
+df15.min$At_Least_One_Positive <- ifelse((df15.min$APOE != 0 | df15.min$CD163 != 0), 1, 0)
+
+df30.min <- df30[!(df30$barcode %in% df15$barcode | df30$barcode %in% df0$barcode),c("barcode", "patient", "Tex", "APOE", "CD163")]
+df30.min$Tex_Status <- ifelse(df30.min$Tex == "TRUE", "TEx", "TMem")
+df30.min$TLS_Status <- ifelse(df30.min$patient %in% c("102", "107", "108"), "TLS+", "TLS-")
+df30.min$Distance_Continuous <- 30
+df30.min$At_Least_One_Positive <- ifelse((df30.min$APOE != 0 | df30.min$CD163 != 0), 1, 0)
+
+df45.min <- df45[!(df45$barcode %in% df30$barcode | df45$barcode %in% df15$barcode | df45$barcode %in% df0$barcode),c("barcode", "patient", "Tex", "APOE", "CD163")]
+df45.min$Tex_Status <- ifelse(df45.min$Tex == "TRUE", "TEx", "TMem")
+df45.min$TLS_Status <- ifelse(df45.min$patient %in% c("102", "107", "108"), "TLS+", "TLS-")
+df45.min$Distance_Continuous <- 45
+df45.min$At_Least_One_Positive <- ifelse((df45.min$APOE != 0 | df45.min$CD163 != 0), 1, 0)
+
+df.final <- rbind(df0.min,df15.min)
+df.final <- rbind(df.final, df30.min)
+df.final <- rbind(df.final, df45.min)
+
+df.final$Tex_Status <- factor(df.final$Tex_Status, levels = c("TMem", "TEx"))
+df.final$TLS_Status <- factor(df.final$TLS_Status, levels = c("TLS-", "TLS+"))
+
+model <- glm(
+  At_Least_One_Positive ~ Tex_Status * TLS_Status + Distance_Continuous,
+  data = df.final,
+  family = binomial
+)
+
+# Get odds ratios and 95% CIs
+tidy(model, exponentiate = TRUE, conf.int = TRUE)
+
+df.final$predicted_prob <- predict(model, type = "response")
+aggregate(predicted_prob ~ Tex_Status + TLS_Status, data = df.final, FUN = mean)
+
+df.final %>%
+  group_by(Tex_Status, TLS_Status) %>%
+  summarise(mean_prob = mean(predicted_prob), .groups = "drop")
+
+ggplot(df.final, aes(x = TLS_Status, y = predicted_prob, fill = Tex_Status)) +
+  geom_boxplot(position = position_dodge()) +
+  theme_minimal() +
+  labs(y = "Predicted Probability of Marker+", x = "TLS Status", fill = "T Cell Type")
+
+writexl::write_xlsx(df.final, "Supplementary Tables/regressionwithprobabilities.xlsx") #regression included in Fig. 3h, plotted in GraphPad Prism 10
+
+results <- tidy(model)
+n_obs <- nobs(model)
+pseudo_r2 <- 1 - model$deviance / model$null.deviance
+```
+
+```{R}
+df.final$marker_type <- with(df.final, ifelse(APOE != 0 & CD163 == 0, "APOE+ only",
+                                       ifelse(APOE == 0 & CD163 != 0, "CD163+ only",
+                                       ifelse(APOE != 0 & CD163 != 0, "Double Positive", 
+                                      "Double Negative"))))
+df.final$cell_type <- paste(df.final$Tex_Status, df.final$TLS_Status)
+
+summary_df <- df.final %>%
+  group_by(Distance_Continuous, cell_type, marker_type) %>%
+  summarise(n = n(), .groups = "drop") %>%
+  group_by(Distance_Continuous, cell_type) %>%
+  mutate(percent = 100 * n / sum(n)) %>%
+  select(Distance_Continuous, cell_type, marker_type, percent)
+
+alluvial.table <- summary_df
+alluvial.table$Distance_Continuous <- paste0("r=",alluvial.table$Distance_Continuous)
+colnames(alluvial.table)[c(1,4)] <- c("r", "value")
+writexl::write_xlsx(alluvial.table, "Supplementary Tables/TExTmem Mac markers radii.xlsx")
+
+marker_order <- c("Double Negative", 
+                  "APOE+ only", 
+                  "CD163+ only", 
+                  "Double Positive")
+
+# Convert to factor with your custom order
+alluvial.table$marker_type <- factor(alluvial.table$marker_type, levels = marker_order)
+
+ggplot(alluvial.table,
+       aes(x = r, stratum = marker_type, alluvium = marker_type,
+           y = value, fill = marker_type, label = marker_type)) +
+  geom_flow(stat = "alluvium", lode.guidance = "forward", alpha = 0.7) +
+  geom_stratum() +
+  facet_wrap(~cell_type) +
+  theme_minimal() +
+  labs(x = "Radius", y = "Percentage", fill = "Marker Type",
+       title = "Alluvial Plot of Macrophage Marker Composition by Radius and Cell Type") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + scale_fill_manual(
+    values = c(
+      "Double Negative" = "grey",
+      "APOE+ only"      = "purple",
+      "CD163+ only"     = "darkred",
+      "Double Positive" = "#7F0060"
+    )
+  )
+ggsave("Figures/Unassigned panels/TExTMem.alluvialplot.pdf", width = 11, height = 8) #Fig. 3i
+```
+
+
+###### repeated analysis for TS v VR TCRs ######
+```{R spatial DEG TS v VR}
+#TS v VS
+
+sample <- merged.slides.harmony.Spatial
+puck_coords <- list()
+close_beads <- list()
+
+#split up the object for easy manipulation of boolean and other steps
+options(warn = -1)
+split_slides <- SplitObject(sample, split.by = "orig.ident") 
+options(warn = 0)
+
+for (r in c(0,15,30,45)){
+#find close beads within 15 pixels
+max_neighbors <- 50
+puck_coords <- lapply(sample@images, function(puck){
+  puck@coordinates %>%
+    dplyr::select(x, y)
+}) 
+#grab the coordinates of all pucks and put them in a list 
+#must be separated because the barcodes close to one another on one puck are not close to each other on other pucks
+close_beads <- lapply(puck_coords, function(coords){ 
+  nn2(data = coords, 
+  k = max_neighbors, 
+  treetype = "kd", 
+  searchtype = "radius", 
+  radius = r, eps = 0)[[1]]
+})
+
+#add barcodes in (must happen after nn2)
+puck_coords <- lapply(puck_coords, function(slide){
+  slide %>%
+    mutate(barcode = rownames(.))
+})
+
+#reorder close_beads to match the split_slides order
+order <- paste0("image.", names(split_slides))
+order[1] <- "image"
+close_beads <- close_beads[order]
+
+#set TRUE/FALSE per slide - caveat for P102TA_10 I include M2 as TLS
+tls_bool <- lapply(split_slides, function(slide){
+  str_detect(slide$tumor_specific, "TRUE")
+})
+
+#Check if TEx boolean vector matches the number of barcodes in close_beads
+validation_results <- sapply(seq_along(tls_bool), function(i) {print(paste0(" Does the TLS TEx boolean vector have the correct number of barcodes? ", length(tls_bool[[i]]) == nrow(close_beads[[i]])))})
+print(validation_results)
+
+#Extract close bead indices based on the tls_bool
+tls_close_indicies <- mapply(function(close_beads,bool){close_beads[bool, , drop = FALSE]
+  }, close_beads, tls_bool, SIMPLIFY = FALSE)
+
+#rename this list
+names(tls_close_indicies) <- names(split_slides)
+
+# Push each T cell in TLS and their nearby beads into a dataframe, and remove duplicate beads inside this dataframe
+tls_close.list <- list()
+tls_close.list <- lapply(seq_along(tls_close_indicies), function(i){
+  # Check if there are rows to process
+  if (dim(tls_close_indicies[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(tls_close_indicies[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- tls_close_indicies[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(tls_close_indicies[[i]])
+  }
+})
+
+#Check if inverse boolean vector matches the number of barcodes in close_beads AND add p107_264, because it was not included in the object...
+nontls_bool <- lapply(split_slides, function(slide) {
+  str_detect(slide$virus_reactive, "TRUE")
+})
+
+validation_results <- sapply(seq_along(nontls_bool), function(i) {print(paste0(" Does the nonTLS Tex boolean vector have the correct number of barcodes? ", length(nontls_bool[[i]]) == nrow(close_beads[[i]])))})
+print(validation_results)
+
+#Extract close bead indices based on the tls_bool
+nontls_close_indicies <- mapply(function(close_beads,bool){close_beads[bool, , drop = FALSE]
+  }, close_beads, nontls_bool, SIMPLIFY = FALSE)
+
+#rename this list
+names(nontls_close_indicies) <- names(split_slides)
+
+nontls_close.list <- list()
+nontls_close.list <- lapply(seq_along(nontls_close_indicies), function(i){
+  # Check if there are rows to process
+  if (dim(nontls_close_indicies[[i]])[1] > 0){
+    # Identify rows with all NA values
+    NArows <- apply(nontls_close_indicies[[i]], 1, function(x) all(is.na(x)))
+    
+    # Filter out rows with NA values
+    goodrows <- nontls_close_indicies[[i]][!NArows,]
+    
+    # Reshape and filter non-zero values
+    goodrows <- reshape2::melt(goodrows, id.vars = NULL) %>%
+      filter(value != 0)
+    
+    # Use the non-zero indices to extract coordinates
+    to.use <- puck_coords[[i]][goodrows$value,]
+    to.use <- to.use %>%
+      distinct(barcode, x, y)
+    
+    return(to.use)
+  }
+  else{
+    # If no rows, return the original empty object
+    return(nontls_close_indicies[[i]])
+  }
+})
+
+names(tls_close.list) <- names(split_slides)
+names(nontls_close.list) <- names(split_slides)
+
+# Are there any beads in the proximity of both TLS TEx and nonTLS TEx beads?
+validation <- sapply(seq_along(tls_close.list), function(slide){
+  if(dim(tls_close.list[[slide]])[1] > 0){
+  paste0("Nearby beads both TLS TEx and nonTLS TEx: ", count(tls_close.list[[slide]]$barcode %in% nontls_close.list[[slide]]$barcode == TRUE))
+  }
+})
+print(validation)
+
+df <- data.frame(matrix(ncol = 3, nrow = 0))
+colnames(df) <- c("barcode","x", "y")
+#find the shared barcodes among both lists for all slides
+shared.list <- lapply(seq_along(tls_close.list), function(slide){
+  if(dim(tls_close.list[[slide]])[1] > 0){
+    return(nontls_close.list[[slide]][nontls_close.list[[slide]]$barcode %in% tls_close.list[[slide]]$barcode,])
+  }
+  else{
+    return(df)
+  }
+})
+names(shared.list) <- names(split_slides)
+
+
+# Remove the shared beads in both TLS and nonTLS lists
+#TLS
+tls_close.list <- lapply(seq_along(tls_close.list), function(i){
+  if(dim(shared.list[[i]])[1] > 0){
+    return(tls_close.list[[i]][!(tls_close.list[[i]]$barcode %in% shared.list[[i]]$barcode),])
+  }
+  else{
+    return(tls_close.list[[i]])
+  }
+})
+
+#nonTLS
+nontls_close.list <- lapply(seq_along(nontls_close.list), function(i){
+  if(dim(shared.list[[i]])[1] > 0){
+    return(nontls_close.list[[i]][!(nontls_close.list[[i]]$barcode %in% shared.list[[i]]$barcode),])
+  }
+  else{
+    return(nontls_close.list[[i]])
+  }
+})
+
+names(tls_close.list) <- names(split_slides)
+names(nontls_close.list) <- names(split_slides)
+
+tls_close.list.filt <- Reduce(function(x, y) rbind(x, y), tls_close.list)
+nontls_close.list.filt <- Reduce(function(x, y) rbind(x, y), nontls_close.list)
+
+#I don't want met here
+tls_close.list.filt <- tls_close.list.filt[!str_detect(tls_close.list.filt$barcode, "P108M"),]
+nontls_close.list.filt <- nontls_close.list.filt[!str_detect(nontls_close.list.filt$barcode, "P108M"),]
+
+TSvVSdeg <- FindMarkers(sample, ident.1 = tls_close.list.filt$barcode, ident.2 = nontls_close.list.filt$barcode)
+TSvVSdeg$gene <- rownames(TSvVSdeg)
+
+writexl::write_xlsx(TSvVSdeg, paste0("xlsx_output/TSvVRspatial", r, "pixel.xlsx")) #top markers across distances were immunoglobulin markers
+
+TSvVR.barcodes <- c(tls_close.list.filt$barcode, nontls_close.list.filt$barcode)
+TSvVR <- FetchData(subset(sample, cells = TSvVR.barcodes), c("patient", "orig.ident", "sctcr_clone", "Myeloid", "IGHG1", "IGHG2", "IGHG3", "IGHG4", "IGKC", "CXCL13", "CXCR5", "BANK1", "CD19", "MS4A1", "VPREB3", "FCRLA", "FCRL1", "NAT8", "NSUN5", "APOE", "CD163", "CD74", "M2.sig1", "DERL3" , "TNFRSF17", "MZB1", "mel_tumor_specific1", "cytotoxicity1", "memory1", "proliferation1", "exhaustion1")) #exported both plasma and B cell markers to test whether each was present
+TSvVR$barcode <- rownames(TSvVR)
+TSvVR$TS <- ifelse(TSvVR$barcode %in% tls_close.list.filt$barcode, "TRUE", "FALSE")
+writexl::write_xlsx(TSvVR, paste0("xlsx_output/TSvVRTCR.r", r, "p.M2.markers.bycell.xlsx")) #exported for Fig. 4c
+}
+```
+
+```{R}
+#plasma cell markers around TS TCRs v VS TCRs - z score and score at each distance
+df0 <- openxlsx::read.xlsx("xlsx_output/Consolidated TSvVR expression.xlsx", sheet = "r=0") %>%
+  mutate(Distance_Continuous = 0) #consolidated TSvVR expression is the preceding "TSvVRTCR.r.p.M2.markers.by.cell.xlsx", with new sheets for each distance. Consolidated using excel.
+df15 <- openxlsx::read.xlsx("xlsx_output/Consolidated TSvVR expression.xlsx", sheet = "r=15") %>%
+  mutate(Distance_Continuous = 15)
+df30 <- openxlsx::read.xlsx("xlsx_output/Consolidated TSvVR expression.xlsx", sheet = "r=30") %>%
+  mutate(Distance_Continuous = 30)
+df45 <- openxlsx::read.xlsx("xlsx_output/Consolidated TSvVR expression.xlsx", sheet = "r=45") %>%
+  mutate(Distance_Continuous = 45)
+
+df15 <- df15[!(df15$barcode %in% df0$barcode), ]
+df30 <- df30[!(df30$barcode %in% c(df0$barcode, df15$barcode)), ]
+df45 <- df45[!(df45$barcode %in% c(df0$barcode, df15$barcode, df30$barcode)), ]
+
+all_data <- bind_rows(df0, df15, df30, df45)
+
+tls_positive <- c(102, 107, 108)
+
+# Assign TLS and TCR status
+all_data <- all_data %>%
+  mutate(
+    TLS_Status = ifelse(patient %in% tls_positive, "TLS+", "TLS-"),
+    TCR_Status = ifelse(TS == TRUE, "TS", "VR")
+  )
+
+genes_to_z <- c("IGKC", "IGHG1", "IGHG2", "IGHG3", "IGHG4")
+genes_to_z2 <- c("BANK1", "CD19", "MS4A1", "VPREB3", "FCRLA", "FCRL1")
+
+for (gene in genes_to_z) {
+  mu <- mean(all_data[[gene]], na.rm = TRUE)
+  sigma <- sd(all_data[[gene]], na.rm = TRUE)
+  z_col <- paste0(gene, "_z")
+  all_data[[z_col]] <- (all_data[[gene]] - mu) / sigma
+}
+
+for (gene in genes_to_z2) {
+  mu2 <- mean(all_data[[gene]], na.rm = TRUE)
+  sigma2 <- sd(all_data[[gene]], na.rm = TRUE)
+  z_col2 <- paste0(gene, "_z")
+  all_data[[z_col2]] <- (all_data[[gene]] - mu) / sigma
+}
+
+zscore_cols <- paste0(genes_to_z, "_z")
+zscore_cols2 <- paste0(genes_to_z2, "_z")
+
+all_data <- all_data %>%
+  rowwise() %>%
+  mutate(Plasma_Composite_Z = mean(c_across(all_of(zscore_cols)), na.rm = TRUE)) %>%
+  ungroup()
+
+all_data <- all_data %>%
+  rowwise() %>%
+  mutate(B_Composite_Z = mean(c_across(all_of(zscore_cols2)), na.rm = TRUE)) %>%
+  ungroup()
+
+summary_df <- all_data %>%
+  group_by(TLS_Status, TCR_Status, Distance_Continuous) %>%
+  summarise(Mean_Composite_Z = mean(Plasma_Composite_Z, na.rm = TRUE), 
+            Mean_B_Composite_Z = mean(B_Composite_Z, na.rm = TRUE), 
+            .groups = "drop")
+
+summary_df$Group <- paste(summary_df$TLS_Status, summary_df$TCR_Status, sep = " ")
+
+# Line plot
+all_data <- all_data %>%
+  mutate(
+    TLS_Status = ifelse(patient %in% c(102, 107, 108), "TLS+", "TLS-"),
+    TCR_Status = ifelse(TS == TRUE, "TS", "VR"),
+    Group = paste(TLS_Status, TCR_Status)
+  )
+
+comparisons <- list(c("TLS+ TS", "TLS+ VR"), c("TLS- TS", "TLS- VR"))
+
+pvals <- all_data %>%
+  group_by(Distance_Continuous) %>%
+  summarise(
+    p1 = t.test(Plasma_Composite_Z[Group == "TLS+ TS"],
+                Plasma_Composite_Z[Group == "TLS+ VR"])$p.value,
+    p2 = t.test(Plasma_Composite_Z[Group == "TLS- TS"],
+                Plasma_Composite_Z[Group == "TLS- VR"])$p.value
+  ) %>%
+  pivot_longer(cols = starts_with("p"), names_to = "comparison", values_to = "p") %>%
+  mutate(
+    group1 = if_else(comparison == "p1", "TLS+ TS", "TLS- TS"),
+    group2 = if_else(comparison == "p1", "TLS+ VR", "TLS- VR"),
+    label = paste0("p = ", signif(p, 3))
+  )
+
+ggplot(all_data, aes(x = Group, y = Plasma_Composite_Z, fill = Group)) +
+  geom_boxplot() +
+  facet_wrap(~ Distance_Continuous) +
+  stat_compare_means(
+    comparisons = list(c("TLS+ TS", "TLS+ VR"), c("TLS- TS", "TLS- VR")),
+    method = "t.test", label = "p.format"
+  ) +
+  theme_minimal() +
+  labs(
+    x = "Group",
+    y = "Plasma Composite Z-score",
+    title = "Plasma Enrichment by Group and Distance"
+  ) +
+  coord_cartesian(clip = "off")#p values for Fig. 4c
+
+stat_table <- compare_means(Plasma_Composite_Z ~ TCR_Status,
+                            group.by = "TLS_Status",
+                            data = all_data)
+
+
+ggplot(all_data, aes(x = Distance_Continuous, y = Plasma_Composite_Z, color = Group)) +
+  stat_summary(fun = mean, geom = "line", linewidth = 1.2) +
+  stat_summary(fun.data = mean_se, geom = "errorbar", width = 2, linewidth = 0.8) +
+  stat_summary(fun = mean, geom = "point", size = 3) +
+  labs(
+    title = "Plasma Composite Z-score by Distance",
+    x = "Distance (pixels)",
+    y = "Mean ± SE Plasma Z-score",
+    color = "Group"
+  ) +
+  theme_minimal() +
+  theme(text = element_text(size = 13))
+ggsave("Figures/Unassigned panels/PlasmaCellGenes.TSVR.pdf", width = 11, height = 8) # Fig. 4c, colors changed in Adobe Illustrator.
+
+pvals <- all_data %>%
+  group_by(TLS_Status, Distance_Continuous) %>%
+  summarise(
+    p_value = t.test(
+      Plasma_Composite_Z[TCR_Status == "TS"],
+      Plasma_Composite_Z[TCR_Status == "VR"]
+    )$p.value,
+    .groups = "drop"
+  )
+
+# Optional: Add significance stars
+pvals <- pvals %>%
+  mutate(Significance = case_when(
+    p_value < 0.001 ~ "***",
+    p_value < 0.01 ~ "**",
+    p_value < 0.05 ~ "*",
+    TRUE ~ "ns"
+  )) ##at each distance
+```
+
+```{R spatial and single-cell correlation}
+sc_data <- openxlsx::read.xlsx("Supplementary Tables/Correlation of sc and spatial.xlsx", sheet = 8, startRow = 1)  # Table of single-cell and spatial expansion, exported of TCRs, exported from the objects above. Available upon request.
+colnames(sc_data)[5] <- "expansion"
+spatial_data <- openxlsx::read.xlsx("Supplementary Tables/Correlation of sc and spatial.xlsx", sheet = 9, startRow = 1) # adjust sheet name
+colnames(spatial_data)[2] <- "expansion"
+
+results <- list()
+all_points <- list()
+
+for (pid in patients) {
+  sc_sub <- sc_data %>% filter(Patient == pid)
+  spatial_sub <- spatial_data %>% filter(Patient == pid)
+
+  # Step 1: Get the expansion value at the 50th spatial TCR
+  cutoff <- spatial_sub %>%
+    arrange(desc(expansion)) %>%
+    slice(50) %>%
+    pull(expansion)
+
+  # Step 2: Select and rank all spatial TCRs with expansion >= cutoff
+  top_spatial <- spatial_sub %>%
+    filter(expansion >= cutoff) %>%
+    mutate(spatial_rank = rank(-expansion, ties.method = "average"))
+
+  # Step 3: Compute global single-cell ranks
+  sc_sub <- sc_sub %>%
+    mutate(sc_rank_global = rank(-expansion, ties.method = "average"))
+
+  # Step 4: Merge shared clonotypes
+  merged <- top_spatial %>%
+    inner_join(sc_sub, by = "Clonotype")
+
+  # Step 5: Spearman correlation
+  if (nrow(merged) >= 5) {
+    test <- cor.test(merged$spatial_rank, merged$sc_rank_global, method = "spearman")
+    results[[pid]] <- data.frame(
+      Patient = pid,
+      Spearman = test$estimate,
+      p_value = test$p.value,
+      N = nrow(merged)
+    )
+  } else {
+    results[[pid]] <- data.frame(Patient = pid, Spearman = NA, p_value = NA, N = nrow(merged))
+  }
+
+  all_points[[pid]] <- merged %>%
+    select(Patient.x, Clonotype, spatial_rank, sc_rank_global)
+}
+
+# Combine outputs
+spearman_results <- bind_rows(results)
+spearman_results$FDR <- p.adjust(spearman_results$p_value, method = "fdr")
+
+rank_data <- bind_rows(all_points)
+
+# Optional color palette
+patient_list <- sort(unique(rank_data$Patient))
+custom_colors <- c(
+  "p102" = "#FF9300",
+  "p107" = "#FF85FF",
+  "p108" = "#009092",
+  "p109" = "#521B93",
+  "p110" = "#9B2010",
+  "p111" = "#D5FC79"
+)
+
+# Plot
+ggplot(rank_data, aes(x = spatial_rank, y = sc_rank_global, color = Patient.x)) +
+  geom_point(size = 1.5, alpha = 1, shape = 16) +
+  geom_smooth(method = "lm", se = FALSE, linewidth = 0.6) +
+  scale_color_manual(values = custom_colors) +
+  facet_wrap(~Patient.x, scales = "free") +
+  labs(
+    x = "Spatial Rank (Top TCRs)",
+    y = "Single-cell Rank (Global)",
+    title = "Spearman Correlation of TCR Ranks by Patient"
+  ) +
+  theme_minimal() +
+  theme(
+    legend.position = "none",
+    strip.text = element_text(size = 10),
+    plot.title = element_text(size = 14, face = "bold"),
+    axis.text = element_text(size = 9)
+  )
+ggsave(file="Figures/SpatialSinglecellCorr.pdf", width=8, height=4) #ED Fig. 8a
+
+write.csv(rank_data, "Supplementary Tables/tcr_rank_scatter_data.csv", row.names = FALSE) #Exported ranks
+```

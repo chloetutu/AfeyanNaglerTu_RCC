@@ -1,0 +1,178 @@
+---
+title: "Run_NeoVax_CancerCell_for_LIANA"
+author: "Chloe R. Tu"
+date: "2025-04-14"
+output: html_document
+---
+
+## Libraries
+```{r}
+library(Seurat)
+library(paletteer)
+library(liana)
+library(tidyverse)
+library(ggpointdensity)
+library(rmarkdown)
+library(knitr)
+
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)
+
+options(tibble.print_min = Inf, tibble.width = Inf)
+```
+
+## Load subclustered object
+```{r, message=FALSE}
+scrna <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/04_liana/cleaned_RCC.NeoVax.CancerCell.rds")
+```
+```{r, eval=FALSE}
+scrna <- readRDS("cleaned_RCC.NeoVax.CancerCell.rds")
+```
+
+## Update subcluster labels
+## B cell
+B_1, B_0 are good (B.Mem), B_2 contains contaminant cells (i think these are interacting cells with B cells), B_3 is good (Plasma), B_4 is probably cytotoxic T contaminant (although not catastrophic, this one is borderline), B_5 is contains too much erythroid markers,  B_6 is myeloid contaminant, B8 seems like a fine plasma cell cluster to me, and B9 may contain tumor contaminant, as ALDOB is a PT marker. 
+
+Summary: B_0, B_1 (memory), B_3, B_8 (plasma), B_2, B_4, B_5, B_6, B_7, B_9 are unideal for LIANA because they contain markers of other genes in addition to clear B cell markers (one sees clearly that they do contain B cell transcripts too so at least the clustering algo makes sense)
+```{r}
+unique(scrna$b_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(b_labels = case_when(b_subcluster %in% c("B_0", "B_1") ~ "B.MEM",
+                              b_subcluster %in% c("B_3", "B_8") ~ "B.PLASMA",
+                              T ~ NA))
+```
+
+## Myeloid
+M_4 is DCs, M_2 is non-classical monocytes, M_1 is classical monocytes, M_14 is DCs, M_11 is M2-Macs, M_8, M_3, and M13 are T cell contaminants. M_0 is TAMs, M_9 is Mast cells, M_12 is pDCs, M6 is Macs, M_7 is M2-macs, M_10 is monocytes, M_15 is monocytes, M_5 is M2-mac.
+
+Summary: M_0 and M_6 are Mac (these are likely anti-inflammatory as well, but not as much as M2s); M_5, M_7, M_11 are M2. Mac; M_1, M_10 are Classical Monocytes; M_2, M_15 are non-classical monocytes, M_4, M_14 is DCs; M_9 is Mast (don't need for LIANA); M_12 is pDCs (not needed for LIANA); M_3, M_8, and M_13 should be discarded as contaminant
+```{r}
+unique(scrna$myeloid_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(myeloid_labels = case_when(myeloid_subcluster %in% c("Myeloid_0", "Myeloid_6") ~ "MAC",
+                                    myeloid_subcluster %in% c("Myeloid_5", "Myeloid_7", "Myeloid_11") ~ "M2.MAC",
+                                    myeloid_subcluster %in% c("Myeloid_1", "Myeloid_10") ~ "MONO.CLASS",
+                                    myeloid_subcluster %in% c("Myeloid_2", "Myeloid_15") ~ "MONO.NONCLASS",
+                                    myeloid_subcluster %in% c("Myeloid_4", "Myeloid_14") ~ "DC",
+                              T ~ NA))
+```
+
+## T
+For T: T_3: NK-like TEM; T_0 is TEx; T_2 is TAp; T_1 is TMem; T_4 is TRM; T_10 is TProl; T_5 is Treg; T_6 is TEx; T_8 is myeloid contaminant; T_9 is TProl; T_7 is TProl; T_11 is TIFN; T_12 is TAp
+For LIANA: TEx is T_0, T_6, T_7, T_9, T_10, T_11; TMem is T_1, T_3, T_4; Treg is T_5; and you can ignore TAp (T_2, T_12) and the myeloid contaminant (T_8), and ignore small clusters with only 2 cells (T_13 and T_14)
+```{r}
+unique(scrna$t_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(t_labels = case_when(t_subcluster %in% c("T_0", "T_6", "T_7", "T_9", "T_10", "T_11") ~ "TEX",
+                              t_subcluster %in% c("T_1", "T_3", "T_4") ~ "TMEM",
+                              t_subcluster %in% c("T_5") ~ "TREG",
+                              T ~ NA))
+```
+
+## NK
+NK_0 are NKs, NK_3 are NKs, NK_1 are NKs, NK_2 are NKs, NK_4 may be T cells or NK cells, so we'll exclude them, NK_6 are NKs, NK_8 are T cell contaminants (tregs interestingly, maybe there is a treg-like NK state...), NK_5 are likely T cell-like contaminants - these aren't NK genes, but they're not strictly CD3 positive; NK_7 is some contaminant.
+For LIANA: NKs are NK_0, NK_1, NK_2, NK_3, NK_6; contaminants are NK_4, NK_5, NK_7, NK_8
+```{r}
+unique(scrna$nk_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(nk_labels = case_when(nk_subcluster %in% c("NK_0", "NK_1", "NK_2", "NK_3", "NK_6") ~ "NK",
+                              T ~ NA))
+```
+
+## RCC
+Tumor: RCC_1 is RCC; RCC_2,  RCC_4, RCC_6, RCC_11 and RCC_12 are contaminant T/Myeloid cells; RCC_0 is RCC; RCC_3 is RCC; RCC_9 is RCC; RCC_7 is RCC; RCC_5 is RCC, RCC_10 is RCC; RCC_8 is probably RCC
+For LIANA consider RCC_0, RCC_1, RCC_3, RCC_5, RCC_7, RCC_8, RCC_9, RCC10 as RCC, and consider RCC_2, RCC_4, RCC_6, RCC_11, and RCC_12 as contaminants
+```{r}
+unique(scrna$rcc_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(rcc_labels = case_when(rcc_subcluster %in% c("RCC_0", "RCC_1", "RCC_3", "RCC_5", "RCC_7", "RCC_8", "RCC_9", "RCC_10") ~ "RCC",
+                              T ~ NA))
+```
+
+## Endothelial
+Endothelial cells: ENDO_2 is tumor-associated endothelial cells; ENDO_6 is endothelial cells; ENDO_1 is T cell contamination; ENDO_3 is probably endothelial cells; ENDO_0 is endothelial cells; ENDO_8 is smooth muscle cells interestingly; ENDO_7 is myeloid contaminant; ENDO_4 is endothelial, ENDO_5 is endothelial. 
+For LIANA, ENDO_0, ENDO_2, ENDO_3, ENDO_4, ENDO_5, ENDO_6 are all endothelial; you can discard ENDO_1, ENDO_7, and ENDO_8 as contaminant clusters
+```{r}
+unique(scrna$endo_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(endo_labels = case_when(endo_subcluster %in% c("ENDO_0", "ENDO_2", "ENDO_3", "ENDO_4", "ENDO_5", "ENDO_6") ~ "ENDO",
+                              T ~ NA))
+```
+
+## Merge subcluster labels
+```{r}
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(liana_label = case_when(!is.na(b_labels) ~ b_labels,
+                                 !is.na(myeloid_labels) ~ myeloid_labels,
+                                 !is.na(t_labels) ~ t_labels,
+                                 !is.na(nk_labels) ~ nk_labels,
+                                 !is.na(rcc_labels) ~ rcc_labels,
+                                 !is.na(endo_labels) ~ endo_labels))
+
+table(scrna$liana_label)
+table(scrna$b_labels)
+table(scrna$myeloid_labels)
+table(scrna$t_labels)
+table(scrna$nk_labels)
+table(scrna$rcc_labels)
+table(scrna$endo_labels)
+```
+
+## Subset for LIANA cells
+```{r}
+cells_keep <- scrna@meta.data %>%
+  filter(!is.na(liana_label)) %>%
+  rownames(.)
+
+clean_scrna <- scrna %>% subset(cells = cells_keep)
+
+rm(scrna)
+gc()
+```
+
+## Subset for TLS+ patients and run LIANA
+TLS+: 107, 102, 108, 106, 112, 104, 101, DBCC03, DBCC15, DBCC16, DBCC11, DBCC05
+```{r}
+unique(clean_scrna$patient)
+
+Idents(clean_scrna) <- clean_scrna$patient
+tls_pos <- clean_scrna %>% 
+  subset(idents = c("16097-107", "16097-102", "16097-108","16097-106", 
+                    "16097-112", "16097-104", "16097-101", "DBCC03", 
+                    "DBCC15", "DBCC16", "DBCC11", "DBCC05"))
+
+liana_tls_pos <- tls_pos %>%
+  liana_wrap(idents_col = "liana_label", return_all = TRUE) %>%
+  liana_aggregate()
+```
+
+
+## Subset for TLS- patients and run LIANA
+TLS-: 105, 110, 111, 109, S1, S2, S6, S7, S8, S10, S12, S14
+```{r}
+unique(clean_scrna$patient)
+
+Idents(clean_scrna) <- clean_scrna$patient
+tls_neg <- clean_scrna %>% 
+  subset(idents = c("16097-105", "16097-110", "16097-111","16097-109", 
+                    "DBCC01", "DBCC02", "DBCC06", "DBCC07", "DBCC08", 
+                    "DBCC10", "DBCC12", "DBCC14"))
+rm(clean_scrna)
+gc()
+
+liana_tls_neg <- tls_neg %>%
+  liana_wrap(idents_col = "liana_label", return_all = TRUE) %>%
+  liana_aggregate()
+```
+
+## Save LIANA results
+```{r, eval = FALSE}
+saveRDS(liana_tls_pos, "clean_NeoVax.CancerCell_tls+_liana.rds")
+saveRDS(liana_tls_neg, "clean_NeoVax.CancerCell_tls-_liana.rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+

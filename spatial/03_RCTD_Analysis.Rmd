@@ -1,0 +1,145 @@
+---
+title: "RCTD_Analysis"
+author: "Chloe R. Tu"
+output: html_document
+date: "2023-11-20"
+---
+
+## Deconvolute cell types from pucks
+
+## Libraries
+```{r, message = FALSE}
+library(spacexr)
+library(Seurat)
+library(dplyr)
+
+source("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+```{r, eval = FALSE}
+library(spacexr)
+library(Seurat)
+library(dplyr)
+
+source("slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Create a single cell reference for each patient from matched scRNA RCC data
+```{r, message = FALSE}
+scrna <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/00_scrna_liana_normalized.Rds")
+```
+```{r, eval = FALSE}
+scrna <- readRDS("scrna_RCC.Rds")
+```
+
+## Process data
+```{r}
+# Join layers
+scrna <- JoinLayers(scrna)
+
+# Subset cells for matching patient
+unique(scrna@meta.data$patient)
+scrna1 <- subset(scrna, subset = patient == "16097-108")
+scrna1@meta.data %>%
+  distinct(sample)
+scrna1@meta.data %>%
+  count(final_clusters_for_liana)
+
+# Extract counts matrix
+count_matrix <- scrna[["RNA"]]$counts
+
+# Collapse clusters into general categories for RCTD
+unique(scrna@meta.data$final_clusters_for_liana)
+
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(clusters_for_rctd = 
+           case_when(final_clusters_for_liana %in% c("Proximal tubular cells", "Endothelial", "Distal tubular cells") ~ "Endothelial",
+                     final_clusters_for_liana %in% c("CD8TEx", "CD8Tmem") ~ "CD8+T",
+                     final_clusters_for_liana %in% c("CD4Tmem", "CD4TEx", "CD4Treg") ~ "CD4+T",
+                     final_clusters_for_liana %in% c("Dendritic", "Monocyte", "Macrophage", "Mast cell") ~ "Myeloid",
+                     final_clusters_for_liana %in% c("B cell") ~ "B",
+                     final_clusters_for_liana %in% c("NK") ~ "NK",
+                     final_clusters_for_liana %in% c("Tumor") ~ "Tumor"))
+  
+
+# Now create the single cell reference for RCTD
+# Extract a (barcode) named vector of cell types
+cell_types <- as.factor(scrna@meta.data$clusters_for_rctd)
+names(cell_types) <- colnames(scrna)
+
+# Extract a umi counts w/ barcode as name
+nUMI <- scrna@meta.data$nCount_RNA
+names(nUMI) <-  colnames(scrna)
+
+# Named vectors are input into RCTD
+reference <- Reference(count_matrix, cell_types, nUMI)
+
+# Examine reference object -- see no. of genes + cells
+print(dim(reference@counts))
+
+# See no. of occurences for each cell type
+table(reference@cell_types)
+```
+
+## Save the patient specific single cell reference
+```{r, eval = FALSE}
+saveRDS(reference, "scRNA_RCC_P108_RCTD_reference.Rds")
+```
+
+## Load slide-seq puck
+```{r, message = FALSE}
+puck <- load_slideseq(gene_exp_dir = "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/raw_data/RCC_pucks/Puck_231024_32_108TA/gene_exp/", coords_dir = "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/raw_data/RCC_pucks/Puck_231024_32_108TA/barcode_matching/Puck_231024_32_barcode_xy.txt.gz", project_name = "P108TA_32")
+```
+
+```{r, eval = FALSE}
+puck <- load_slideseq(gene_exp_dir = "Puck_231024_32_108TA/gene_exp/", coords_dir = "Puck_231024_32_108TA/barcode_matching/Puck_231024_32_barcode_xy.txt.gz", project_name = "P108TA_32")
+```
+
+## Extract RCTD required data
+```{r}
+puck_counts <- puck[["Spatial"]]$counts
+puck_coords <- GetTissueCoordinates(puck)
+colnames(puck_coords) <- c("x", "y")
+puck_coords[is.na(colnames(puck_coords))] <- NULL
+```
+
+## Create SpatialRNA object
+```{r}
+puck_query <- SpatialRNA(puck_coords, puck_counts, colSums(puck_counts))
+
+print(dim(puck_query@counts)) # observe Digital Gene Expression matrix
+hist(log(puck_query@nUMI,2)) # histogram of log_2 nUMI
+```
+
+## Run RCTD
+```{r, eval = FALSE}
+puck_rctd <- create.RCTD(puck_query, reference, max_cores = 4)
+puck_rctd <- run.RCTD(puck_rctd, doublet_mode = 'doublet')
+```
+
+## Remove reject beads and normalize RCTD weights
+```{r, eval = FALSE}
+# Remove reject beads
+rejects <- puck_rctd@results[["results_df"]] %>%
+  filter(spot_class == "reject") %>%
+  rownames()
+
+puck_weights <- as.data.frame(normalize_weights(puck_rctd@results$weights)) %>%
+  # Remove reject beads
+  filter(!(rownames(.) %in% rejects))
+```
+
+## Save RCTD results
+```{r, eval = FALSE}
+saveRDS(puck_rctd, "P108TA_32_rctd_results_112023.rds")
+write.csv(puck_weights, "P108TA_32_normalized_weights.csv")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```

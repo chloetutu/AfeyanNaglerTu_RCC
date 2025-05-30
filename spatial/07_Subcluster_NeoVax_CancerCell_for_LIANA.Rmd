@@ -1,0 +1,412 @@
+---
+title: "Subcluster_NeoVax_CancerCell_for_LIANA"
+author: "Chloe R. Tu"
+date: "2025-04-10"
+output:
+  html_document: default
+---
+
+## Libraries
+```{r}
+library(Seurat)
+library(paletteer)
+library(liana)
+library(tidyverse)
+library(ggpointdensity)
+library(rmarkdown)
+library(knitr)
+
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)
+
+options(tibble.print_min = Inf, tibble.width = Inf)
+```
+
+## Load scRNA object
+```{r, message = FALSE}
+scrna <- readRDS("/n/data2/dfci/medonc/cwu/alex/objects/merged_RCC.NeoVax.CancerCell.rds")
+```
+```{r, eval = FALSE}
+scrna <- readRDS("merged_RCC.NeoVax.CancerCell.rds")
+```
+
+## Print clusters
+```{r}
+DimPlot(scrna, group.by = "unified_cluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+unique(scrna$unified_cluster)
+```
+
+## Create larger cell type groups according to Alex:
+Notes on contamination:
+B: "B.MEM", "B.PLASMA" 
+    alex found some CD3D+ subclusters
+Myeloid: "cDC", "MONO.NONCLASS", "MONO.CLASS", "M2.MAC", "MAC", "MAST", "pDC" 
+    alex found some CD3D+ CD8+ subclusters
+T: "CD8.TEX","CD4.TMEM", "CD8.TRM", "TAP", "TPROL", "CD4.TREG", "CD8.IFN"
+    alex found some myeloid contaminant in Tprolif
+NK: "NK1", "NK2"
+RCC: "RCC1", "RCC2", "RCC3"
+    i found some CD68 and PTPRC expression
+Endo: "ENDO"
+```{r}
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(generalized_clusters = case_when(unified_cluster %in% c("B.MEM", "B.PLASMA") ~ "B",
+                                          unified_cluster %in% c("cDC", "MONO.NONCLASS", "MONO.CLASS", "M2.MAC", "MAC", "MAST", "pDC") ~ "Myeloid",
+                                          unified_cluster %in% c("CD8.TEX","CD4.TMEM", "CD8.TRM", "TAP", "TPROL", "CD4.TREG", "CD8.IFN") ~ "T",
+                                          unified_cluster %in% c("NK1", "NK2") ~ "NK",
+                                          unified_cluster %in% c("RCC1", "RCC2", "RCC3") ~ "RCC",
+                                          T ~ unified_cluster))
+
+unique(scrna$generalized_clusters)
+```
+
+## B cells ----------------------------------------------------------------------
+### Subcluster upon the B cell cluster
+```{r}
+Idents(scrna) <- scrna$generalized_clusters
+scrna <- FindSubCluster(scrna, cluster = "B", graph.name = "RNA_snn", resolution = 0.5, subcluster.name = "b_subcluster")
+```
+
+### Subset for B cell subclusters
+```{r}
+b_subclusters <- subset(scrna, idents = "B")
+```
+
+### Plots
+```{r}
+Idents(b_subclusters) <- b_subclusters$b_subcluster
+VlnPlot(b_subclusters, features = c("CD3D", "CD79A", "CD19", "IGHG1"), flip=T,stack=T)
+VlnPlot(b_subclusters, features = c("CD3D", "CD79A", "CD19", "IGHG1"), pt.size = 0.1, ncol = 2)
+
+DimPlot(b_subclusters, group.by = "b_subcluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+FeaturePlot(b_subclusters, features = c("CD3D", "CD79A", "CD19", "IGHG1"), order = TRUE) 
+```
+
+### Find and plot top variable features per B cluster to see if there's more evidence of contaimination
+```{r}
+b_markers <- FindAllMarkers(b_subclusters, only.pos = TRUE, nfeatures = 5)
+
+b_markers %>%
+  group_by(cluster) %>%
+  slice_head(n = 3)
+```
+
+### Cell counts
+```{r}
+b_subclusters@meta.data %>%
+  dplyr::count(b_subcluster) %>%
+  pivot_wider(names_from = b_subcluster, values_from = n)
+
+b_subclusters@meta.data %>%
+  dplyr::count(patient, b_subcluster) %>%
+  pivot_wider(names_from = b_subcluster, values_from = n)
+```
+
+### B cell markers
+```{r}
+#16: B-Mem
+FeaturePlot(b_subclusters, features = c("CD19", "BANK1"), order = TRUE)
+#19: B-PLASMA
+FeaturePlot(b_subclusters, features = c("JCHAIN", "DERL3"), order = TRUE)
+VlnPlot(b_subclusters, features = c("CD19", "BANK1", "JCHAIN", "DERL3"), flip=T,stack=T)
+```
+
+## Myeloid ---------------------------------------------------------------------
+### Subcluster upon the myeloid cell cluster
+```{r}
+Idents(scrna) <- scrna$generalized_clusters
+scrna <- FindSubCluster(scrna, cluster = "Myeloid", graph.name = "RNA_snn", resolution = 0.5, subcluster.name = "myeloid_subcluster")
+```
+
+### Subset for myeloid cell subclusters
+```{r}
+myeloid_subclusters <- subset(scrna, idents = "Myeloid")
+```
+
+### Plots
+```{r}
+Idents(myeloid_subclusters) <- myeloid_subclusters$myeloid_subcluster
+VlnPlot(myeloid_subclusters, features = c("CD3D", "CD14", "CD68", "NKG7", "CD19"), flip=T,stack=T)
+VlnPlot(myeloid_subclusters, features = c("CD3D", "CD14", "CD68", "NKG7"), pt.size = 0.1, ncol = 2)
+
+DimPlot(myeloid_subclusters, group.by = "myeloid_subcluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+FeaturePlot(myeloid_subclusters, features = c("CD3D", "CD14", "CD68", "NKG7"), order = TRUE) 
+```
+
+### Find and plot top variable features per myeloid cluster to see if there's more evidence of contaimination
+```{r}
+myeloid_markers <- FindAllMarkers(myeloid_subclusters, only.pos = TRUE, nfeatures = 5)
+
+myeloid_markers %>%
+  group_by(cluster) %>%
+  slice_head(n = 3)
+```
+
+### Cell counts
+```{r}
+myeloid_subclusters@meta.data %>%
+  dplyr::count(myeloid_subcluster) %>%
+  pivot_wider(names_from = myeloid_subcluster, values_from = n)
+
+myeloid_subclusters@meta.data %>%
+  dplyr::count(patient, myeloid_subcluster) %>%
+  pivot_wider(names_from = myeloid_subcluster, values_from = n)
+```
+
+### Myeloid cell markers
+```{r}
+#1 Macrophage M2
+FeaturePlot(myeloid_subclusters, features = c("APOE", "C1QC", "TREM2"), order = TRUE)
+#5: Classical Monocytes
+FeaturePlot(myeloid_subclusters, features = c("CD14", "S100A8", "FCGR3A"), order = TRUE)
+#7: Non classical monocytes
+FeaturePlot(myeloid_subclusters, features = c("CD14", "LILRA3", "FCGR3A"), order = TRUE)
+#11: cDCs
+FeaturePlot(myeloid_subclusters, features = c("CD1E", "CD1C", "FCER1A"), order = TRUE)
+#22: pDCs
+FeaturePlot(myeloid_subclusters, features = c("CLEC4C", "LILRA4"), order = TRUE)
+
+VlnPlot(myeloid_subclusters, features = c("APOE", "C1QC", "TREM2", "CD14", "S100A8", "FCGR3A", "LILRA3", "CD1E", "CD1C", "FCER1A", "CLEC4C", "LILRA4"), flip=T,stack=T)
+```
+
+
+## T cells ---------------------------------------------------------------------
+### Subcluster upon the T cell cluster
+```{r}
+Idents(scrna) <- scrna$generalized_clusters
+scrna <- FindSubCluster(scrna, cluster = "T", graph.name = "RNA_snn", resolution = 0.5, subcluster.name = "t_subcluster")
+```
+
+### Subset for T cell subclusters
+```{r}
+t_subclusters <- subset(scrna, idents = "T")
+```
+
+### Plots
+```{r}
+Idents(t_subclusters) <- t_subclusters$t_subcluster
+VlnPlot(t_subclusters, features = c("CD3D", "CD14", "CD68", "CD79A"), flip=T,stack=T)
+VlnPlot(t_subclusters, features = c("CD3D", "CD14", "CD68", "CD79A"), pt.size = 0.1, ncol = 2)
+
+DimPlot(t_subclusters, group.by = "t_subcluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+FeaturePlot(t_subclusters, features = c("CD3D", "CD14", "CD68", "CD79A"), order = TRUE) 
+```
+
+### Find and plot top variable features per T cluster to see if there's more evidence of contaimination
+```{r}
+t_markers <- FindAllMarkers(t_subclusters, only.pos = TRUE, nfeatures = 5)
+
+t_markers %>%
+  group_by(cluster) %>%
+  slice_head(n = 3)
+```
+
+### Cell counts
+```{r}
+t_subclusters@meta.data %>%
+  dplyr::count(t_subcluster) %>%
+  pivot_wider(names_from = t_subcluster, values_from = n)
+
+t_subclusters@meta.data %>%
+  dplyr::count(patient, t_subcluster) %>%
+  pivot_wider(names_from = t_subcluster, values_from = n)
+```
+
+### T cell markers
+```{r}
+#0 CD8 TEx, TNFRSF9 TNFRSF9, LAG3, GZMK
+FeaturePlot(t_subclusters, features = c("PDCD1", "ENTPD1"), order = TRUE)
+#2: CD4 Mem
+FeaturePlot(t_subclusters, features = c("CD40LG", "CCR7", "IL7R"), order = TRUE)
+#4: CD8 TRM
+FeaturePlot(t_subclusters, features = c("CD3E", "CD8A", "CD4"))
+#6: TAp - MTRNR2L12
+FeaturePlot(t_subclusters, features = c("CD3D"), order = TRUE)
+DimPlot(t_subclusters, group.by = "HasClonotype")
+#8: Proliferating cells
+FeaturePlot(t_subclusters, features = c("UBE2C", "MKI67"), order = TRUE)
+#9: NK2
+FeaturePlot(t_subclusters, features = c("KRT81", "KRT86", "KLRC1", "ZNF683"), order = TRUE)
+#10: CD4-TREG
+FeaturePlot(t_subclusters, features = c("FOXP3", "IL2RA", "TNFRSF4"), order = TRUE)
+#20: MAST
+FeaturePlot(t_subclusters, features = c("MS4A2", "TPSB2"), order = TRUE)
+#24: CD8-IFN response/CXCL13
+
+VlnPlot(t_subclusters, features = c("PDCD1", "ENTPD1", "CD40LG", "CCR7", "IL7R", "CD3E", "CD8A", "CD4", "CD3D", "UBE2C", "MKI67", "KRT81", "KRT86", "KLRC1", "ZNF683", "FOXP3", "IL2RA", "TNFRSF4", "MS4A2", "TPSB2"), flip=T,stack=T)
+```
+
+
+## NK cells ---------------------------------------------------------------------
+### Subcluster upon the NK cell cluster
+```{r}
+Idents(scrna) <- scrna$generalized_clusters
+scrna <- FindSubCluster(scrna, cluster = "NK", graph.name = "RNA_snn", resolution = 0.5, subcluster.name = "nk_subcluster")
+```
+
+### Subset for NK cell subclusters
+```{r}
+nk_subclusters <- subset(scrna, idents = "NK")
+```
+
+### Plots
+```{r}
+Idents(nk_subclusters) <- nk_subclusters$nk_subcluster
+VlnPlot(nk_subclusters, features = c("CD3D", "CD8A", "CD68", "CD79A", "NKG7"), flip=T,stack=T)
+VlnPlot(nk_subclusters, features = c("CD3D", "CD8A", "CD68", "CD79A", "NKG7"), pt.size = 0.1, ncol = 2)
+
+DimPlot(nk_subclusters, group.by = "nk_subcluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+FeaturePlot(nk_subclusters, features = c("CD3D", "CD8A", "CD68", "CD79A", "NKG7"), order = TRUE) 
+```
+
+### Find and plot top variable features per NK cluster to see if there's more evidence of contaimination
+```{r}
+nk_markers <- FindAllMarkers(nk_subclusters, only.pos = TRUE, selection.method = "vst")
+
+nk_markers %>%
+  group_by(cluster) %>%
+  slice_head(n = 3) %>%
+  print(n = nrow(.))
+```
+
+### Cell counts
+```{r}
+nk_subclusters@meta.data %>%
+  dplyr::count(nk_subcluster) %>%
+  pivot_wider(names_from = nk_subcluster, values_from = n)
+
+nk_subclusters@meta.data %>%
+  dplyr::count(patient, nk_subcluster) %>%
+  pivot_wider(names_from = nk_subcluster, values_from = n)
+```
+
+### NK cell markers
+```{r}
+#3: NK1
+FeaturePlot(nk_subclusters, features = c("SPON2", "FGFBP2"))
+#9: NK2
+FeaturePlot(nk_subclusters, features = c("KRT81", "KRT86", "KLRC1", "ZNF683"), order = TRUE)
+
+VlnPlot(nk_subclusters, features = c("SPON2", "FGFBP2", "KRT81", "KRT86", "KLRC1", "ZNF683"), flip=T,stack=T)
+```
+
+
+## RCC cells ---------------------------------------------------------------------
+### Subcluster upon the RCC cell cluster
+```{r}
+Idents(scrna) <- scrna$generalized_clusters
+scrna <- FindSubCluster(scrna, cluster = "RCC", graph.name = "RNA_snn", resolution = 0.5, subcluster.name = "rcc_subcluster")
+```
+
+### Subset for RCC cell subclusters
+```{r}
+rcc_subclusters <- subset(scrna, idents = "RCC")
+```
+
+### Plots
+```{r}
+Idents(rcc_subclusters) <- rcc_subclusters$rcc_subcluster
+VlnPlot(rcc_subclusters, features = c("CD3D", "CD68", "CD79A", "ALB", "SLC22A8", "ALDOB", "CA9"), flip=T,stack=T)
+VlnPlot(rcc_subclusters, features = c("CD3D", "CD68", "CD79A", "CA9"), pt.size = 0.1, ncol = 2)
+
+DimPlot(rcc_subclusters, group.by = "rcc_subcluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+FeaturePlot(rcc_subclusters, features = c("CD3D", "CD68", "CD79A", "CA9"), order = TRUE) 
+```
+
+### Find and plot top variable features per RCC cluster to see if there's more evidence of contaimination
+```{r}
+rcc_markers <- FindAllMarkers(rcc_subclusters, only.pos = TRUE, selection.method = "vst")
+
+rcc_markers %>%
+  group_by(cluster) %>%
+  slice_head(n = 3)
+```
+
+### Cell counts
+```{r}
+rcc_subclusters@meta.data %>%
+  dplyr::count(rcc_subcluster) %>%
+  pivot_wider(names_from = rcc_subcluster, values_from = n)
+
+rcc_subclusters@meta.data %>%
+  dplyr::count(patient, rcc_subcluster) %>%
+  pivot_wider(names_from = rcc_subcluster, values_from = n)
+```
+
+### RCC cell markers
+```{r}
+#17: Tumor
+FeaturePlot(rcc_subclusters, features = c("CA9", "NDUFA4L2"), order = TRUE)
+#25: RCC2 (mes)
+FeaturePlot(rcc_subclusters, features = c("LOX", "IGFBP3", "NDUFA4L2"), order = TRUE)
+#26: RCC3 (EMT)
+FeaturePlot(rcc_subclusters, features = c("MT1A", "ANGPTL4", "NAT8"), order = TRUE, raster = FALSE)
+
+VlnPlot(rcc_subclusters, features = c("CA9", "NDUFA4L2", "LOX", "IGFBP3", "NDUFA4L2", "MT1A", "ANGPTL4", "NAT8"), flip=T,stack=T)
+```
+
+## Endothelial cells ---------------------------------------------------------------------
+### Subcluster upon the endothelial cell cluster
+```{r}
+Idents(scrna) <- scrna$generalized_clusters
+scrna <- FindSubCluster(scrna, cluster = "ENDO", graph.name = "RNA_snn", resolution = 0.5, subcluster.name = "endo_subcluster")
+```
+
+### Subset for endothelial cell subclusters
+```{r}
+endo_subclusters <- subset(scrna, idents = "ENDO")
+```
+
+### Plots
+```{r}
+Idents(endo_subclusters) <- endo_subclusters$endo_subcluster
+VlnPlot(endo_subclusters, features = c("CD3D", "CD68", "CD79A", "ALB", "SLC22A8", "ALDOB", "CA9"), flip=T,stack=T)
+VlnPlot(endo_subclusters, features = c("CD3D", "CD68", "CD79A", "CA9"), pt.size = 0.1, ncol = 2)
+
+DimPlot(endo_subclusters, group.by = "endo_subcluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+FeaturePlot(endo_subclusters, features = c("CD3D", "CD68", "CD79A", "CA9"), order = TRUE) 
+```
+
+### Find and plot top variable features per endothelial cluster to see if there's more evidence of contaimination
+```{r}
+endo_markers <- FindAllMarkers(endo_subclusters, only.pos = TRUE, selection.method = "vst")
+
+endo_markers %>%
+  group_by(cluster) %>%
+  slice_head(n = 3)
+```
+
+### Cell counts
+```{r}
+endo_subclusters@meta.data %>%
+  dplyr::count(endo_subcluster) %>%
+  pivot_wider(names_from = endo_subcluster, values_from = n)
+
+endo_subclusters@meta.data %>%
+  dplyr::count(patient, endo_subcluster) %>%
+  pivot_wider(names_from = endo_subcluster, values_from = n)
+```
+
+### Endothelial cell markers
+```{r}
+#17: Tumor
+FeaturePlot(endo_subclusters, features = c("CA9", "NDUFA4L2"), order = TRUE)
+#25: RCC2 (mes)
+FeaturePlot(endo_subclusters, features = c("LOX", "IGFBP3", "NDUFA4L2"), order = TRUE)
+#26: RCC3 (EMT)
+FeaturePlot(endo_subclusters, features = c("MT1A", "ANGPTL4", "NAT8"), order = TRUE, raster = FALSE)
+#14: Endothelial
+FeaturePlot(endo_subclusters, features = c("TEK", "CDH5", "CLEC14A"), order = TRUE)
+
+VlnPlot(endo_subclusters, features = c("CA9", "NDUFA4L2", "LOX", "IGFBP3", "NDUFA4L2", "MT1A", "ANGPTL4", "NAT8", "TEK", "CDH5", "CLEC14A"), flip=T,stack=T)
+```
+
+## Save subclustered object
+```{r, eval = FALSE}
+saveRDS(scrna, "cleaned_RCC.NeoVax.CancerCell.rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```

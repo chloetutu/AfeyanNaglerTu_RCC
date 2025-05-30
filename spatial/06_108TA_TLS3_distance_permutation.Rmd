@@ -1,0 +1,217 @@
+---
+title: "108TA TLS3 Permutation"
+author: "Chloe R. Tu"
+date: "2025-02-06"
+output: html_document
+---
+
+## Test clone-specific bias towards TLS3 using a permutation test
+
+## Libraries
+```{r setup}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+```
+
+## Set up workspace
+```{r, message = FALSE}
+source("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/source_scripts/slideseq_functions_main.R")
+area_fill <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/github_quarto/Area_fill.rds")
+
+options(Seurat.object.assay.version = 'v5')
+```
+```{r, eval = FALSE}
+source("slideseq_functions_main.R")
+area_fill <- readRDS("Area_fill.rds")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Set number of permutations
+```{r}
+n_perm <- 5000
+set.seed(123)
+```
+
+## Load object from script 02
+```{r, message = FALSE}
+P108TA_26_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck26_108TA_TCR_RNA_area_111124.Rds")
+P108TA_29_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck29_108TA_TCR_RNA_area_111124.Rds")
+# P108TA_30_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck30_108TA_TCR_RNA_area_111124.Rds")
+P108TA_32_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck32_108TA_TCR_RNA_area_111124.Rds")
+```
+```{r, eval = FALSE}
+P108TA_26_RNA <- readRDS("02_Puck26_108TA_TCR_RNA_area_111124.Rds")
+P108TA_29_RNA <- readRDS("02_Puck29_108TA_TCR_RNA_area_111124.Rds")
+P108TA_32_RNA <- readRDS("02_Puck32_108TA_TCR_RNA_area_111124.Rds")
+
+```
+
+## Get TCRs seen near TLS1 at a count of 5 or more
+```{r}
+P108TA_md <- do.call(rbind, list(
+  P108TA_26_RNA@meta.data, 
+  P108TA_29_RNA@meta.data, 
+  P108TA_32_RNA@meta.data
+  ))
+
+P108TA_clones <- get_unique_productive_clones(P108TA_md$clone_id)
+
+P108TA_filtered_clones <- count_clones_by_annotated_area(P108TA_md, P108TA_clones) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+```
+
+## Permutation test logic:
+Hypothesis:
+Our null hypothesis claims that TCR_X is not closer to TLS3 compared to other TCRs
+The alternative hypothesis claims that TCR_Xs is closer to TLS3 than any other TCR
+
+Test statistic:
+Median distance from centroid of TLS3 of TCR_X minus Median distance from centroid of TLS3 of all other TCRs
+
+Take into account the non-independent variable of puck identity by permuting sample label within the puck. e.g. say Puck30 has 10 TCR_X beads, and Puck32 has 20 TCR_X beads. After permutation, Puck30 will still have 10 TCR_X beads, and Puck32 20 beads.
+
+## Get centroid of TLS3
+```{r}
+tls3_centroid_26 <- P108TA_26_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(x),
+            y = mean(y))
+tls3_centroid_29 <- P108TA_29_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(x),
+            y = mean(y))
+tls3_centroid_32 <- P108TA_32_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(x),
+            y = mean(y))
+```
+
+## Save centroids for plotting
+```{r, eval = FALSE}
+tls3_centroid_26_PLOT <- P108TA_26_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(plot_x),
+            y = mean(plot_y))
+tls3_centroid_30_PLOT <- P108TA_30_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(plot_x),
+            y = mean(plot_y))
+tls3_centroid_32_PLOT <- P108TA_32_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(plot_x),
+            y = mean(plot_y))
+
+write.csv(tls3_centroid_26_PLOT, "P108TA_puck26_tls3_centroid.csv")
+write.csv(tls3_centroid_30_PLOT, "P108TA_puck30_tls3_centroid.csv")
+write.csv(tls3_centroid_32_PLOT, "P108TA_puck32_tls3_centroid.csv")
+```
+
+## Calculate the distance of all TCRs to the centroid of TLS3 and add label denoting whether the TCR is of interest or not
+```{r}
+# Calculate the distance of all beads to TLS3
+tls3_distances_26 <- calculate_distance_of_beads_to_a_point(P108TA_26_RNA@meta.data, tls3_centroid_26, "TLS3") %>%
+  dplyr::rename("distance_to" = "distance_to_TLS3") %>%
+  mutate(Puck = "P108TA_Puck26")
+tls3_distances_29 <- calculate_distance_of_beads_to_a_point(P108TA_29_RNA@meta.data, tls3_centroid_29, "TLS3") %>%
+  dplyr::rename("distance_to" = "distance_to_TLS3") %>%
+  mutate(Puck = "P108TA_Puck29")
+tls3_distances_32 <- calculate_distance_of_beads_to_a_point(P108TA_32_RNA@meta.data, tls3_centroid_32, "TLS3") %>%
+  dplyr::rename("distance_to" = "distance_to_TLS3") %>%
+  mutate(Puck = "P108TA_Puck32")
+```
+
+## Run permutation test
+```{r}
+tls3.list <- list()
+for(clone in P108TA_filtered_clones){
+  # Merge distance distributions across Puck 26, Puck 29 and Puck 32
+  tls3_X_distances <- tls3_distances_26 %>%
+    rbind(tls3_distances_29) %>%
+    rbind(tls3_distances_32) %>%
+    filter(!is.na(clone_id)) %>%
+    # Label TCR_X containing beads
+    mutate(label = case_when(str_detect(clone_id, paste0(clone, "($|,)")) ~ "TCR_of_interest",
+                                    T ~ "Other"))
+  
+  # Find pucks in which TCR_X is observed
+  pucks <- tls3_X_distances %>%
+    filter(label == "TCR_of_interest") %>%
+    distinct(Puck) %>%
+    pull(Puck)
+  
+  # Filter for pucks where TCR_X is observed
+  tls3_X_distances <- tls3_X_distances %>%
+    filter(Puck %in% pucks)
+  
+  # Plot the median distance of TCR_206 vs all other TCRs for each puck
+  # Plot descriptive stats of the bead distance to TLS1
+  plot <- ggplot(data = tls3_X_distances, aes(x = label, y = distance_to, fill = label)) +
+    geom_boxplot() +
+    facet_wrap(~Puck) +
+    ggtitle(paste0("TCR of interest, ", clone))
+  
+  print(plot)
+  
+  # Test TCR_Xs proximity to TLS3
+  tls3_X <- distance_permutation_test(tls3_X_distances, n_perm = n_perm, tcr_name = clone)
+  tls3_X$pval
+  
+  # KEEP THIS ORDER FOR append(), or the names of the list will be in the wrong order later
+  tls3.list <- append(tls3.list, list(tls3_X))
+}
+
+names(tls3.list) <- P108TA_filtered_clones
+```
+
+## Print pvals
+```{r}
+get_pval <- function(lis)(
+  return(lis[["pval"]])
+)
+
+tls3.df <- lapply(tls3.list, get_pval) %>%
+  as.data.frame() %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::rename("pval" = "V1")
+```
+
+## Print significant clones
+```{r}
+tls3.df %>%
+  filter(pval <= 0.05)
+```
+
+## Save object
+```{r, eval = FALSE}
+saveRDS(tls3.list, "P108TA_puck26_29_32_tls3_list.rds")
+```
+
+## Print tested clones
+```{r}
+plot_clones_spatially(P108TA_32_RNA, P108TA_filtered_clones, area_fill)
+plot_clones_spatially(P108TA_26_RNA, P108TA_filtered_clones, area_fill)
+plot_clones_spatially(P108TA_29_RNA, P108TA_filtered_clones, area_fill)
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+

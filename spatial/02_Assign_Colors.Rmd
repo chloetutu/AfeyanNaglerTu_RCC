@@ -1,0 +1,78 @@
+---
+title: "Assign_Colors"
+author: "Chloe R. Tu"
+date: "2024-12-18"
+output: html_document
+---
+
+## Libraries
+```{r}
+library(dplyr)
+library(tidyverse)
+```
+
+
+## Assign PrimaryCluster colors
+## Load all TCRs from Alex's scRNA+scTCR analysis
+```{r, include = FALSE}
+alex_reactivities <- read.csv("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/TCR_specificities/reformatted_RCC_slideseq_parameters_052925.csv")
+
+alex_reactivities %>%
+  distinct(PrimaryCluster, identity)
+```
+
+```{r, eval = FALSE}
+alex_reactivities <- read.csv("reformatted_RCC_slideseq_parameters_052925.csv")
+
+alex_reactivities %>%
+  distinct(PrimaryCluster, identity)
+```
+
+## Assign colors
+```{r}
+primarycluster_fill <- scale_fill_manual(values = c("Other/NA" = "grey60", "Tmem" = "#0330F3", "Tex" = "#931101", "TEx" = "#FF7F78", "TEM" = "#0096FE", "Treg" = "#ff4ff0", "TNCM" = "#2171B5", "unknown" = "grey30"))
+primarycluster_color <- scale_color_manual(values = c("Other/NA" = "grey60", "Tmem" = "#0330F3", "Tex" = "#931101", "TEx" = "#FF7F78", "TEM" = "#0096FE", "Treg" = "#ff4ff0", "TNCM" = "#2171B5", "unknown" = "grey30"))
+```
+
+## Save colors
+```{r, eval = FALSE}
+saveRDS(primarycluster_fill, "PrimaryCluster_fill.rds")
+saveRDS(primarycluster_color, "PrimaryCluster_color.rds")
+```
+
+# Assign Patient colors
+## Assign colors
+```{r}
+patient_fill <- scale_fill_manual(values = c("P102TA" = "#FF9300", "P107TA" = "#FF8AD8", "P108TA" = "#009193", "P108TAB" = "#009193", "P109TB" = "#531B93", "P110TB" = "#941100", "P111TA" = "#D4FB79"))
+patient_color <- scale_color_manual(values = c("P102TA" = "#FF9300", "P107TA" = "#FF8AD8", "P108TA" = "#009193", "P108TAB" = "#009193", "P109TB" = "#531B93", "P110TB" = "#941100", "P111TA" = "#D4FB79"))
+```
+
+## Save colors
+```{r, eval = FALSE}
+saveRDS(patient_fill, "Patient_fill.rds")
+saveRDS(patient_color, "Patient_color.rds")
+```
+
+## Assign area colors
+## Assign colors
+```{r}
+area_color <- scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS1" = "#8A9A5B", "TLS2" = "#8A9A5B", "TLS3" = "#8A9A5B", "TLS4" = "#8A9A5B", "Tumor" = "#8c6b2d", "Granuloma" = "#9c5c58", "M2" = "#9c5c58", "Empty" = "#eeeeee"))
+area_fill <- scale_fill_manual(values = c("Boundary" = "#ff8f1b", "TLS1" = "#8A9A5B", "TLS2" = "#8A9A5B", "TLS3" = "#8A9A5B", "TLS4" = "#8A9A5B", "Tumor" = "#8c6b2d", "Granuloma" = "#9c5c58", "M2" = "#9c5c58", "Empty" = "#eeeeee"))
+```
+
+## Save colors
+```{r, include = FALSE}
+saveRDS(area_fill, "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/github_quarto/Area_fill.rds")
+saveRDS(area_color, "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/github_quarto/Area_fill.rds")
+```
+
+```{r, eval = FALSE}
+saveRDS(area_fill, "Area_fill.rds")
+saveRDS(area_color, "Area_fill.rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+

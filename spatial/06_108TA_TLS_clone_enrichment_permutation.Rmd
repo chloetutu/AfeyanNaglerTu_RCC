@@ -1,0 +1,177 @@
+---
+title: "108TA TLS Clone Enrichment"
+author: "Chloe R. Tu"
+date: "2025-05-01"
+output: html_document
+---
+
+## Libraries
+```{r setup, include=FALSE}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(infer)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+```
+
+## Set up workspace
+```{r, message = FALSE}
+source("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/source_scripts/slideseq_functions_main.R")
+area_fill <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/github_quarto/Area_fill.rds")
+
+options(Seurat.object.assay.version = 'v5')
+```
+```{r, eval = FALSE}
+source("slideseq_functions_main.R")
+area_fill <- readRDS("Area_fill.rds")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Set number of permutations and the area to describe clonotype enrichment in
+```{r}
+n_perm <- 5000
+set.seed(123)
+
+given_area = "TLS"
+```
+
+## Load objects
+```{r, message=FALSE}
+P108TA_26_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck26_108TA_TCR_RNA_area_111124.Rds")
+P108TA_29_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck29_108TA_TCR_RNA_area_111124.Rds")
+P108TA_30_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck30_108TA_TCR_RNA_area_111124.Rds")
+P108TA_32_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck32_108TA_TCR_RNA_area_111124.Rds")
+```
+```{r, eval=FALSE}
+P108TA_26_RNA <- readRDS("02_Puck26_108TA_TCR_RNA_area_111124.Rds")
+P108TA_29_RNA <- readRDS("02_Puck29_108TA_TCR_RNA_area_111124.Rds")
+P108TA_30_RNA <- readRDS("02_Puck30_108TA_TCR_RNA_area_111124.Rds")
+P108TA_32_RNA <- readRDS("02_Puck32_108TA_TCR_RNA_area_111124.Rds")
+```
+
+## Permutation test logic:
+Hypothesis:
+Our null hypothesis claims that TCR_X is not more enriched in the TLS than any other TCR
+The alternative hypothesis claims that TCR_Xs is more enriched in the TLS than any other TCR
+
+Test statistic:
+Enrichment = (number of beads for TCR_X in the structure/total number of beads for TCR_X across all structures)/(number of beads for all other clonotypes in the structure/ total number of beads for all other clonotypes across all structures) - 1
+In other words, enrichment = (fraction of TCR_X in the TLS) / (fraction of all other clones in the TLS) - 1
+
+Take into account the non-independent variable of puck identity by permuting sample label within the puck
+
+## Get TCRs seen at a count of 5 or more across all pucks
+```{r}
+# Merge data from all pucks together
+P108TA_md <- do.call(rbind, list(P108TA_26_RNA@meta.data, P108TA_29_RNA@meta.data, P108TA_30_RNA@meta.data, P108TA_32_RNA@meta.data))
+
+unique_clones <- get_unique_productive_clones(P108TA_md$clone_id)
+
+P108TA_filtered_clones <- count_clones_by_annotated_area(P108TA_md, unique_clones) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+
+length(P108TA_filtered_clones)
+```
+
+## Rename individual TLS and filter for beads containing TCRs
+```{r}
+# Rename individual TLS to "TLS"
+P108TA_md <- P108TA_md %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3") ~ "TLS",
+                                  T ~ area)) %>%
+  # Filter for beads with TCRs
+  filter(!is.na(clone_id))
+```
+
+## Run the permutation test
+```{r}
+# Save results in a list
+tls_clone_results.list <- list()
+
+for(clone in P108TA_filtered_clones){
+  P108TA_TCRX_md <- P108TA_md %>%
+    # Select columns of interest
+    select(orig.ident, clone_id, barcode, area) %>%
+    # Label TCR_X containing beads as "interesting" and label all other beads as "other".
+    mutate(tcr_label = case_when(str_detect(clone_id, paste0(clone, "($|,)")) ~ "TCR_of_interest",
+                                 T ~ "other_tcr"),
+           # Label the TLS as "interesting" and other areas as "other"
+           area_label = case_when(area == given_area ~ "area_of_interest",
+                                  T ~ "other_area"))
+  
+  # Find pucks in which TCR_X is not observed
+  P108TA_TCRX_pucks <- P108TA_TCRX_md %>%
+    filter(tcr_label == "TCR_of_interest") %>%
+    distinct(orig.ident) %>%
+    pull(orig.ident)
+  
+  # Remove pucks where TCR_X is not observed
+  P108TA_TCRX_md <- P108TA_TCRX_md %>%
+    filter(orig.ident %in% P108TA_TCRX_pucks)
+  
+  # Plot the fraction of TCR_X in TLS vs all other TCRs in TLS for each puck.
+  # In other words, plot Cc/Call and Ac/Aall
+  plot <- P108TA_TCRX_md %>%
+    group_by(tcr_label, area_label, orig.ident) %>%
+    dplyr::count() %>%
+    pivot_wider(names_from = area_label, values_from = "n") %>%
+    # Some values are supposed to be 0 but are NA due to dplyr::count
+    replace(is.na(.), 0) %>%
+    # Calculate Call and Aall
+    mutate(all_areas = sum(area_of_interest, other_area),
+    # Calculate Cc/Call and Ac/All
+           fraction = area_of_interest/all_areas) %>%
+    select(tcr_label, fraction, orig.ident) %>%
+    ggplot() +
+    geom_boxplot(aes(x = tcr_label, y = fraction, fill = tcr_label)) +
+    geom_point(aes(x = tcr_label, y = fraction, color = orig.ident)) +
+    ggtitle(paste0("TCR of interest: ", clone)) +
+    ylab("Fraction in the TLS")
+  
+  print(plot)
+  
+  # Test enrichment of TCR_X in the TLS
+  tls_results <- enrichment_permutation_test(P108TA_TCRX_md, n_perm = n_perm, clonotype = clone)
+  tls_results$pval
+  
+  # KEEP THIS ORDER, or the names of the list will be in the wrong order later
+  tls_clone_results.list <- append(tls_clone_results.list, list(tls_results))
+}
+
+
+names(tls_clone_results.list) <- P108TA_filtered_clones
+```
+
+## Print pvals
+```{r}
+tls_clone_pvals.df <- lapply(tls_clone_results.list, get_pval) %>%
+  as.data.frame() %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::rename("pval" = "V1")
+```
+
+## Print significant clones (unadjusted)
+```{r}
+tls_clone_pvals.df %>%
+  filter(pval <= 0.05)
+```
+
+## Save object
+```{r, eval = FALSE}
+saveRDS(tls_clone_results.list, "P108TA_TLS_clone_list.rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
