@@ -1,0 +1,272 @@
+---
+title: "Reformat_scTCR_and_Reactivity_Data"
+author: "Chloe R. Tu"
+date: "2024-11-06"
+output: html_document
+---
+
+## Reformat clonotype information from scRNA, scTCR and reactivity experiments
+
+## Libraries
+```{r}
+library(ggvenn)
+library(stringr)
+library(tidyverse)
+library(reshape2)
+library(readxl)
+library(dplyr)
+library(arsenal)
+```
+
+## Load data
+```{r, message = FALSE}
+scrna_cd8 <- read_excel("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/TCR_specificities/RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 1)
+
+scrna_cd4 <- read_excel("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/TCR_specificities/RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 2)
+
+scrna_cd4_obj <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scRNA/CD4finalwPrimaryCluster.rds")
+
+scrna_ts <- read_excel("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/TCR_specificities/RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 4)
+scrna_vs <- read_excel("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/TCR_specificities/RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 5) 
+scrna_tas <- read_excel("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/TCR_specificities/RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 6) 
+scrna_ebv_cross_reactive <- read_excel("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/TCR_specificities/RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 7) %>%
+  filter(Antigen == "EBV Cross-reactive")
+```
+
+```{r, eval = FALSE}
+# CD8 T cell phenotypes
+scrna_cd8 <- read_excel("RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 1)
+
+# CD4 T cell phenotypes
+scrna_cd4 <- read_excel("RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 2)
+
+# CD4 scRNA object
+scrna_cd4_obj <- readRDS("CD4finalwPrimaryCluster.rds")
+
+# Reactivities
+scrna_ts <- read_excel("RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 4)
+scrna_vs <- read_excel("RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 5) 
+scrna_tas <- read_excel("RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 6) 
+scrna_ebv_cross_reactive <- read_excel("RCC Slide Seq Analysis Parameters 052925.xlsx", sheet = 7) %>%
+  filter(Antigen == "EBV Cross-reactive")
+```
+
+## Format CD4 and CD8 phenotype data
+```{r}
+# CD4
+colnames(scrna_cd4)[1] <- "TCR.Clone"
+
+# Attach tumor and normal counts for CD4s- open the scTCR-scRNA final CD4 object and attach CD4 clone counts to the metadata file
+scrna_cd4_md <- scrna_cd4_obj@meta.data %>%
+  select(patient, TCR.Clone, PrimaryCluster, TCRA1, TCRB1, TCRA2, TCRB2, countintuminCD4, countinnorminCD4, countinmetinCD4)
+
+# Attach CD4 clone counts in tumor and normal to reactivity data
+scrna_cd4 <- left_join(scrna_cd4, scrna_cd4_md, by = "TCR.Clone") %>%
+  distinct()
+
+scrna_cd4 <- scrna_cd4 %>%
+  mutate(TRAV1 = str_split_i(TCRA1, fixed(","), 1),
+         TRAJ1 = str_split_i(TCRA1, fixed(","), 2),
+         CDR3A1 = str_split_i(TCRA1, fixed(","), 3),
+         TRBV1 = str_split_i(TCRB1, fixed(","), 1),
+         TRBD1 = str_split_i(TCRB1, fixed(","), 2),
+         TRBJ1 = str_split_i(TCRB1, fixed(","), 3),
+         CDR3B1 = str_split_i(TCRB1, fixed(","), 4),
+         TRAV2 = str_split_i(TCRA2, fixed(","), 1),
+         TRAJ2 = str_split_i(TCRA2, fixed(","), 2),
+         CDR3A2 = str_split_i(TCRA2, fixed(","), 3),
+         TRBV2 = str_split_i(TCRB2, fixed(","), 1),
+         TRBB2 = str_split_i(TCRB2, fixed(","), 2),
+         TRBJ2 = str_split_i(TCRB2, fixed(","), 3),
+         CDR3B2 = str_split_i(TCRB2, fixed(","), 4))
+
+# CD8
+scrna_cd8 <- scrna_cd8 %>%
+  mutate(TRAV1 = str_split_i(TCRA1, fixed(","), 1),
+         TRAJ1 = str_split_i(TCRA1, fixed(","), 2),
+         CDR3A1 = str_split_i(TCRA1, fixed(","), 3),
+         TRBV1 = str_split_i(TCRB1, fixed(","), 1),
+         TRBD1 = str_split_i(TCRB1, fixed(","), 2),
+         TRBJ1 = str_split_i(TCRB1, fixed(","), 3),
+         CDR3B1 = str_split_i(TCRB1, fixed(","), 4),
+         TRAV2 = str_split_i(TCRA2, fixed(","), 1),
+         TRAJ2 = str_split_i(TCRA2, fixed(","), 2),
+         CDR3A2 = str_split_i(TCRA2, fixed(","), 3),
+         TRBV2 = str_split_i(TCRB2, fixed(","), 1),
+         TRBB2 = str_split_i(TCRB2, fixed(","), 2),
+         TRBJ2 = str_split_i(TCRB2, fixed(","), 3),
+         CDR3B2 = str_split_i(TCRB2, fixed(","), 4))
+```
+
+## How many clones have both CD4 and CD8 cells supporting them?
+```{r}
+ggvenn(list(cd4_clones = scrna_cd4$TCR.Clone, cd8_clones = scrna_cd8$TCR.Clone))
+```
+
+## 471 clones are found in both CD4 and CD8 cells. For such clones, take the CD4 or CD8 identity based on which identity has the most cells in support across all three tissues (normal, tumor and metastatic), if equal, set to "unknown"
+```{r}
+cd8_summary <- scrna_cd8 %>%
+  mutate(CD8_count = countintum + countinnorm + countinmet) %>%
+  select(TCR.Clone, CD8_count, PrimaryCluster)
+
+cd4_summary <- scrna_cd4 %>%
+  mutate(CD4_count = countintuminCD4 + countinnorminCD4 + countinmetinCD4) %>%
+  select(TCR.Clone, CD4_count, PrimaryCluster)
+
+clones_in_both <- inner_join(cd8_summary, cd4_summary, by = "TCR.Clone") %>%
+  mutate(identity = case_when(CD8_count > CD4_count ~ "CD8",
+                              CD4_count > CD8_count ~ "CD4",
+                              CD4_count == CD8_count ~ "unknown"))
+
+table(clones_in_both$identity)
+```
+
+## Mark the clones to remove from each set
+```{r}
+remove_from_cd8 <- clones_in_both %>% 
+  filter(identity %in% c("CD4", "unknown"))
+remove_from_cd4 <- clones_in_both %>% 
+  filter(identity %in% c("CD8", "unknown"))
+unknown_clones <- clones_in_both %>% 
+  filter(identity == "unknown")   
+```
+
+## Attach the clone ID to each CDR3, phenotypic annotation from scRNA, and experimentally confirmed specificity.
+```{r}
+# CD8
+scrna_cd8_reformatted <- scrna_cd8 %>%
+  select("TCR.Clone", "PrimaryCluster", "CDR3A1", "CDR3B1", "CDR3A2", "CDR3B2") %>%
+  melt(id = c("TCR.Clone", "PrimaryCluster")) %>%
+  filter(!is.na(value)) %>%
+  mutate(chains = case_when(variable %in% c("CDR3A1", "CDR3A2") ~ "TRA",
+                            variable %in% c("CDR3B1", "CDR3B2") ~ "TRB"),
+         identity = "CD8") %>%
+  select(-variable) %>%
+  # Add the total CD8 count
+  left_join(cd8_summary[,c("TCR.Clone", "CD8_count")], by = "TCR.Clone") %>%
+  dplyr::rename("CDR3" = "value",
+                "sctcr_clone" = "TCR.Clone",
+                "total_count" = "CD8_count") %>%
+  # Remove clones in both the CD8 and CD4 objects that are described as CD4 or unknown in the "clones_in_both" dataframe
+  filter(!(sctcr_clone %in% remove_from_cd8$TCR.Clone))
+  
+
+# CD4
+scrna_cd4_reformatted <- scrna_cd4 %>%
+  select("TCR.Clone", "PrimaryCluster", "CDR3A1", "CDR3B1", "CDR3A2", "CDR3B2") %>%
+  melt(id = c("TCR.Clone", "PrimaryCluster")) %>%
+  filter(!is.na(value)) %>%
+  mutate(chains = case_when(variable %in% c("CDR3A1", "CDR3A2") ~ "TRA",
+                            variable %in% c("CDR3B1", "CDR3B2") ~ "TRB"),
+         identity = "CD4") %>%
+  select(-variable) %>%
+  # Add the total CD4 count
+  left_join(cd4_summary[,c("TCR.Clone", "CD4_count")], by = "TCR.Clone") %>%
+  dplyr::rename("CDR3" = "value",
+                "sctcr_clone" = "TCR.Clone",
+                "total_count" = "CD4_count") %>%
+  # Remove clones in both the CD8 and CD4 objects that are described as CD8 or unknown in the "clones_in_both" dataframe
+  filter(!(sctcr_clone %in% remove_from_cd4$TCR.Clone))
+
+
+###### Unknown clones
+scrna_unknown_reformatted <- scrna_cd8 %>%
+  select("TCR.Clone", "PrimaryCluster", "CDR3A1", "CDR3B1", "CDR3A2", "CDR3B2") %>%
+  melt(id = c("TCR.Clone", "PrimaryCluster")) %>%
+  filter(!is.na(value)) %>%
+  mutate(PrimaryCluster = "unknown",
+        chains = case_when(variable %in% c("CDR3A1", "CDR3A2") ~ "TRA",
+                            variable %in% c("CDR3B1", "CDR3B2") ~ "TRB"),
+         identity = "unknown") %>%
+  select(-variable) %>%
+  # Add the total CD8 count, since the total counts for these clones are the same in both CD4 and CD8
+  left_join(cd8_summary[,c("TCR.Clone", "CD8_count")], by = "TCR.Clone") %>%
+  dplyr::rename("CDR3" = "value",
+                "sctcr_clone" = "TCR.Clone",
+                "total_count" = "CD8_count") %>%
+  # Filter for clones in both the CD8 and CD4 objects that are described as CD4 or unknown in the "clones_in_both" dataframe
+  filter(sctcr_clone %in% unknown_clones$TCR.Clone)
+```
+
+## Reformat phenotypic and reactivity data so that each CDR3 has it's own row
+```{r}
+scrna_ts_reformatted <- scrna_ts %>%
+  select(`Tumor Specific`, "CDR3A", "CDR3B") %>%
+  melt(id = c("Tumor Specific")) %>%
+  mutate(chains = case_when(variable == "CDR3A" ~ "TRA",
+                            variable == "CDR3B" ~ "TRB"),
+         tumor_reactive = TRUE) %>%
+  select(-variable) %>%
+  dplyr::rename("CDR3" = "value", 
+                "sctcr_clone" = "Tumor Specific")
+
+scrna_vs_reformatted <- scrna_vs %>%
+  select(TCR, Antigen, CDR3A, CDR3B) %>%
+  melt(id = c("TCR", "Antigen")) %>%
+  mutate(chains = case_when(variable == "CDR3A" ~ "TRA",
+                            variable == "CDR3B" ~ "TRB"),
+         virus_reactive = TRUE) %>%
+  select(-variable) %>%
+  dplyr::rename("CDR3" = "value",
+                "virus_antigen" = "Antigen",
+                "sctcr_clone" = "TCR")
+
+scrna_tas_reformatted <- scrna_tas %>%
+  select(TCR, Antigen, CDR3A, CDR3B) %>%
+  melt(id = c("TCR", "Antigen")) %>%
+  mutate(chains = case_when(variable == "CDR3A" ~ "TRA",
+                            variable == "CDR3B" ~ "TRB"),
+         tumor_antigen_specific = TRUE) %>%
+  select(-variable) %>%
+  dplyr::rename("CDR3" = "value",
+                "antigen" = "Antigen",
+                "sctcr_clone" = "TCR")
+
+scrna_ebv_cross_reactive_reformatted <- scrna_ebv_cross_reactive %>%
+  select(TCR, CDR3A, CDR3B) %>%
+  melt(id = c("TCR")) %>%
+  mutate(chains = case_when(variable == "CDR3A" ~ "TRA",
+                            variable == "CDR3B" ~ "TRB"),
+         ebv_tumor_reactive = TRUE) %>%
+  select(-variable) %>%
+  dplyr::rename("CDR3" = "value",
+                "sctcr_clone" = "TCR")
+```
+
+## Merge data into one sheet
+```{r}
+scrna_full <- do.call(rbind, list(scrna_cd8_reformatted, scrna_cd4_reformatted, scrna_unknown_reformatted))
+
+scrna_full <- scrna_full %>%
+  full_join(scrna_tas_reformatted, by = c("sctcr_clone", "chains", "CDR3")) %>%
+  full_join(scrna_ts_reformatted, by = c("sctcr_clone", "chains", "CDR3")) %>%
+  full_join(scrna_vs_reformatted, by = c("sctcr_clone", "chains", "CDR3")) %>%
+  full_join(scrna_ebv_cross_reactive_reformatted, by = c("sctcr_clone", "chains", "CDR3"))
+
+# Update clones that are "EBV and tumor cross reactive" so that the virus_antigen is EBV, and the virus_reactive and tumor_reactive columns are TRUE
+scrna_full <- scrna_full %>%
+  mutate(virus_reactive = case_when(sctcr_clone %in% scrna_ebv_cross_reactive_reformatted$sctcr_clone ~ TRUE,
+                                    T ~ virus_reactive),
+         virus_antigen = case_when(sctcr_clone %in% scrna_ebv_cross_reactive_reformatted$sctcr_clone ~ "EBV",
+                                   T ~ virus_antigen),
+         tumor_reactive = case_when(sctcr_clone %in% scrna_ebv_cross_reactive_reformatted$sctcr_clone ~ TRUE,
+                                    T ~ tumor_reactive)) %>%
+  # Remove the row that shows tumor and EBV cross-reactivity
+  select(-ebv_tumor_reactive)
+
+# Add another column specifying clones that are truly "tumor_specific"- ie reactive to tumor and tumor alone
+scrna_full <- scrna_full %>%
+  mutate(tumor_specific = case_when(tumor_reactive == TRUE & is.na(virus_reactive) ~ TRUE,
+                                    T ~ NA), .after = "tumor_reactive")
+```
+
+## Save sheet
+```{r, eval = FALSE}
+write.csv(scrna_full, "reformatted_RCC_slideseq_parameters_052925.csv", row.names = FALSE)
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+
