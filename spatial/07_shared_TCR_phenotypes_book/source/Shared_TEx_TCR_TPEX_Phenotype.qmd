@@ -1,0 +1,868 @@
+# Shared CD8 TEx TCRs: TPEX phenotype {#sec-shared-tex-tcr-phenotype}
+
+# Phenotype of shared TEx TCRs in the TLS
+
+# Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+library(muscat)
+library(limma)
+library(purrr)
+library(SummarizedExperiment)
+library(fgsea)
+library(msigdbr)
+library(ProjecTILs)
+library(readxl)
+library(UpSetR)
+library(ggpointdensity)
+library(ComplexHeatmap)
+library(scales)
+library(lme4)
+library(escape)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+set.seed(123)
+```
+
+# Explore the scRNA derived phenotypes of the shared clones
+## Open scRNA derived phenotypes
+```{r}
+scrna_phenotypes <- read.csv("../objects/reformatted_RCC_slideseq_parameters_052925.csv")
+
+scrna_exh_clones <- scrna_phenotypes %>%
+  filter(PrimaryCluster == "Tex") %>%
+  distinct(sctcr_clone) %>%
+  pull(sctcr_clone)
+```
+
+# Load objects
+```{r}
+P102TA_10_RNA <- readRDS("../objects/02_Puck10_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+
+P108TA_26_RNA <- readRDS("../objects/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("../objects/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("../objects/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+```
+
+## Add a generalized column "tls_status"
+```{r}
+add_TLS_column <- function(obj){
+  obj <- obj %>%
+    mutate(tls_status = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4", "M2") ~ "inTLS",
+                              area %in% c("Boundary", "Tumor"
+                                          ) ~ "outTLS"))
+  
+  return(obj)
+}
+
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  add_TLS_column()
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  add_TLS_column()
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  add_TLS_column()
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  add_TLS_column()
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  add_TLS_column()
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  add_TLS_column()
+```
+
+## Assign celltypes
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_10_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_33_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_26_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_29_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_30_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_32_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+```
+
+# Remove empty beads
+```{r}
+P102TA_10_RNA <- subset(P102TA_10_RNA, subset = area == "Empty", invert = TRUE)
+P102TA_33_RNA <- subset(P102TA_33_RNA, subset = area == "Empty", invert = TRUE)
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = area == "Empty", invert = TRUE)
+```
+
+# Remove extra columns
+## P102
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  select(-c(puck10_count, log_puck10_count, largest_clone_id))
+```
+
+# Get shared clonotypes in both the TLS and non-TLS areas per patient
+## P102TA
+```{r}
+P102TA_md <- rbind(P102TA_10_RNA@meta.data,
+                   P102TA_33_RNA@meta.data)
+
+P102TA_tls_md <- P102TA_md %>%
+  filter(tls_status == "inTLS")
+
+P102TA_nontls_md <- P102TA_md %>%
+  filter(tls_status == "outTLS")
+
+P102TA_tls_clones_counts <- count_clones_by_annotated_area(P102TA_tls_md, get_unique_productive_clones(P102TA_tls_md$clone_id)) %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "M2") ~ "TLS",
+                          T ~ "wrong")) %>%
+  group_by(clone_id, area) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup()
+  
+P102TA_nontls_clones_counts <- count_clones_by_annotated_area(P102TA_nontls_md, get_unique_productive_clones(P102TA_nontls_md$clone_id)) %>%
+  mutate(area = case_when(area %in% c("Tumor", 
+    "Boundary") ~ "nonTLS",
+                          T ~ "wrong")) %>%
+  group_by(clone_id, area) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup()
+
+# We want clones seen in 5 beads or more in each region
+P102TA_tls_clones <- P102TA_tls_clones_counts %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+P102TA_nontls_clones <- P102TA_nontls_clones_counts %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+
+table(P102TA_tls_clones %in% P102TA_nontls_clones)
+table(P102TA_nontls_clones %in% P102TA_tls_clones)
+
+P102TA_shared_clones <- P102TA_tls_clones[P102TA_tls_clones %in% P102TA_nontls_clones]
+
+# # Get CD8 Tex clones seen in scTCR only
+P102TA_shared_clones <- P102TA_shared_clones[P102TA_shared_clones %in% scrna_exh_clones]
+
+length(P102TA_shared_clones)
+```
+
+## P108TA
+```{r}
+P108TA_md <- rbind(P108TA_26_RNA@meta.data, P108TA_29_RNA@meta.data, P108TA_30_RNA@meta.data, P108TA_32_RNA@meta.data)
+
+P108TA_tls_md <- P108TA_md %>%
+  filter(tls_status == "inTLS")
+
+P108TA_nontls_md <- P108TA_md %>%
+  filter(tls_status == "outTLS")
+
+P108TA_tls_clones_counts <- count_clones_by_annotated_area(P108TA_tls_md, get_unique_productive_clones(P108TA_tls_md$clone_id)) %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "M2") ~ "TLS",
+                          T ~ "wrong")) %>%
+  group_by(clone_id, area) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup()
+  
+P108TA_nontls_clones_counts <- count_clones_by_annotated_area(P108TA_nontls_md, get_unique_productive_clones(P108TA_nontls_md$clone_id)) %>%
+  mutate(area = case_when(area %in% c("Tumor", 
+    "Boundary") ~ "nonTLS",
+                          T ~ "wrong")) %>%
+  group_by(clone_id, area) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup()
+
+# We want clones seen in 5 beads or more in each region
+P108TA_tls_clones <- P108TA_tls_clones_counts %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+P108TA_nontls_clones <- P108TA_nontls_clones_counts %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+
+table(P108TA_tls_clones %in% P108TA_nontls_clones)
+table(P108TA_nontls_clones %in% P108TA_tls_clones)
+
+P108TA_shared_clones <- P108TA_tls_clones[P108TA_tls_clones %in% P108TA_nontls_clones]
+
+# # Get CD8 Tex clones seen in scTCR only
+P108TA_shared_clones <- P108TA_shared_clones[P108TA_shared_clones %in% scrna_exh_clones]
+
+length(P108TA_shared_clones)
+```
+
+#### Which clones are we taking
+```{r}
+scrna_phenotypes %>% filter(sctcr_clone %in% P102TA_shared_clones) %>% distinct(sctcr_clone, identity, PrimaryCluster)
+
+scrna_phenotypes %>% filter(sctcr_clone %in% P108TA_shared_clones) %>% distinct(sctcr_clone, identity, PrimaryCluster)
+
+```
+
+# Determine shared CD8 Tex clone frequency
+```{r}
+count_clones_by_annotated_area(P102TA_md, P102TA_shared_clones) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  arrange(sum_count)
+
+count_clones_by_annotated_area(P108TA_md, P108TA_shared_clones) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  arrange(sum_count)
+```
+
+# Set shared clone order based increasing frequency of clones across all pucks
+```{r}
+P102TA_shared_clones <- factor(P102TA_shared_clones, levels = c("p102_295", "p102_289", "p102_737", "p102_266", "p102_278", "p102_274", "p102_264", "p102_265"))
+
+P108TA_shared_clones <- factor(P108TA_shared_clones, levels = c("p108_3", "p108_266", "p108_211", "p108_1", "p108_207", "p108_206", "p108_208", "p108_205", "p108_4"))
+```
+
+# Cast beads with multiple shared CD8Tex specific clones to the smaller clone
+```{r}
+cast_shared_cd8s_102 <- function(md){
+  md <- md %>%
+    mutate(shared_tex_id = case_when(str_detect(sctcr_clone, "p102_295($|,)") ~ "p102_295",
+                                  str_detect(sctcr_clone, "p102_289($|,)") ~ "p102_289",
+                                  str_detect(sctcr_clone, "p102_737($|,)") ~ "p102_737",
+                                  str_detect(sctcr_clone, "p102_266($|,)") ~ "p102_266",
+                                  str_detect(sctcr_clone, "p102_278($|,)") ~ "p102_278",
+                                  str_detect(sctcr_clone, "p102_274($|,)") ~ "p102_274",
+                                  str_detect(sctcr_clone, "p102_264($|,)") ~ "p102_264",
+                                  str_detect(sctcr_clone, "p102_265($|,)") ~ "p102_265"))
+  return(md)
+}
+
+cast_shared_cd8s_108 <- function(md){
+  md <- md %>%
+    mutate(shared_tex_id = case_when(str_detect(sctcr_clone, "p108_3($|,)") ~ "p108_3",
+                                  str_detect(sctcr_clone, "p108_266($|,)") ~ "p108_266",
+                                  str_detect(sctcr_clone, "p108_211($|,)") ~ "p108_211",
+                                  str_detect(sctcr_clone, "p108_1($|,)") ~ "p108_1",
+                                  str_detect(sctcr_clone, "p108_207($|,)") ~ "p108_207",
+                                  str_detect(sctcr_clone, "p108_206($|,)") ~ "p108_206",
+                                  str_detect(sctcr_clone, "p108_208($|,)") ~ "p108_208",
+                                  str_detect(sctcr_clone, "p108_205($|,)") ~ "p108_205",
+                                  str_detect(sctcr_clone, "p108_4($|,)") ~ "p108_4"))
+  return(md)
+}
+
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  cast_shared_cd8s_102
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  cast_shared_cd8s_102
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  cast_shared_cd8s_108
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  cast_shared_cd8s_108
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  cast_shared_cd8s_108
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  cast_shared_cd8s_108
+```
+
+# P102TA
+## Puck 10
+
+### Get beads with shared clones in TLS
+```{r}
+# Get beads with shared clones in TLS
+P102TA_10_inTLS <- P102TA_10_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P102TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "inTLS") %>%
+  pull(barcode)
+
+# Get beads with shared clones outside of TLS
+P102TA_10_outTLS <- P102TA_10_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P102TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "outTLS") %>%
+  pull(barcode)
+
+# How many cells in each category?
+length(P102TA_10_inTLS)
+length(P102TA_10_outTLS)
+
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% P102TA_10_inTLS ~ "shared,inTLS",
+                          barcode %in% P102TA_10_outTLS ~ "shared,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P102TA_10_RNA <- subset(P102TA_10_RNA, subset = muscat == "Defined")
+```
+
+### Get beads with shared clones in TLS
+```{r}
+# Get beads with shared clones in TLS
+P102TA_33_inTLS <- P102TA_33_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P102TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "inTLS") %>%
+  pull(barcode)
+
+# Get beads with shared clones outside of TLS
+P102TA_33_outTLS <- P102TA_33_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P102TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "outTLS") %>%
+  pull(barcode)
+
+# How many cells in each category?
+length(P102TA_33_inTLS)
+length(P102TA_33_outTLS)
+
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% P102TA_33_inTLS ~ "shared,inTLS",
+                          barcode %in% P102TA_33_outTLS ~ "shared,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P102TA_33_RNA <- subset(P102TA_33_RNA, subset = muscat == "Defined")
+```
+
+# P108TA
+## Puck 26
+### Get beads with shared clones in TLS
+```{r}
+# Get beads with shared clones in TLS
+P108TA_26_inTLS <- P108TA_26_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "inTLS") %>%
+  pull(barcode)
+
+# Get beads with shared clones outside of TLS
+P108TA_26_outTLS <- P108TA_26_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "outTLS") %>%
+  pull(barcode)
+
+# How many cells in each category?
+length(P108TA_26_inTLS)
+length(P108TA_26_outTLS)
+
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% P108TA_26_inTLS ~ "shared,inTLS",
+                          barcode %in% P108TA_26_outTLS ~ "shared,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = muscat == "Defined")
+```
+
+## Puck 29
+### Get beads with shared clones in TLS
+```{r}
+# Get beads with shared clones in TLS
+P108TA_29_inTLS <- P108TA_29_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "inTLS") %>%
+  pull(barcode)
+
+# Get beads with shared clones outside of TLS
+P108TA_29_outTLS <- P108TA_29_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "outTLS") %>%
+  pull(barcode)
+
+# How many cells in each category?
+length(P108TA_29_inTLS)
+length(P108TA_29_outTLS)
+
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% P108TA_29_inTLS ~ "shared,inTLS",
+                          barcode %in% P108TA_29_outTLS ~ "shared,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = muscat == "Defined")
+```
+
+## Puck 30
+### Get beads with shared clones in TLS
+```{r}
+# Get beads with shared clones in TLS
+P108TA_30_inTLS <- P108TA_30_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "inTLS") %>%
+  pull(barcode)
+
+# Get beads with shared clones outside of TLS
+P108TA_30_outTLS <- P108TA_30_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "outTLS") %>%
+  pull(barcode)
+
+# How many cells in each category?
+length(P108TA_30_inTLS)
+length(P108TA_30_outTLS)
+
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% P108TA_30_inTLS ~ "shared,inTLS",
+                          barcode %in% P108TA_30_outTLS ~ "shared,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = muscat == "Defined")
+```
+
+## Puck 32
+### Get beads with shared clones in TLS
+```{r}
+# Get beads with shared clones in TLS
+P108TA_32_inTLS <- P108TA_32_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "inTLS") %>%
+  pull(barcode)
+
+# Get beads with shared clones outside of TLS
+P108TA_32_outTLS <- P108TA_32_RNA@meta.data %>%
+  filter(str_detect(clone_id, paste0(paste0(P108TA_shared_clones, "($|,)"), collapse = "|")),
+         tls_status == "outTLS") %>%
+  pull(barcode)
+
+# How many cells in each category?
+length(P108TA_32_inTLS)
+length(P108TA_32_outTLS)
+
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% P108TA_32_inTLS ~ "shared,inTLS",
+                          barcode %in% P108TA_32_outTLS ~ "shared,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = muscat == "Defined")
+```
+
+# Process RNA data
+## Merge RNA objects
+```{r}
+TLS_pucks <- merge(x = P102TA_10_RNA, y = list(P102TA_33_RNA, P108TA_26_RNA, P108TA_29_RNA, P108TA_30_RNA, P108TA_32_RNA))
+
+# Update metadata
+TLS_pucks@meta.data <- TLS_pucks@meta.data %>%
+  mutate(tls_status = str_split_i(type, ",", 2),
+         Patient = str_split_i(orig.ident, "_", 1),
+         area_final = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4", "M2") ~ "TLS",
+                                T ~ area))
+
+TLS_pucks[['Spatial']] <- JoinLayers(TLS_pucks[['Spatial']])
+
+TLS_pucks@meta.data %>%
+  dplyr::count(tls_status, Patient)
+```
+
+## Open the TPEX gene set
+```{r}
+gene_sets <- readRDS("../objects/immune_gene_sets.Rds")
+
+new_gene_sets <- gene_sets[(names(gene_sets) %in% c("projecTILs.CD8.TPEX", "coret"))]
+```
+
+# Run gene set enrichment analysis
+```{r}
+TLS_pucks <- RenameAssays(TLS_pucks, assay.name = "Spatial", new.assay.name = "RNA")
+
+TLS_pucks <- runEscape(input.data = TLS_pucks, 
+                       method = "GSVA",
+                       gene.sets = new_gene_sets, 
+                       groups = 1000, 
+                       min.size = 5, 
+                       new.assay.name="escape.GSVA")
+```
+
+## Format raw GSVA enrichment scores from escape
+```{r}
+raw_dat <- as.data.frame(TLS_pucks@assays$escape.GSVA$data) %>%
+  t() %>%
+  as.data.frame()
+
+# Remove "-"s and remove spaces from data and from gene sets
+names(new_gene_sets) <- str_replace_all(names(new_gene_sets), "_", "")
+
+colnames(raw_dat) <- str_replace_all(names(raw_dat), "-", "")
+
+# Get dataframe
+raw_md <- raw_dat %>%
+  rownames_to_column("barcode") %>%
+  full_join(TLS_pucks@meta.data, by = "barcode") %>%
+  mutate(tls_status = factor(tls_status))
+
+raw_md$tls_status <- relevel(raw_md$tls_status, ref = "outTLS")
+
+# Select columns to use
+raw_md <- raw_md[,c(1:3, 4, 37, 40, 43)]
+```
+
+### Plot TCRs
+
+#### Get means, SD and SE
+```{r}
+sd.df <- raw_md %>%
+  # aggregate by puck
+  group_by(tls_status, shared_tex_id, orig.ident, Patient) %>% 
+  summarize(mean_coret_p = round(mean(coret), 8),
+            mean_tpex_p = round(mean(projecTILs.CD8.TPEX), 8)) %>%
+  # aggregate across pucks
+  group_by(tls_status, shared_tex_id, Patient) %>%
+  summarize(n = n(),
+            sd_coret = round(sd(mean_coret_p), 8),
+            sd_tpex = round(sd(mean_tpex_p), 8),
+            se_coret = round(sd_coret/sqrt(n), 8),
+            se_tpex = round(sd_tpex/sqrt(n), 8),
+            mean_coret = round(mean(mean_coret_p), 8),
+            mean_tpex = round(mean(mean_tpex_p), 8)) %>%
+  ungroup()
+```
+
+#### Pivot for plots
+```{r}
+long_mean.df <- sd.df %>%
+  select(tls_status, shared_tex_id, contains("mean"), Patient) %>%
+  pivot_longer(cols = !c(shared_tex_id, tls_status, Patient), names_to = "signature", values_to = "score") %>%
+  mutate(signature = str_replace(signature, "mean_", ""))
+
+long_se.df <- sd.df %>%
+  select(tls_status, shared_tex_id, contains("se"), Patient) %>%
+  pivot_longer(cols = !c(shared_tex_id, tls_status, Patient), names_to = "signature", values_to = "se") %>%
+  mutate(signature = str_replace(signature, "se_", ""))
+
+long_merged <- long_mean.df %>%
+  full_join(long_se.df, by = c("shared_tex_id", "tls_status", "signature", "Patient")) %>%
+  rowwise() %>%
+  mutate(upper = score+se,
+         lower = score-se,
+         tls_status = factor(tls_status, levels = c("inTLS", "outTLS")))
+```
+
+#### Plot
+Visually both the TPEX phenotype and core T cell phenotype are enriched inTLS
+```{r, fig.width = 4, fig.height = 3}
+long_merged %>%
+  filter(signature == "tpex") %>%
+ggplot(aes(x = tls_status, y = score)) +
+  geom_line(aes(group = (shared_tex_id)), position=position_dodge(width=0.2)) +
+  geom_errorbar(aes(ymin=lower, ymax=upper, group = shared_tex_id), width=.2, position=position_dodge(width=0.2), color = "grey50", linewidth = 0.3) +
+  geom_point(aes(group = shared_tex_id, fill = tls_status), color = "black",
+             position=position_dodge(width=0.2), size = 3, shape = 22) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_manual(values = c("#b2c4b9", "#d0b39e")) +
+  ylab("Raw enrichment (GSVA)") +
+  guides(color = "none") +
+  facet_wrap(~Patient, scales = "free") +
+  ggtitle("TPEX enrichment values")
+
+long_merged %>%
+  filter(signature == "coret") %>%
+ggplot(aes(x = tls_status, y = score)) +
+  geom_line(aes(group = (shared_tex_id)), position=position_dodge(width=0.2)) +
+  geom_errorbar(aes(ymin=lower, ymax=upper, group = shared_tex_id), width=.2, position=position_dodge(width=0.2), color = "grey50", linewidth = 0.3) +
+  geom_point(aes(group = shared_tex_id, fill = tls_status), color = "black",
+             position=position_dodge(width=0.2), size = 3, shape = 22) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_manual(values = c("#b2c4b9", "#d0b39e")) +
+  ylab("Raw enrichment (GSVA)") +
+  guides(color = "none") +
+  facet_wrap(~Patient, scales = "free") +
+  ggtitle("Core T enrichment values")
+```
+
+## Normalize enrichment values 
+```{r}
+TLS_pucks <- performNormalization(input.data = TLS_pucks, 
+                               assay = "escape.GSVA", 
+                               gene.sets = new_gene_sets,
+                               scale.factor = TLS_pucks$nFeature_RNA,
+                               make.positive = T)
+```
+
+### Format results from escape
+```{r}
+norm_dat <- as.data.frame(TLS_pucks@assays$escape.GSVA_normalized$data) %>%
+  t() %>%
+  as.data.frame()
+
+# Remove "-"s and remove spaces from data and from gene sets
+names(new_gene_sets) <- str_replace_all(names(new_gene_sets), "_", "")
+
+colnames(norm_dat) <- str_replace_all(names(norm_dat), "-", "")
+
+# Get dataframe
+md <- norm_dat %>%
+  rownames_to_column("barcode") %>%
+  full_join(TLS_pucks@meta.data, by = "barcode") %>%
+  mutate(tls_status = factor(tls_status))
+
+md$tls_status <- relevel(md$tls_status, ref = "outTLS")
+
+# Select columns to use
+md <- md[,c(1:3, 4, 37, 40, 43)]
+```
+
+# Run permutation test
+#### Hypothesis: Do shared Tex clones found in the TLS have a higher TPEX phenotype than shared clones found outside the TLS
+
+#### Permutation: Randomly swap the location (eg. inTLS) label without replacement, of shared clones both inside and outside the TLS
+###### - Swap location label within pucks and TCR IDs (same number of “inTLS” beads in “TCR 1” across all permutations)
+
+#### Test statistic: T value from linear model
+
+# Get observed data
+```{r}
+# Get observed model of each gene set
+model_obs <- vector("list", length(new_gene_sets))
+names(model_obs) <- names(new_gene_sets)
+# Get observed T statistic for each gene set
+t_obs <- vector("list", length(new_gene_sets))
+names(model_obs) <- names(new_gene_sets)
+names(t_obs) <- names(new_gene_sets)
+
+for (gs in names(new_gene_sets)) {
+  print(gs)
+  # build formula
+  f <- as.formula(paste(gs, "~ tls_status + (1 | Patient / orig.ident)"))
+  
+  model <- lmer(f, data = md, REML = TRUE)
+  t_val <- coef(summary(model))["tls_statusinTLS","t value"]
+  
+  model_obs[[gs]] <- model
+  t_obs[[gs]] <- t_val
+}
+```
+
+# Permute data
+```{r}
+n_perm_safe = 1500
+
+set.seed(123)
+# Swap location labels within pucks and clonotypes
+md_perm <- md %>%
+    rep_sample_n(size = nrow(md), replace = FALSE, reps = n_perm_safe) %>%
+    group_by(replicate, orig.ident, shared_tex_id
+             ) %>%
+    mutate(perm_tls_status = sample(tls_status, size = n(), replace = FALSE))
+
+```
+
+## Get permuted test statistic
+```{r}
+# Get permuted test statistic for each gene set
+model_perm <- vector("list", length(new_gene_sets))
+names(model_perm) <- names(new_gene_sets)
+
+n_perm <- 1000
+
+# Count non-convergences
+non_convergences <- vector("list", length(new_gene_sets))
+names(non_convergences) <- names(new_gene_sets)
+
+# Count times tested
+tested <- vector("list", length(new_gene_sets))
+names(tested) <- names(new_gene_sets)
+
+# Loop across each gene set
+for (gs in names(new_gene_sets)) {
+  n_run <- 1
+  n_saved <- 1
+  non_conv <- 0
+  
+  print(gs)
+  t_val_perm.vec <- c()
+  # Do 1000 converging loops
+  while(n_saved <= n_perm){
+    # Print every saved 100 perms
+    if (n_saved %% 100 == 0) { print(n_saved) }
+    # Get the permuted replicate
+    md_rep <- md_perm %>%
+      filter(replicate == n_run)
+    # Set runs as good
+    bad_run <- FALSE
+    # Attempt the model
+    model <- withCallingHandlers(
+      expr = {
+        # Build formula with permutated TLs status
+        f <- as.formula(paste(gs, "~ perm_tls_status + (1 | Patient/orig.ident)"))
+        # Build linear model on permuted data
+        lmer(f, data = md_rep, REML = TRUE)},
+      warning = function(w) {
+      # Note if the model can't converge
+      bad_run <<- TRUE
+      non_conv <<- non_conv + 1
+      n_run <<- n_run + 1
+      print("Couldn't converge")
+      invokeRestart("muffleWarning")
+      }
+    )
+      
+    # Save the t val from the model if it has no warning messages
+    if(!bad_run){
+      # Get and save t val
+      t_val_perm <- coef(summary(model))["perm_tls_statusinTLS","t value"]
+      t_val_perm.vec <- c(t_val_perm.vec, t_val_perm)
+      # Count that we've saved a run
+      n_saved <- n_saved + 1
+      n_run <- n_run + 1
+    } else {
+      print("Skipping model")
+    }
+  }
+  model_perm[[gs]] <- t_val_perm.vec
+  non_convergences[[gs]] <- non_conv
+}
+
+```
+
+## Format permuted results
+```{r}
+df_perm <- data.frame(gene_sets = rep(names(model_perm), times = lengths(model_perm)),
+                      perm_ts = unlist(model_perm, use.names = FALSE))
+
+df_obs <- data.frame(gene_sets = rep(names(t_obs), times = lengths(t_obs)),
+                     obs_ts = unlist(t_obs, use.names = FALSE)) 
+```
+
+## Plot permuted test statistic distribution and observed test statistic
+```{r, fig.height = 5, fig.width = 8}
+df_perm %>%
+  ggplot(aes(x = perm_ts)) +
+  geom_histogram(bins = 100) +
+  facet_wrap(~gene_sets, scales = "free", nrow = 2) +
+  geom_vline(data = df_obs, aes(xintercept = obs_ts))
+```
+
+## Get one sided pval for TPEX
+```{r}
+tpex_obs_val <- df_obs %>%
+  filter(gene_sets == "projecTILs.CD8.TPEX") %>%
+  pull(obs_ts)
+  
+tpex_perm_val <- df_perm %>%
+  filter(gene_sets == "projecTILs.CD8.TPEX") %>%
+  pull(perm_ts)
+  
+# One sided
+n_extreme <- length(tpex_perm_val[tpex_perm_val >= tpex_obs_val])
+tpex_pval <- n_extreme/n_perm
+
+# Replace 0 with small number
+tpex_pval[tpex_pval == 0] <- 1/(n_perm)
+
+tpex_pval
+```
+
+## Get two sided pval for core-T
+```{r}
+core_obs_val <- df_obs %>%
+  filter(gene_sets == "coret") %>%
+  pull(obs_ts)
+  
+core_perm_val <- df_perm %>%
+  filter(gene_sets == "coret") %>%
+  pull(perm_ts)
+  
+# Two sided
+n_extreme <- length(core_perm_val[core_perm_val >= core_obs_val])
+core_pval <- n_extreme/n_perm*2
+
+core_pval
+```
+
+## Plot observed mean for each puck
+```{r}
+mean.df <- md %>%
+  # aggregate by puck
+  group_by(tls_status, orig.ident, Patient) %>% 
+  summarize(across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
+            .groups = "drop") %>%
+  ungroup()
+  
+mean.df %>%
+  mutate(tls_status = factor(tls_status, levels = c("inTLS", "outTLS"))) %>%
+  pivot_longer(cols = !c("tls_status", "orig.ident", "Patient"), values_to = "score", names_to = "signature") %>%
+ggplot(aes(x = tls_status, y = score)) +
+  geom_boxplot(aes(fill = tls_status)) +
+  geom_line(aes(group = orig.ident)) +
+  geom_point(aes(group = orig.ident, color = Patient), size = 3, shape = 15) +
+  geom_point(aes(group = orig.ident), color = "black", size = 3, shape = 22) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_manual(values = c("#b2c4b9", "#d0b39e")) +
+  scale_color_manual(values = c("#FF9300", "#009193")) +
+  ylab("Normalized enrichment (GSVA)") +
+  xlab("") +
+  facet_wrap(~signature, scales = "free_y") +
+  guides(fill="none")
+
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```
+
