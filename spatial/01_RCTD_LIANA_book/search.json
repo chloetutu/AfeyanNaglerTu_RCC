@@ -1,0 +1,1722 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Afeyan, Nagler & Tu (2025): Spatial RCC analysis: RCTD Analysis",
+    "section": "",
+    "text": "Introduction\nThis is a book that contains all code to reproduce figures related to spatial analysis of TCR data associated with Afeyan, Nagler & Tu, et al (2025)\nNote that while the code is identical, this book was rendered after final manuscript figures were generated and thus minor differences may arise, particularly for steps that are non-deterministic or rely on random number generators.",
+    "crumbs": [
+      "Introduction"
+    ]
+  },
+  {
+    "objectID": "index.html#tertiary-lymphoid-structures-are-reservoirs-of-stem-like-tumor-specific-t-cells-in-renal-cell-carcinoma",
+    "href": "index.html#tertiary-lymphoid-structures-are-reservoirs-of-stem-like-tumor-specific-t-cells-in-renal-cell-carcinoma",
+    "title": "Afeyan, Nagler & Tu (2025): Spatial RCC analysis: RCTD Analysis",
+    "section": "Tertiary lymphoid structures are reservoirs of stem-like tumor-specific T cells in renal cell carcinoma",
+    "text": "Tertiary lymphoid structures are reservoirs of stem-like tumor-specific T cells in renal cell carcinoma\nAlexander B. Afeyan†, Adi Nagler†, Chloe R. Tu†, Amit Sud, Nourhan El Ahmar, Gabriel Roberti De Oliveira, Berkay Simsek, Mehdi Borji, Haley E. Sax, Cleo Forman, Sophia Liu, Patrick A. Ott, Toni K. Choueiri, Jennifer G. Abelin, Shuqiang Li, Kenneth J. Livak, Jeremy M. Simon, Derin B. Keskin, Fei Chen, Sabina Signoretti, Giacomo Oliveira‡ˆ, David A. Braun‡ˆ, Catherine J. Wu‡ˆ\n\nAbstract\nTertiary lymphoid structures (TLS) are associated with improved response to immune checkpoint blockade across solid tumors1–3, but their impact on tumor-specific T cell responses remains incompletely defined. By tracking the spatial phenotype of T cell clones with confirmed anti-tumor specificity, we report the architecture of T cell responses in renal cell carcinoma (RCC). Across 24 RCC tumors, TLS-containing (TLS+) tumors were more infiltrated by exhausted CD8 T cells, but with a reduced terminal exhaustion transcriptional program compared to TLS- tumors. To investigate the effect of TLS localization on RCC-specific T cells, we screened 581 CD8+ and CD4+ T cell receptor (TCR) α/β pairs across six patients and identified 72 tumor-specific (TS) and 21 tumor-antigen-specific TCRs. Among these bona fide TS-TCR clonotypes, 45.8% of clonotypes infiltrated tumors, and 10.2% localized within TLS by spatial transcriptomics. TS-TCRs in TLS+ tumors preferentially colocalized with plasma cell transcripts (P&lt;0.0001) compared to viral-reactive TCRs, and were associated with upregulated progenitor exhausted. However, in counterbalance, exhausted TCR clonotypes also colocalized with macrophages of inferred immunosuppressive phenotype concentrated within a myeloid boundary of the tumor (P=3x10-14). Our data reveal TLS as reservoirs of tumor-specific T cells with stem-like features that could be leveraged by T cell immunotherapies.",
+    "crumbs": [
+      "Introduction"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html",
+    "href": "Subcluster_NeoVax_CancerCell.html",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "",
+    "text": "2 Libraries\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(paletteer)\nlibrary(liana)\nlibrary(tidyverse)\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ dplyr     1.1.4     ✔ readr     2.1.6\n✔ forcats   1.0.1     ✔ stringr   1.6.0\n✔ ggplot2   4.0.1     ✔ tibble    3.3.0\n✔ lubridate 1.9.4     ✔ tidyr     1.3.1\n✔ purrr     1.2.0     \n\n\n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter() masks stats::filter()\n✖ dplyr::lag()    masks stats::lag()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors\n\nlibrary(ggpointdensity)\nlibrary(rmarkdown)\nlibrary(knitr)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#print-clusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#print-clusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "3.1 Print clusters",
+    "text": "3.1 Print clusters\n\nDimPlot(scrna, group.by = \"unified_cluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\nunique(scrna$unified_cluster)\n\n [1] \"NK1\"           \"CD8.TRM\"       \"NORM.EPI\"      \"CD8.TEX\"      \n [5] \"ENDO\"          \"cDC\"           \"MONO.NONCLASS\" \"B.MEM\"        \n [9] \"NK2\"           \"MONO.CLASS\"    \"TAP\"           \"FIBRO\"        \n[13] \"CD4.TMEM\"      \"ERYTH\"         \"NORM.PT\"       \"NORM.INTERCAL\"\n[17] \"TPROL\"         \"CD4.TREG\"      \"M2.MAC\"        \"MAC\"          \n[21] \"MAST\"          \"pDC\"           \"RCC1\"          \"CD8.IFN\"      \n[25] \"B.PLASMA\"      \"RCC2\"          \"RCC3\"",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-b-cell-cluster",
+    "href": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-b-cell-cluster",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "5.1 Subcluster upon the B cell cluster",
+    "text": "5.1 Subcluster upon the B cell cluster\n\nIdents(scrna) &lt;- scrna$generalized_clusters\nscrna &lt;- FindSubCluster(scrna, cluster = \"B\", graph.name = \"RNA_snn\", resolution = 0.5, subcluster.name = \"b_subcluster\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subset-for-b-cell-subclusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#subset-for-b-cell-subclusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "5.2 Subset for B cell subclusters",
+    "text": "5.2 Subset for B cell subclusters\n\nb_subclusters &lt;- subset(scrna, idents = \"B\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#plots",
+    "href": "Subcluster_NeoVax_CancerCell.html#plots",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "5.3 Plots",
+    "text": "5.3 Plots\n\nIdents(b_subclusters) &lt;- b_subclusters$b_subcluster\nVlnPlot(b_subclusters, features = c(\"CD3D\", \"CD79A\", \"CD19\", \"IGHG1\"), flip=T,stack=T)\n\n\n\n\n\n\n\nVlnPlot(b_subclusters, features = c(\"CD3D\", \"CD79A\", \"CD19\", \"IGHG1\"), pt.size = 0.1, ncol = 2)\n\n\n\n\n\n\n\nDimPlot(b_subclusters, group.by = \"b_subcluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\n\n\n\n\n\n\nFeaturePlot(b_subclusters, features = c(\"CD3D\", \"CD79A\", \"CD19\", \"IGHG1\"), order = TRUE)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-b-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "href": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-b-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "5.4 Find and plot top variable features per B cluster to see if there’s more evidence of contaimination",
+    "text": "5.4 Find and plot top variable features per B cluster to see if there’s more evidence of contaimination\n\nb_markers &lt;- FindAllMarkers(b_subclusters, only.pos = TRUE, nfeatures = 5)\n\nCalculating cluster B_6\n\n\nCalculating cluster B_1\n\n\nCalculating cluster B_0\n\n\nCalculating cluster B_4\n\n\nCalculating cluster B_2\n\n\nCalculating cluster B_3\n\n\nCalculating cluster B_5\n\n\nCalculating cluster B_7\n\n\nCalculating cluster B_8\n\n\nCalculating cluster B_9\n\nb_markers %&gt;%\n  group_by(cluster) %&gt;%\n  slice_head(n = 3)\n\n# A tibble: 30 × 7\n# Groups:   cluster [10]\n       p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene     \n       &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;   &lt;chr&gt;    \n 1 1.20e-233      4.79  0.576 0.019 5.80e-229 B_6     CD14     \n 2 1.32e-208      5.71  0.271 0.004 6.41e-204 B_6     B3GNT5   \n 3 1.62e-202      4.30  0.741 0.04  7.83e-198 B_6     MS4A6A   \n 4 5.25e-151      0.496 0.974 0.955 2.55e-146 B_1     RPL32    \n 5 8.55e-145      0.475 0.975 0.954 4.14e-140 B_1     RPL30    \n 6 2.82e-132      0.445 0.978 0.974 1.36e-127 B_1     RPS12    \n 7 0              1.61  0.827 0.302 0         B_0     BANK1    \n 8 0              1.33  0.936 0.436 0         B_0     MS4A1    \n 9 0              1.43  0.741 0.252 0         B_0     LINC00926\n10 0              5.40  0.766 0.018 0         B_4     KLRD1    \n# ℹ 20 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#cell-counts",
+    "href": "Subcluster_NeoVax_CancerCell.html#cell-counts",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "5.5 Cell counts",
+    "text": "5.5 Cell counts\n\nb_subclusters@meta.data %&gt;%\n  dplyr::count(b_subcluster) %&gt;%\n  pivot_wider(names_from = b_subcluster, values_from = n)\n\n# A tibble: 1 × 10\n    B_0   B_1   B_2   B_3   B_4   B_5   B_6   B_7   B_8   B_9\n  &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;\n1  2818  2637  1286   848   167   278    85    30    22    13\n\nb_subclusters@meta.data %&gt;%\n  dplyr::count(patient, b_subcluster) %&gt;%\n  pivot_wider(names_from = b_subcluster, values_from = n)\n\n# A tibble: 24 × 11\n   patient     B_0   B_1   B_2   B_3   B_4   B_5   B_6   B_7   B_8   B_9\n   &lt;chr&gt;     &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;\n 1 16097-101   101    84     1     4    16    11     8     1    NA    NA\n 2 16097-102    89    99    15    17    13    14    10     1     1     1\n 3 16097-104    49    64    20    30     8    29    25    NA     1    NA\n 4 16097-105   125   150   696   191    15   141    12    NA     2    NA\n 5 16097-106    48    52    32    32     1    19     6    NA    NA     1\n 6 16097-107   173   159   291   340    NA     5     1    NA    16    NA\n 7 16097-108   138   134     5     8    23    11     7    NA    NA     3\n 8 16097-109    15    11     1    NA    NA     5    NA    NA    NA    NA\n 9 16097-110    23    31     2     2    NA     3    NA    NA    NA     1\n10 16097-111   115   111     1     1     4     6     1     3    NA     4\n# ℹ 14 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#b-cell-markers",
+    "href": "Subcluster_NeoVax_CancerCell.html#b-cell-markers",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "5.6 B cell markers",
+    "text": "5.6 B cell markers\n\n#16: B-Mem\nFeaturePlot(b_subclusters, features = c(\"CD19\", \"BANK1\"), order = TRUE)\n\n\n\n\n\n\n\n#19: B-PLASMA\nFeaturePlot(b_subclusters, features = c(\"JCHAIN\", \"DERL3\"), order = TRUE)\n\n\n\n\n\n\n\nVlnPlot(b_subclusters, features = c(\"CD19\", \"BANK1\", \"JCHAIN\", \"DERL3\"), flip=T,stack=T)\n\n\n\n\n\n\n\nrm(b_subclusters)\ngc()\n\n             used    (Mb) gc trigger    (Mb)   max used    (Mb)\nNcells   10993840   587.2   18308856   977.8   18308856   977.8\nVcells 2350633365 17934.0 3695577396 28195.1 3079386240 23493.9",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-myeloid-cell-cluster",
+    "href": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-myeloid-cell-cluster",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "6.1 Subcluster upon the myeloid cell cluster",
+    "text": "6.1 Subcluster upon the myeloid cell cluster\n\nmyeloid_subclusters &lt;- readRDS(\"../objects/myeloid_subclusters.rds\")\n\n\nIdents(scrna) &lt;- scrna$generalized_clusters\nscrna &lt;- FindSubCluster(scrna, cluster = \"Myeloid\", graph.name = \"RNA_snn\", resolution = 0.5, subcluster.name = \"myeloid_subcluster\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subset-for-myeloid-cell-subclusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#subset-for-myeloid-cell-subclusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "6.2 Subset for myeloid cell subclusters",
+    "text": "6.2 Subset for myeloid cell subclusters\n\nmyeloid_subclusters &lt;- subset(scrna, idents = \"Myeloid\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#plots-1",
+    "href": "Subcluster_NeoVax_CancerCell.html#plots-1",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "6.3 Plots",
+    "text": "6.3 Plots\n\nIdents(myeloid_subclusters) &lt;- myeloid_subclusters$myeloid_subcluster\nVlnPlot(myeloid_subclusters, features = c(\"CD3D\", \"CD14\", \"CD68\", \"NKG7\", \"CD19\"), flip=T,stack=T)\n\n\n\n\n\n\n\nVlnPlot(myeloid_subclusters, features = c(\"CD3D\", \"CD14\", \"CD68\", \"NKG7\"), pt.size = 0.1, ncol = 2)\n\n\n\n\n\n\n\nDimPlot(myeloid_subclusters, group.by = \"myeloid_subcluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\n\n\n\n\n\n\nFeaturePlot(myeloid_subclusters, features = c(\"CD3D\", \"CD14\", \"CD68\", \"NKG7\"), order = TRUE)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-myeloid-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "href": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-myeloid-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "6.4 Find and plot top variable features per myeloid cluster to see if there’s more evidence of contaimination",
+    "text": "6.4 Find and plot top variable features per myeloid cluster to see if there’s more evidence of contaimination\n\nmyeloid_markers &lt;- FindAllMarkers(myeloid_subclusters, only.pos = TRUE, nfeatures = 5)\n\nCalculating cluster Myeloid_4\n\n\nCalculating cluster Myeloid_2\n\n\nCalculating cluster Myeloid_1\n\n\nCalculating cluster Myeloid_14\n\n\nCalculating cluster Myeloid_11\n\n\nCalculating cluster Myeloid_8\n\n\nCalculating cluster Myeloid_3\n\n\nCalculating cluster Myeloid_0\n\n\nCalculating cluster Myeloid_9\n\n\nCalculating cluster Myeloid_13\n\n\nCalculating cluster Myeloid_12\n\n\nCalculating cluster Myeloid_6\n\n\nCalculating cluster Myeloid_7\n\n\nCalculating cluster Myeloid_10\n\n\nCalculating cluster Myeloid_15\n\n\nCalculating cluster Myeloid_5\n\nmyeloid_markers %&gt;%\n  group_by(cluster) %&gt;%\n  slice_head(n = 3)\n\n# A tibble: 48 × 7\n# Groups:   cluster [16]\n   p_val avg_log2FC pct.1 pct.2 p_val_adj cluster    gene   \n   &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;      &lt;chr&gt;  \n 1     0       4.90 0.623 0.035         0 Myeloid_4  FCER1A \n 2     0       3.44 0.419 0.059         0 Myeloid_4  CLEC10A\n 3     0       1.11 0.648 0.317         0 Myeloid_4  PLD4   \n 4     0       3.44 0.706 0.099         0 Myeloid_2  MTSS1  \n 5     0       2.99 0.722 0.119         0 Myeloid_2  LILRA5 \n 6     0       1.56 0.835 0.233         0 Myeloid_2  FCN1   \n 7     0       2.68 0.852 0.21          0 Myeloid_1  FCN1   \n 8     0       4.37 0.836 0.204         0 Myeloid_1  S100A8 \n 9     0       3.94 0.693 0.098         0 Myeloid_1  VCAN   \n10     0       6.62 0.66  0.009         0 Myeloid_14 IDO1   \n# ℹ 38 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#cell-counts-1",
+    "href": "Subcluster_NeoVax_CancerCell.html#cell-counts-1",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "6.5 Cell counts",
+    "text": "6.5 Cell counts\n\nmyeloid_subclusters@meta.data %&gt;%\n  dplyr::count(myeloid_subcluster) %&gt;%\n  pivot_wider(names_from = myeloid_subcluster, values_from = n)\n\n# A tibble: 1 × 16\n  Myeloid_0 Myeloid_1 Myeloid_10 Myeloid_11 Myeloid_12 Myeloid_13 Myeloid_14\n      &lt;int&gt;     &lt;int&gt;      &lt;int&gt;      &lt;int&gt;      &lt;int&gt;      &lt;int&gt;      &lt;int&gt;\n1     23177     15727       1624       1578        959        866        674\n# ℹ 9 more variables: Myeloid_15 &lt;int&gt;, Myeloid_2 &lt;int&gt;, Myeloid_3 &lt;int&gt;,\n#   Myeloid_4 &lt;int&gt;, Myeloid_5 &lt;int&gt;, Myeloid_6 &lt;int&gt;, Myeloid_7 &lt;int&gt;,\n#   Myeloid_8 &lt;int&gt;, Myeloid_9 &lt;int&gt;\n\nmyeloid_subclusters@meta.data %&gt;%\n  dplyr::count(patient, myeloid_subcluster) %&gt;%\n  pivot_wider(names_from = myeloid_subcluster, values_from = n)\n\n# A tibble: 24 × 17\n   patient   Myeloid_0 Myeloid_1 Myeloid_10 Myeloid_11 Myeloid_12 Myeloid_13\n   &lt;chr&gt;         &lt;int&gt;     &lt;int&gt;      &lt;int&gt;      &lt;int&gt;      &lt;int&gt;      &lt;int&gt;\n 1 16097-101       976      1481         23         82         67        161\n 2 16097-102       494       550          7         63         48         59\n 3 16097-104      9134      1870         15        532         84         60\n 4 16097-105      3075       955          4         35         69         55\n 5 16097-106      2386       448         NA         28         20         14\n 6 16097-107       129       161          5         46         15          1\n 7 16097-108      1842      1084         14        213        123        138\n 8 16097-109       563       589         13         33         31         26\n 9 16097-110       230       639         24         30         11         12\n10 16097-111       148       249         12         14         13         28\n# ℹ 14 more rows\n# ℹ 10 more variables: Myeloid_14 &lt;int&gt;, Myeloid_15 &lt;int&gt;, Myeloid_2 &lt;int&gt;,\n#   Myeloid_3 &lt;int&gt;, Myeloid_4 &lt;int&gt;, Myeloid_5 &lt;int&gt;, Myeloid_6 &lt;int&gt;,\n#   Myeloid_7 &lt;int&gt;, Myeloid_8 &lt;int&gt;, Myeloid_9 &lt;int&gt;",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#myeloid-cell-markers",
+    "href": "Subcluster_NeoVax_CancerCell.html#myeloid-cell-markers",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "6.6 Myeloid cell markers",
+    "text": "6.6 Myeloid cell markers\n\n#1 Macrophage M2\nFeaturePlot(myeloid_subclusters, features = c(\"APOE\", \"C1QC\", \"TREM2\"), order = TRUE)\n\n\n\n\n\n\n\n#5: Classical Monocytes\nFeaturePlot(myeloid_subclusters, features = c(\"CD14\", \"S100A8\", \"FCGR3A\"), order = TRUE)\n\n\n\n\n\n\n\n#7: Non classical monocytes\nFeaturePlot(myeloid_subclusters, features = c(\"CD14\", \"LILRA3\", \"FCGR3A\"), order = TRUE)\n\n\n\n\n\n\n\n#11: cDCs\nFeaturePlot(myeloid_subclusters, features = c(\"CD1E\", \"CD1C\", \"FCER1A\"), order = TRUE)\n\n\n\n\n\n\n\n#22: pDCs\nFeaturePlot(myeloid_subclusters, features = c(\"CLEC4C\", \"LILRA4\"), order = TRUE)\n\n\n\n\n\n\n\nVlnPlot(myeloid_subclusters, features = c(\"APOE\", \"C1QC\", \"TREM2\", \"CD14\", \"S100A8\", \"FCGR3A\", \"LILRA3\", \"CD1E\", \"CD1C\", \"FCER1A\", \"CLEC4C\", \"LILRA4\"), flip=T,stack=T)\n\n\n\n\n\n\n\nrm(myeloid_subclusters)\ngc()\n\n             used    (Mb) gc trigger    (Mb)   max used    (Mb)\nNcells   11152066   595.6   18308856   977.8   18308856   977.8\nVcells 2947958196 22491.2 5321807450 40602.2 5319663559 40585.9",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-t-cell-cluster",
+    "href": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-t-cell-cluster",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "7.1 Subcluster upon the T cell cluster",
+    "text": "7.1 Subcluster upon the T cell cluster\n\nt_subclusters &lt;- readRDS(\"../objects/t_subclusters.rds\")\n\n\nIdents(scrna) &lt;- scrna$generalized_clusters\nscrna &lt;- FindSubCluster(scrna, cluster = \"T\", graph.name = \"RNA_snn\", resolution = 0.5, subcluster.name = \"t_subcluster\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subset-for-t-cell-subclusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#subset-for-t-cell-subclusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "7.2 Subset for T cell subclusters",
+    "text": "7.2 Subset for T cell subclusters\n\nt_subclusters &lt;- subset(scrna, idents = \"T\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#plots-2",
+    "href": "Subcluster_NeoVax_CancerCell.html#plots-2",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "7.3 Plots",
+    "text": "7.3 Plots\n\nIdents(t_subclusters) &lt;- t_subclusters$t_subcluster\nVlnPlot(t_subclusters, features = c(\"CD3D\", \"CD14\", \"CD68\", \"CD79A\"), flip=T,stack=T)\n\n\n\n\n\n\n\nVlnPlot(t_subclusters, features = c(\"CD3D\", \"CD14\", \"CD68\", \"CD79A\"), pt.size = 0.1, ncol = 2)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\nDimPlot(t_subclusters, group.by = \"t_subcluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\nFeaturePlot(t_subclusters, features = c(\"CD3D\", \"CD14\", \"CD68\", \"CD79A\"), order = TRUE) \n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-t-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "href": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-t-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "7.4 Find and plot top variable features per T cluster to see if there’s more evidence of contaimination",
+    "text": "7.4 Find and plot top variable features per T cluster to see if there’s more evidence of contaimination\n\nt_markers &lt;- FindAllMarkers(t_subclusters, only.pos = TRUE, nfeatures = 5)\n\nCalculating cluster T_3\n\n\nCalculating cluster T_0\n\n\nCalculating cluster T_2\n\n\nCalculating cluster T_1\n\n\nCalculating cluster T_4\n\n\nCalculating cluster T_10\n\n\nCalculating cluster T_5\n\n\nCalculating cluster T_6\n\n\nCalculating cluster T_8\n\n\nCalculating cluster T_9\n\n\nCalculating cluster T_7\n\n\nCalculating cluster T_11\n\n\nCalculating cluster T_13\n\n\nCalculating cluster T_12\n\n\nCalculating cluster T_14\n\nt_markers %&gt;%\n  group_by(cluster) %&gt;%\n  slice_head(n = 3)\n\n# A tibble: 39 × 7\n# Groups:   cluster [13]\n   p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene  \n   &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;   &lt;chr&gt; \n 1     0      4.56  0.704 0.05          0 T_3     GNLY  \n 2     0      2.79  0.811 0.178         0 T_3     GZMH  \n 3     0      4.06  0.649 0.046         0 T_3     KLRD1 \n 4     0      1.52  0.935 0.462         0 T_0     GZMK  \n 5     0      1.42  0.879 0.453         0 T_0     CD8A  \n 6     0      1.70  0.655 0.247         0 T_0     LAG3  \n 7     0      0.161 0.279 0.533         0 T_2     STK17B\n 8     0      0.145 0.233 0.482         0 T_2     LCP2  \n 9     0      0.127 0.219 0.463         0 T_2     TAPBP \n10     0      2.97  0.846 0.17          0 T_1     IL7R  \n# ℹ 29 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#cell-counts-2",
+    "href": "Subcluster_NeoVax_CancerCell.html#cell-counts-2",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "7.5 Cell counts",
+    "text": "7.5 Cell counts\n\nt_subclusters@meta.data %&gt;%\n  dplyr::count(t_subcluster) %&gt;%\n  pivot_wider(names_from = t_subcluster, values_from = n)\n\n# A tibble: 1 × 15\n    T_0   T_1  T_10  T_11  T_12  T_13  T_14   T_2   T_3   T_4   T_5   T_6   T_7\n  &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;\n1 68894 39710   932   869   270     2     2 18890 18101 15620 10742 10663  6646\n# ℹ 2 more variables: T_8 &lt;int&gt;, T_9 &lt;int&gt;\n\nt_subclusters@meta.data %&gt;%\n  dplyr::count(patient, t_subcluster) %&gt;%\n  pivot_wider(names_from = t_subcluster, values_from = n)\n\n# A tibble: 24 × 16\n   patient     T_0   T_1  T_10  T_11   T_2   T_3   T_4   T_5   T_6   T_7   T_8\n   &lt;chr&gt;     &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;\n 1 16097-101  1051  1166   110    13   435   711   501   286   143   157   162\n 2 16097-102  3783  1360    42     6   695   353   406   180   400   388   153\n 3 16097-104  5417  2013    72    41  1573   612   975   876   608   859  1307\n 4 16097-105  7102   860    60    24  1535   412   426   181   848  1458  1436\n 5 16097-106  7351  1299    35    12  2267   626   672   458   634   785   517\n 6 16097-107  2724  1211    11    92   731   174   580   760   913   191    52\n 7 16097-108  4993  2200   104    24   723  1495   900   259   734   323   129\n 8 16097-109  1880   648    68     5   273   227   314   171   276   223    77\n 9 16097-110  1902  1131    14     5   537   565   430   304   274   140    36\n10 16097-111  1389  1478    25     4   569   513   716   278   185    74    30\n# ℹ 14 more rows\n# ℹ 4 more variables: T_9 &lt;int&gt;, T_13 &lt;int&gt;, T_12 &lt;int&gt;, T_14 &lt;int&gt;",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#t-cell-markers",
+    "href": "Subcluster_NeoVax_CancerCell.html#t-cell-markers",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "7.6 T cell markers",
+    "text": "7.6 T cell markers\n\n#0 CD8 TEx, TNFRSF9 TNFRSF9, LAG3, GZMK\nFeaturePlot(t_subclusters, features = c(\"PDCD1\", \"ENTPD1\"), order = TRUE)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#2: CD4 Mem\nFeaturePlot(t_subclusters, features = c(\"CD40LG\", \"CCR7\", \"IL7R\"), order = TRUE)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#4: CD8 TRM\nFeaturePlot(t_subclusters, features = c(\"CD3E\", \"CD8A\", \"CD4\"))\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#6: TAp - MTRNR2L12\nFeaturePlot(t_subclusters, features = c(\"CD3D\"), order = TRUE)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\nDimPlot(t_subclusters, group.by = \"HasClonotype\")\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#8: Proliferating cells\nFeaturePlot(t_subclusters, features = c(\"UBE2C\", \"MKI67\"), order = TRUE)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#9: NK2\nFeaturePlot(t_subclusters, features = c(\"KRT81\", \"KRT86\", \"KLRC1\", \"ZNF683\"), order = TRUE)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#10: CD4-TREG\nFeaturePlot(t_subclusters, features = c(\"FOXP3\", \"IL2RA\", \"TNFRSF4\"), order = TRUE)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#20: MAST\nFeaturePlot(t_subclusters, features = c(\"MS4A2\", \"TPSB2\"), order = TRUE)\n\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\nRasterizing points since number of points exceeds 100,000.\nTo disable this behavior set `raster=FALSE`\n\n\n\n\n\n\n\n\n#24: CD8-IFN response/CXCL13\n\nVlnPlot(t_subclusters, features = c(\"PDCD1\", \"ENTPD1\", \"CD40LG\", \"CCR7\", \"IL7R\", \"CD3E\", \"CD8A\", \"CD4\", \"CD3D\", \"UBE2C\", \"MKI67\", \"KRT81\", \"KRT86\", \"KLRC1\", \"ZNF683\", \"FOXP3\", \"IL2RA\", \"TNFRSF4\", \"MS4A2\", \"TPSB2\"), flip=T,stack=T)\n\n\n\n\n\n\n\nrm(t_subclusters)\ngc()\n\n             used    (Mb) gc trigger    (Mb)   max used    (Mb)\nNcells   11261697   601.5   18308856   977.8   18308856   977.8\nVcells 3472219332 26491.0 7663578728 58468.5 7514638594 57332.2",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-nk-cell-cluster",
+    "href": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-nk-cell-cluster",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "8.1 Subcluster upon the NK cell cluster",
+    "text": "8.1 Subcluster upon the NK cell cluster\n\nIdents(scrna) &lt;- scrna$generalized_clusters\nscrna &lt;- FindSubCluster(scrna, cluster = \"NK\", graph.name = \"RNA_snn\", resolution = 0.5, subcluster.name = \"nk_subcluster\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subset-for-nk-cell-subclusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#subset-for-nk-cell-subclusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "8.2 Subset for NK cell subclusters",
+    "text": "8.2 Subset for NK cell subclusters\n\nnk_subclusters &lt;- subset(scrna, idents = \"NK\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#plots-3",
+    "href": "Subcluster_NeoVax_CancerCell.html#plots-3",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "8.3 Plots",
+    "text": "8.3 Plots\n\nIdents(nk_subclusters) &lt;- nk_subclusters$nk_subcluster\nVlnPlot(nk_subclusters, features = c(\"CD3D\", \"CD8A\", \"CD68\", \"CD79A\", \"NKG7\"), flip=T,stack=T)\n\n\n\n\n\n\n\nVlnPlot(nk_subclusters, features = c(\"CD3D\", \"CD8A\", \"CD68\", \"CD79A\", \"NKG7\"), pt.size = 0.1, ncol = 2)\n\n\n\n\n\n\n\nDimPlot(nk_subclusters, group.by = \"nk_subcluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\n\n\n\n\n\n\nFeaturePlot(nk_subclusters, features = c(\"CD3D\", \"CD8A\", \"CD68\", \"CD79A\", \"NKG7\"), order = TRUE)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-nk-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "href": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-nk-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "8.4 Find and plot top variable features per NK cluster to see if there’s more evidence of contaimination",
+    "text": "8.4 Find and plot top variable features per NK cluster to see if there’s more evidence of contaimination\n\nnk_markers &lt;- FindAllMarkers(nk_subclusters, only.pos = TRUE, selection.method = \"vst\")\n\nCalculating cluster NK_0\n\n\nCalculating cluster NK_3\n\n\nCalculating cluster NK_1\n\n\nCalculating cluster NK_2\n\n\nCalculating cluster NK_4\n\n\nCalculating cluster NK_6\n\n\nCalculating cluster NK_8\n\n\nCalculating cluster NK_5\n\n\nCalculating cluster NK_7\n\nnk_markers %&gt;%\n  group_by(cluster) %&gt;%\n  slice_head(n = 3) %&gt;%\n  print(n = nrow(.))\n\n# A tibble: 27 × 7\n# Groups:   cluster [9]\n       p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene      \n       &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;   &lt;chr&gt;     \n 1 0              0.763 0.629 0.492 0         NK_0    GZMH      \n 2 1.01e-299      0.465 0.794 0.59  4.90e-295 NK_0    FGFBP2    \n 3 3.32e-271      0.262 0.995 0.97  1.61e-266 NK_0    NKG7      \n 4 0              1.67  0.62  0.235 0         NK_3    XCL1      \n 5 0              2.47  0.413 0.076 0         NK_3    ITM2C     \n 6 0              2.62  0.408 0.082 0         NK_3    GZMK      \n 7 0              1.11  0.832 0.511 0         NK_1    HSPA1B    \n 8 0              1.06  0.855 0.564 0         NK_1    HSPA1A    \n 9 0              1.11  0.92  0.637 0         NK_1    DNAJB1    \n10 0              1.20  0.932 0.527 0         NK_2    SPON2     \n11 0              1.05  0.944 0.559 0         NK_2    FGFBP2    \n12 0              1.36  0.629 0.25  0         NK_2    IGFBP7    \n13 2.81e-240      0.570 0.998 0.999 1.36e-235 NK_4    MT-CO1    \n14 8.62e-202      0.555 0.995 0.999 4.17e-197 NK_4    MALAT1    \n15 8.67e-172      0.547 0.99  0.996 4.20e-167 NK_4    MT-CO2    \n16 0              4.41  0.653 0.047 0         NK_6    AC007952.4\n17 0              2.90  0.697 0.113 0         NK_6    AC020916.1\n18 0              4.22  0.516 0.034 0         NK_6    Z93241.1  \n19 0              7.97  0.485 0.002 0         NK_8    FOXP3     \n20 0              5.99  0.343 0.004 0         NK_8    CTLA4     \n21 0              5.28  0.278 0.007 0         NK_8    IL2RA     \n22 0              3.72  0.834 0.097 0         NK_5    KRT86     \n23 0              4.52  0.781 0.047 0         NK_5    KRT81     \n24 0              2.31  0.838 0.252 0         NK_5    XCL1      \n25 0              5.53  0.96  0.065 0         NK_7    IL7R      \n26 0              8.44  0.698 0.003 0         NK_7    KIT       \n27 0              7.34  0.658 0.005 0         NK_7    SPINK2",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#cell-counts-3",
+    "href": "Subcluster_NeoVax_CancerCell.html#cell-counts-3",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "8.5 Cell counts",
+    "text": "8.5 Cell counts\n\nnk_subclusters@meta.data %&gt;%\n  dplyr::count(nk_subcluster) %&gt;%\n  pivot_wider(names_from = nk_subcluster, values_from = n)\n\n# A tibble: 1 × 9\n   NK_0  NK_1  NK_2  NK_3  NK_4  NK_5  NK_6  NK_7  NK_8\n  &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;\n1 12851 12105 11000  8035  4045  3756   545   202   169\n\nnk_subclusters@meta.data %&gt;%\n  dplyr::count(patient, nk_subcluster) %&gt;%\n  pivot_wider(names_from = nk_subcluster, values_from = n)\n\n# A tibble: 24 × 10\n   patient    NK_0  NK_1  NK_2  NK_3  NK_4  NK_5  NK_6  NK_7  NK_8\n   &lt;chr&gt;     &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;\n 1 16097-101  1099  1229   766   350   226   164    91     8    19\n 2 16097-102   754   676   394   166   162    59    87     3     5\n 3 16097-104   426   308   329   948   102   418    34     5     6\n 4 16097-105   365   387   219   148    57    31    23     1    NA\n 5 16097-106   562   477   372   337    84   110    11     2    11\n 6 16097-107    55    71    89   150    33   102     2     7    NA\n 7 16097-108  2035  1934  1461   476   396   218   116     7    23\n 8 16097-109   345   218   242    62    48    30    29     2    10\n 9 16097-110   107   174   206    97    47    48    19     1    NA\n10 16097-111   399   584   428   170   198   137    52    13     6\n# ℹ 14 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#nk-cell-markers",
+    "href": "Subcluster_NeoVax_CancerCell.html#nk-cell-markers",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "8.6 NK cell markers",
+    "text": "8.6 NK cell markers\n\n#3: NK1\nFeaturePlot(nk_subclusters, features = c(\"SPON2\", \"FGFBP2\"))\n\n\n\n\n\n\n\n#9: NK2\nFeaturePlot(nk_subclusters, features = c(\"KRT81\", \"KRT86\", \"KLRC1\", \"ZNF683\"), order = TRUE)\n\n\n\n\n\n\n\nVlnPlot(nk_subclusters, features = c(\"SPON2\", \"FGFBP2\", \"KRT81\", \"KRT86\", \"KLRC1\", \"ZNF683\"), flip=T,stack=T)\n\n\n\n\n\n\n\nrm(nk_subclusters)\ngc()\n\n             used    (Mb) gc trigger    (Mb)   max used    (Mb)\nNcells   11071474   591.3   18308856   977.8   18308856   977.8\nVcells 2617021814 19966.3 7663578728 58468.5 7632878507 58234.3",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-rcc-cell-cluster",
+    "href": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-rcc-cell-cluster",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "9.1 Subcluster upon the RCC cell cluster",
+    "text": "9.1 Subcluster upon the RCC cell cluster\n\nrcc_subclusters &lt;- readRDS(\"../objects/rcc_subclusters.rds\")\n\n\nIdents(scrna) &lt;- scrna$generalized_clusters\nscrna &lt;- FindSubCluster(scrna, cluster = \"RCC\", graph.name = \"RNA_snn\", resolution = 0.5, subcluster.name = \"rcc_subcluster\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subset-for-rcc-cell-subclusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#subset-for-rcc-cell-subclusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "9.2 Subset for RCC cell subclusters",
+    "text": "9.2 Subset for RCC cell subclusters\n\nrcc_subclusters &lt;- subset(scrna, idents = \"RCC\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#plots-4",
+    "href": "Subcluster_NeoVax_CancerCell.html#plots-4",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "9.3 Plots",
+    "text": "9.3 Plots\n\nIdents(rcc_subclusters) &lt;- rcc_subclusters$rcc_subcluster\nVlnPlot(rcc_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"ALB\", \"SLC22A8\", \"ALDOB\", \"CA9\"), flip=T,stack=T)\n\n\n\n\n\n\n\nVlnPlot(rcc_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"CA9\"), pt.size = 0.1, ncol = 2)\n\n\n\n\n\n\n\nDimPlot(rcc_subclusters, group.by = \"rcc_subcluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\n\n\n\n\n\n\nFeaturePlot(rcc_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"CA9\"), order = TRUE)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-rcc-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "href": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-rcc-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "9.4 Find and plot top variable features per RCC cluster to see if there’s more evidence of contaimination",
+    "text": "9.4 Find and plot top variable features per RCC cluster to see if there’s more evidence of contaimination\n\nrcc_markers &lt;- FindAllMarkers(rcc_subclusters, only.pos = TRUE, selection.method = \"vst\")\n\nCalculating cluster RCC_1\n\n\nCalculating cluster RCC_4\n\n\nCalculating cluster RCC_2\n\n\nCalculating cluster RCC_6\n\n\nCalculating cluster RCC_0\n\n\nCalculating cluster RCC_3\n\n\nCalculating cluster RCC_9\n\n\nCalculating cluster RCC_11\n\n\nCalculating cluster RCC_7\n\n\nCalculating cluster RCC_5\n\n\nCalculating cluster RCC_10\n\n\nCalculating cluster RCC_8\n\n\nCalculating cluster RCC_12\n\nrcc_markers %&gt;%\n  group_by(cluster) %&gt;%\n  slice_head(n = 3)\n\n# A tibble: 39 × 7\n# Groups:   cluster [13]\n       p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene     \n       &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;   &lt;chr&gt;    \n 1 3.00e- 37      0.255 0.134 0.362 1.45e- 32 RCC_1   PRDX3    \n 2 1.26e- 32      0.124 0.232 0.488 6.11e- 28 RCC_1   NDUFB11  \n 3 2.06e- 32      0.145 0.163 0.389 9.96e- 28 RCC_1   NHP2     \n 4 3.19e- 24      0.306 0.362 0.655 1.55e- 19 RCC_4   MTRNR2L12\n 5 4.28e- 21      0.164 0.208 0.481 2.07e- 16 RCC_4   HNRNPK   \n 6 5.11e- 20      0.197 0.187 0.436 2.48e- 15 RCC_4   CYB5R3   \n 7 5.78e-261      4.01  0.466 0.054 2.80e-256 RCC_2   C1QA     \n 8 1.78e-235      4.08  0.431 0.051 8.63e-231 RCC_2   C1QB     \n 9 5.43e-227      3.91  0.443 0.058 2.63e-222 RCC_2   C1QC     \n10 5.41e- 59      2.31  0.551 0.169 2.62e- 54 RCC_6   GZMA     \n# ℹ 29 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#cell-counts-4",
+    "href": "Subcluster_NeoVax_CancerCell.html#cell-counts-4",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "9.5 Cell counts",
+    "text": "9.5 Cell counts\n\nrcc_subclusters@meta.data %&gt;%\n  dplyr::count(rcc_subcluster) %&gt;%\n  pivot_wider(names_from = rcc_subcluster, values_from = n)\n\n# A tibble: 1 × 13\n  RCC_0 RCC_1 RCC_10 RCC_11 RCC_12 RCC_2 RCC_3 RCC_4 RCC_5 RCC_6 RCC_7 RCC_8\n  &lt;int&gt; &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;\n1  1501  1101     80     75     57   696   659   610   345   243   213   150\n# ℹ 1 more variable: RCC_9 &lt;int&gt;\n\nrcc_subclusters@meta.data %&gt;%\n  dplyr::count(patient, rcc_subcluster) %&gt;%\n  pivot_wider(names_from = rcc_subcluster, values_from = n)\n\n# A tibble: 24 × 14\n   patient   RCC_0 RCC_1 RCC_11 RCC_2 RCC_3 RCC_4 RCC_5 RCC_6 RCC_7 RCC_9 RCC_10\n   &lt;chr&gt;     &lt;int&gt; &lt;int&gt;  &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt; &lt;int&gt;  &lt;int&gt;\n 1 16097-101   200    71      4    57   114    43     1    24     4     3     NA\n 2 16097-102    21    24     NA    65    29    18     1     2    NA    NA     NA\n 3 16097-104   123    49      5   102   181    94     3    64    13     5     NA\n 4 16097-105   100    33      1   343    64     7     1    16    NA    NA     NA\n 5 16097-106    46    14      1    34    33    14    NA     1    NA     1     NA\n 6 16097-107    86    44      1    10    44    57     4     6    10    10     NA\n 7 16097-108    56    19     NA    13    40    14     2    11    NA     2     NA\n 8 16097-109    16     8     NA     7     9     4    NA    NA    NA     1     NA\n 9 16097-110     8    10     NA    11    11     9    NA    NA    NA    NA     NA\n10 16097-111    19     8     NA    NA    19    15    NA     5     1    NA     NA\n# ℹ 14 more rows\n# ℹ 2 more variables: RCC_12 &lt;int&gt;, RCC_8 &lt;int&gt;",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#rcc-cell-markers",
+    "href": "Subcluster_NeoVax_CancerCell.html#rcc-cell-markers",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "9.6 RCC cell markers",
+    "text": "9.6 RCC cell markers\n\n#17: Tumor\nFeaturePlot(rcc_subclusters, features = c(\"CA9\", \"NDUFA4L2\"), order = TRUE)\n\n\n\n\n\n\n\n#25: RCC2 (mes)\nFeaturePlot(rcc_subclusters, features = c(\"LOX\", \"IGFBP3\", \"NDUFA4L2\"), order = TRUE)\n\n\n\n\n\n\n\n#26: RCC3 (EMT)\nFeaturePlot(rcc_subclusters, features = c(\"MT1A\", \"ANGPTL4\", \"NAT8\"), order = TRUE, raster = FALSE)\n\n\n\n\n\n\n\nVlnPlot(rcc_subclusters, features = c(\"CA9\", \"NDUFA4L2\", \"LOX\", \"IGFBP3\", \"NDUFA4L2\", \"MT1A\", \"ANGPTL4\", \"NAT8\"), flip=T,stack=T)\n\n\n\n\n\n\n\nrm(rcc_subclusters)\ngc()\n\n             used    (Mb) gc trigger    (Mb)   max used    (Mb)\nNcells   11097948   592.7   18308856   977.8   18308856   977.8\nVcells 2340529422 17856.9 7663578728 58468.5 7632878507 58234.3",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-endothelial-cell-cluster",
+    "href": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-endothelial-cell-cluster",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "10.1 Subcluster upon the endothelial cell cluster",
+    "text": "10.1 Subcluster upon the endothelial cell cluster\n\nendo_subclusters &lt;- readRDS(\"../objects/endo_subclusters.rds\")\n\n\nIdents(scrna) &lt;- scrna$generalized_clusters\nscrna &lt;- FindSubCluster(scrna, cluster = \"ENDO\", graph.name = \"RNA_snn\", resolution = 0.5, subcluster.name = \"endo_subcluster\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subset-for-endothelial-cell-subclusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#subset-for-endothelial-cell-subclusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "10.2 Subset for endothelial cell subclusters",
+    "text": "10.2 Subset for endothelial cell subclusters\n\nendo_subclusters &lt;- subset(scrna, idents = \"ENDO\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#plots-5",
+    "href": "Subcluster_NeoVax_CancerCell.html#plots-5",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "10.3 Plots",
+    "text": "10.3 Plots\n\nIdents(endo_subclusters) &lt;- endo_subclusters$endo_subcluster\nVlnPlot(endo_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"ALB\", \"SLC22A8\", \"ALDOB\", \"CA9\"), flip=T,stack=T)\n\n\n\n\n\n\n\nVlnPlot(endo_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"CA9\"), pt.size = 0.1, ncol = 2)\n\n\n\n\n\n\n\nDimPlot(endo_subclusters, group.by = \"endo_subcluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\n\n\n\n\n\n\nFeaturePlot(endo_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"CA9\"), order = TRUE)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-endothelial-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "href": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-endothelial-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "10.4 Find and plot top variable features per endothelial cluster to see if there’s more evidence of contaimination",
+    "text": "10.4 Find and plot top variable features per endothelial cluster to see if there’s more evidence of contaimination\n\nendo_markers &lt;- FindAllMarkers(endo_subclusters, only.pos = TRUE, selection.method = \"vst\")\n\nCalculating cluster ENDO_2\n\n\nCalculating cluster ENDO_6\n\n\nCalculating cluster ENDO_1\n\n\nCalculating cluster ENDO_3\n\n\nCalculating cluster ENDO_0\n\n\nCalculating cluster ENDO_8\n\n\nCalculating cluster ENDO_7\n\n\nCalculating cluster ENDO_4\n\n\nCalculating cluster ENDO_5\n\nendo_markers %&gt;%\n  group_by(cluster) %&gt;%\n  slice_head(n = 3)\n\n# A tibble: 27 × 7\n# Groups:   cluster [9]\n      p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene    \n      &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;   &lt;chr&gt;   \n 1 0              6.07 0.701 0.014  0        ENDO_2  ACKR1   \n 2 0              2.91 0.665 0.098  0        ENDO_2  CLU     \n 3 0              3.12 0.639 0.073  0        ENDO_2  CPE     \n 4 0              5.30 0.781 0.033  0        ENDO_6  SOST    \n 5 0              4.47 0.814 0.114  0        ENDO_6  CRHBP   \n 6 0              4.81 0.753 0.059  0        ENDO_6  EHD3    \n 7 1.54e-36       2.07 0.242 0.109  7.44e-32 ENDO_1  RAC2    \n 8 1.45e-32       1.95 0.249 0.119  7.05e-28 ENDO_1  CST7    \n 9 3.73e-32       2.02 0.289 0.156  1.81e-27 ENDO_1  CCL5    \n10 0              4.29 0.51  0.042  0        ENDO_3  SERPINE2\n# ℹ 17 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#cell-counts-5",
+    "href": "Subcluster_NeoVax_CancerCell.html#cell-counts-5",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "10.5 Cell counts",
+    "text": "10.5 Cell counts\n\nendo_subclusters@meta.data %&gt;%\n  dplyr::count(endo_subcluster) %&gt;%\n  pivot_wider(names_from = endo_subcluster, values_from = n)\n\n# A tibble: 1 × 9\n  ENDO_0 ENDO_1 ENDO_2 ENDO_3 ENDO_4 ENDO_5 ENDO_6 ENDO_7 ENDO_8\n   &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;\n1   1265    992    857    841    758    688    576    135    134\n\nendo_subclusters@meta.data %&gt;%\n  dplyr::count(patient, endo_subcluster) %&gt;%\n  pivot_wider(names_from = endo_subcluster, values_from = n)\n\n# A tibble: 24 × 10\n   patient   ENDO_0 ENDO_1 ENDO_2 ENDO_3 ENDO_4 ENDO_5 ENDO_6 ENDO_7 ENDO_8\n   &lt;chr&gt;      &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;\n 1 16097-101    173    185    307    110    231    190     46     31     33\n 2 16097-102     32     68     81     36     44     89     83      8     21\n 3 16097-104     23     21     42     18     40     23      6     19      2\n 4 16097-105    394    100     36    333     12     98    101     49     64\n 5 16097-106     16     16     19      8     18     16      5      6      1\n 6 16097-107     75     69     48     45     12     17     39     NA      2\n 7 16097-108     95    105    143     41    142    108    156     11      7\n 8 16097-109      9     20     35      7     15      6      8      2     NA\n 9 16097-110     98     37     37     55     25      9     38      4      4\n10 16097-111     33     45     20     13     24     16     11      1     NA\n# ℹ 14 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#endothelial-cell-markers",
+    "href": "Subcluster_NeoVax_CancerCell.html#endothelial-cell-markers",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "10.6 Endothelial cell markers",
+    "text": "10.6 Endothelial cell markers\n\n#17: Tumor\nFeaturePlot(endo_subclusters, features = c(\"CA9\", \"NDUFA4L2\"), order = TRUE)\n\n\n\n\n\n\n\n#25: RCC2 (mes)\nFeaturePlot(endo_subclusters, features = c(\"LOX\", \"IGFBP3\", \"NDUFA4L2\"), order = TRUE)\n\n\n\n\n\n\n\n#26: RCC3 (EMT)\nFeaturePlot(endo_subclusters, features = c(\"MT1A\", \"ANGPTL4\", \"NAT8\"), order = TRUE, raster = FALSE)\n\n\n\n\n\n\n\n#14: Endothelial\nFeaturePlot(endo_subclusters, features = c(\"TEK\", \"CDH5\", \"CLEC14A\"), order = TRUE)\n\n\n\n\n\n\n\nVlnPlot(endo_subclusters, features = c(\"CA9\", \"NDUFA4L2\", \"LOX\", \"IGFBP3\", \"NDUFA4L2\", \"MT1A\", \"ANGPTL4\", \"NAT8\", \"TEK\", \"CDH5\", \"CLEC14A\"), flip=T,stack=T)\n\n\n\n\n\n\n\nrm(endo_subclusters)\ngc()\n\n             used    (Mb) gc trigger    (Mb)   max used    (Mb)\nNcells   11130941   594.5   18308856   977.8   18308856   977.8\nVcells 2343789323 17881.7 7663578728 58468.5 7632878507 58234.3",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-fibroblast-cell-cluster",
+    "href": "Subcluster_NeoVax_CancerCell.html#subcluster-upon-the-fibroblast-cell-cluster",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "11.1 Subcluster upon the fibroblast cell cluster",
+    "text": "11.1 Subcluster upon the fibroblast cell cluster\n\nfib_subclusters &lt;- readRDS(\"../objects/fib_subclusters.rds\")\n\n\nIdents(scrna) &lt;- scrna$generalized_clusters\nscrna &lt;- FindSubCluster(scrna, cluster = \"FIBRO\", graph.name = \"RNA_snn\", resolution = 0.5, subcluster.name = \"fib_subcluster\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#subset-for-fibroblast-cell-subclusters",
+    "href": "Subcluster_NeoVax_CancerCell.html#subset-for-fibroblast-cell-subclusters",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "11.2 Subset for fibroblast cell subclusters",
+    "text": "11.2 Subset for fibroblast cell subclusters\n\nfib_subclusters &lt;- subset(scrna, idents = \"FIBRO\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#plots-6",
+    "href": "Subcluster_NeoVax_CancerCell.html#plots-6",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "11.3 Plots",
+    "text": "11.3 Plots\n\nIdents(fib_subclusters) &lt;- fib_subclusters$fib_subcluster\nVlnPlot(fib_subclusters, features = c(\"CD3D\", \"CD68\", \"PLA2G2A\", \"COL1A1\", \"COL1A2\", \"COL5A1\", \"LOXL1\", \"ALB\", \"SLC22A8\", \"ALDOB\", \"CA9\"), flip=T,stack=T)\n\n\n\n\n\n\n\nVlnPlot(fib_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"LUM\", \"FBLN1\", \"FBLN2\"), pt.size = 0.1, ncol = 2)\n\n\n\n\n\n\n\nDimPlot(fib_subclusters, group.by = \"fib_subcluster\") + paletteer::scale_colour_paletteer_d(\"ggsci::default_igv\")\n\n\n\n\n\n\n\nFeaturePlot(fib_subclusters, features = c(\"CD3D\", \"CD68\", \"CD79A\", \"CA9\", \"ALB\", \"SLC22A8\", \"ALDOB\"), order = TRUE)",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-fibroblast-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "href": "Subcluster_NeoVax_CancerCell.html#find-and-plot-top-variable-features-per-fibroblast-cluster-to-see-if-theres-more-evidence-of-contaimination",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "11.4 Find and plot top variable features per fibroblast cluster to see if there’s more evidence of contaimination",
+    "text": "11.4 Find and plot top variable features per fibroblast cluster to see if there’s more evidence of contaimination\n\nfib_markers &lt;- FindAllMarkers(fib_subclusters, only.pos = TRUE, selection.method = \"vst\")\n\nCalculating cluster FIBRO_3\n\n\nCalculating cluster FIBRO_2\n\n\nCalculating cluster FIBRO_0\n\n\nCalculating cluster FIBRO_5\n\n\nCalculating cluster FIBRO_1\n\n\nCalculating cluster FIBRO_4\n\n\nCalculating cluster FIBRO_6\n\nfib_markers %&gt;%\n  group_by(cluster) %&gt;%\n  slice_head(n = 3)\n\n# A tibble: 21 × 7\n# Groups:   cluster [7]\n       p_val avg_log2FC pct.1 pct.2 p_val_adj cluster gene    \n       &lt;dbl&gt;      &lt;dbl&gt; &lt;dbl&gt; &lt;dbl&gt;     &lt;dbl&gt; &lt;fct&gt;   &lt;chr&gt;   \n 1 2.50e-178      6.74  0.926 0.008 1.21e-173 FIBRO_3 TNXB    \n 2 9.20e-177      8.23  0.893 0.005 4.46e-172 FIBRO_3 MFAP5   \n 3 9.31e-153      5.65  0.926 0.032 4.51e-148 FIBRO_3 SERPINF1\n 4 4.11e- 79      3.29  0.754 0.106 1.99e- 74 FIBRO_2 NPHS2   \n 5 1.10e- 78      3.07  0.789 0.126 5.34e- 74 FIBRO_2 MME     \n 6 9.76e- 76      3.09  0.713 0.087 4.73e- 71 FIBRO_2 PTPRO   \n 7 2.38e- 15      2.02  0.354 0.149 1.15e- 10 FIBRO_0 GNB2L1  \n 8 4.93e- 15      0.658 0.944 0.947 2.39e- 10 FIBRO_0 RPL41   \n 9 2.30e- 14      2.35  0.32  0.126 1.12e-  9 FIBRO_0 ATP5E   \n10 6.35e- 11      2.85  0.241 0.04  3.08e-  6 FIBRO_5 CD247   \n# ℹ 11 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#cell-counts-6",
+    "href": "Subcluster_NeoVax_CancerCell.html#cell-counts-6",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "11.5 Cell counts",
+    "text": "11.5 Cell counts\n\nfib_subclusters@meta.data %&gt;%\n  dplyr::count(fib_subcluster) %&gt;%\n  pivot_wider(names_from = fib_subcluster, values_from = n)\n\n# A tibble: 1 × 7\n  FIBRO_0 FIBRO_1 FIBRO_2 FIBRO_3 FIBRO_4 FIBRO_5 FIBRO_6\n    &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;\n1     319     173     171     122      64      54      52\n\nfib_subclusters@meta.data %&gt;%\n  dplyr::count(patient, fib_subcluster) %&gt;%\n  pivot_wider(names_from = fib_subcluster, values_from = n)\n\n# A tibble: 24 × 8\n   patient   FIBRO_0 FIBRO_1 FIBRO_2 FIBRO_3 FIBRO_5 FIBRO_4 FIBRO_6\n   &lt;chr&gt;       &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;   &lt;int&gt;\n 1 16097-101      59      72      20      17      11      NA      NA\n 2 16097-102       1      NA      77      68       7      49      NA\n 3 16097-104       6       4       1      NA      NA      NA      NA\n 4 16097-105      69      37      23      NA      NA      NA      NA\n 5 16097-106       1       2       1      NA      NA      NA       1\n 6 16097-107       2       4       2       1       2      NA      NA\n 7 16097-108       2      26      14       2       2      NA      NA\n 8 16097-109       7       9       2       1      NA      NA      NA\n 9 16097-110      NA       1       6       6       1       7      NA\n10 16097-111       8       4       3       1       2      NA       6\n# ℹ 14 more rows",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Subcluster_NeoVax_CancerCell.html#fibroblast-cell-markers",
+    "href": "Subcluster_NeoVax_CancerCell.html#fibroblast-cell-markers",
+    "title": "1  Subcluster NeoVax + CancerCell data",
+    "section": "11.6 Fibroblast cell markers",
+    "text": "11.6 Fibroblast cell markers\n\n#17: Tumor\nFeaturePlot(fib_subclusters, features = c(\"CA9\", \"NDUFA4L2\"), order = TRUE)\n\n\n\n\n\n\n\n#25: RCC2 (mes)\nFeaturePlot(fib_subclusters, features = c(\"LOX\", \"IGFBP3\", \"NDUFA4L2\"), order = TRUE)\n\n\n\n\n\n\n\n#26: RCC3 (EMT)\nFeaturePlot(fib_subclusters, features = c(\"MT1A\", \"ANGPTL4\", \"NAT8\"), order = TRUE, raster = FALSE)\n\n\n\n\n\n\n\nFeaturePlot(fib_subclusters, features = c(\"TEK\", \"CDH5\", \"CLEC14A\"), order = TRUE)\n\n\n\n\n\n\n\n# Endothelial\nVlnPlot(fib_subclusters, features = c(\"CA9\", \"NDUFA4L2\", \"LOX\", \"IGFBP3\", \"NDUFA4L2\", \"MT1A\", \"ANGPTL4\", \"NAT8\", \"TEK\", \"CDH5\", \"CLEC14A\"), flip=T,stack=T)\n\n\n\n\n\n\n\n# Fibroblast\nVlnPlot(fib_subclusters, features = c(\"PLA2G2A\", \"COL1A1\", \"COL1A2\", \"COL5A1\", \"LOXL1\", \"ALB\", \"SLC22A8\", \"ALDOB\", \"CA9\"), flip=T,stack=T)\n\n\n\n\n\n\n\nrm(fib_subclusters)\ngc()\n\n             used    (Mb) gc trigger    (Mb)   max used    (Mb)\nNcells   11182371   597.3   18308856   977.8   18308856   977.8\nVcells 2310777633 17629.9 7663578728 58468.5 7632878507 58234.3",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Subcluster NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html",
+    "href": "Clean_NeoVax_CancerCell.html",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "",
+    "text": "2.0.1",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#b-cell",
+    "href": "Clean_NeoVax_CancerCell.html#b-cell",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "5.1 B cell",
+    "text": "5.1 B cell\nB_1, B_0 are good (B.Mem), B_2 contains contaminant cells (i think these are interacting cells with B cells), B_3 is good (Plasma), B_4 is probably cytotoxic T contaminant (although not catastrophic, this one is borderline), B_5 is contains too much erythroid markers, B_6 is myeloid contaminant, B8 seems like a fine plasma cell cluster to me, and B9 may contain tumor contaminant, as ALDOB is a PT marker.\nSummary: B_0, B_1 (memory), B_3, B_8 (plasma), B_2, B_4, B_5, B_6, B_7, B_9 are unideal for LIANA because they contain markers of other genes in addition to clear B cell markers (one sees clearly that they do contain B cell transcripts too so at least the clustering algo makes sense)\n\nunique(scrna$b_subcluster)\n\n [1] \"NK\"            \"T\"             \"NORM.EPI\"      \"ENDO\"         \n [5] \"Myeloid\"       \"B_6\"           \"FIBRO\"         \"ERYTH\"        \n [9] \"NORM.PT\"       \"NORM.INTERCAL\" \"B_1\"           \"B_0\"          \n[13] \"RCC\"           \"B_4\"           \"B_2\"           \"B_3\"          \n[17] \"B_5\"           \"B_7\"           \"B_8\"           \"B_9\"          \n\nscrna@meta.data &lt;- scrna@meta.data %&gt;%\n  mutate(b_labels = case_when(b_subcluster %in% c(\"B_0\", \"B_1\") ~ \"B.MEM\",\n                              b_subcluster %in% c(\"B_3\", \"B_8\") ~ \"B.PLASMA\",\n                              T ~ NA))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#myeloid",
+    "href": "Clean_NeoVax_CancerCell.html#myeloid",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "5.2 Myeloid",
+    "text": "5.2 Myeloid\nM_4 is DCs, M_2 is non-classical monocytes, M_1 is classical monocytes, M_14 is DCs, M_11 is M2-Macs, M_8, M_3, and M13 are T cell contaminants. M_0 is TAMs, M_9 is Mast cells, M_12 is pDCs, M6 is Macs, M_7 is M2-macs, M_10 is monocytes, M_15 is monocytes, M_5 is M2-mac.\nSummary: M_0 and M_6 are Mac (these are likely anti-inflammatory as well, but not as much as M2s); M_5, M_7, M_11 are M2. Mac; M_1, M_10 are Classical Monocytes; M_2, M_15 are non-classical monocytes, M_4, M_14 is DCs; M_9 is Mast (don’t need for LIANA); M_12 is pDCs (not needed for LIANA); M_3, M_8, and M_13 should be discarded as contaminant\n\nunique(scrna$myeloid_subcluster)\n\n [1] \"NK\"            \"T\"             \"NORM.EPI\"      \"ENDO\"         \n [5] \"Myeloid_4\"     \"Myeloid_2\"     \"B\"             \"Myeloid_1\"    \n [9] \"Myeloid_14\"    \"FIBRO\"         \"ERYTH\"         \"NORM.PT\"      \n[13] \"NORM.INTERCAL\" \"Myeloid_11\"    \"Myeloid_8\"     \"Myeloid_3\"    \n[17] \"Myeloid_0\"     \"Myeloid_9\"     \"Myeloid_13\"    \"Myeloid_12\"   \n[21] \"RCC\"           \"Myeloid_6\"     \"Myeloid_7\"     \"Myeloid_10\"   \n[25] \"Myeloid_15\"    \"Myeloid_5\"    \n\nscrna@meta.data &lt;- scrna@meta.data %&gt;%\n  mutate(myeloid_labels = case_when(myeloid_subcluster %in% c(\"Myeloid_0\", \"Myeloid_6\") ~ \"MAC\",\n                                    myeloid_subcluster %in% c(\"Myeloid_5\", \"Myeloid_7\", \"Myeloid_11\") ~ \"M2.MAC\",\n                                    myeloid_subcluster %in% c(\"Myeloid_1\", \"Myeloid_10\") ~ \"MONO.CLASS\",\n                                    myeloid_subcluster %in% c(\"Myeloid_2\", \"Myeloid_15\") ~ \"MONO.NONCLASS\",\n                                    myeloid_subcluster %in% c(\"Myeloid_4\", \"Myeloid_14\") ~ \"DC\",\n                              T ~ NA))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#t",
+    "href": "Clean_NeoVax_CancerCell.html#t",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "5.3 T",
+    "text": "5.3 T\nFor T: T_3: NK-like TEM; T_0 is TEx; T_2 is TAp; T_1 is TMem; T_4 is TRM; T_10 is TProl; T_5 is Treg; T_6 is TEx; T_8 is myeloid contaminant; T_9 is TProl; T_7 is TProl; T_11 is TIFN; T_12 is TAp For LIANA: TEx is T_0, T_6, T_7, T_9, T_10, T_11; TMem is T_1, T_3, T_4; Treg is T_5; and you can ignore TAp (T_2, T_12) and the myeloid contaminant (T_8), and ignore small clusters with only 2 cells (T_13 and T_14)\n\nunique(scrna$t_subcluster)\n\n [1] \"NK\"            \"T_3\"           \"NORM.EPI\"      \"T_0\"          \n [5] \"ENDO\"          \"Myeloid\"       \"B\"             \"T_2\"          \n [9] \"FIBRO\"         \"T_1\"           \"T_4\"           \"ERYTH\"        \n[13] \"NORM.PT\"       \"NORM.INTERCAL\" \"T_10\"          \"T_5\"          \n[17] \"T_6\"           \"T_8\"           \"RCC\"           \"T_9\"          \n[21] \"T_7\"           \"T_11\"          \"T_13\"          \"T_12\"         \n[25] \"T_14\"         \n\nscrna@meta.data &lt;- scrna@meta.data %&gt;%\n  mutate(t_labels = case_when(t_subcluster %in% c(\"T_0\", \"T_6\", \"T_7\", \"T_9\", \"T_10\", \"T_11\") ~ \"TEX\",\n                              t_subcluster %in% c(\"T_1\", \"T_3\", \"T_4\") ~ \"TMEM\",\n                              t_subcluster %in% c(\"T_5\") ~ \"TREG\",\n                              T ~ NA))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#nk",
+    "href": "Clean_NeoVax_CancerCell.html#nk",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "5.4 NK",
+    "text": "5.4 NK\nNK_0 are NKs, NK_3 are NKs, NK_1 are NKs, NK_2 are NKs, NK_4 may be T cells or NK cells, so we’ll exclude them, NK_6 are NKs, NK_8 are T cell contaminants (tregs interestingly, maybe there is a treg-like NK state…), NK_5 are likely T cell-like contaminants - these aren’t NK genes, but they’re not strictly CD3 positive; NK_7 is some contaminant. For LIANA: NKs are NK_0, NK_1, NK_2, NK_3, NK_6; contaminants are NK_4, NK_5, NK_7, NK_8\n\nunique(scrna$nk_subcluster)\n\n [1] \"NK_0\"          \"T\"             \"NORM.EPI\"      \"ENDO\"         \n [5] \"Myeloid\"       \"B\"             \"NK_3\"          \"FIBRO\"        \n [9] \"ERYTH\"         \"NK_1\"          \"NORM.PT\"       \"NK_2\"         \n[13] \"NORM.INTERCAL\" \"NK_4\"          \"NK_6\"          \"RCC\"          \n[17] \"NK_8\"          \"NK_5\"          \"NK_7\"         \n\nscrna@meta.data &lt;- scrna@meta.data %&gt;%\n  mutate(nk_labels = case_when(nk_subcluster %in% c(\"NK_0\", \"NK_1\", \"NK_2\", \"NK_3\", \"NK_6\") ~ \"NK\",\n                              T ~ NA))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#rcc",
+    "href": "Clean_NeoVax_CancerCell.html#rcc",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "5.5 RCC",
+    "text": "5.5 RCC\nTumor: RCC_1 is RCC; RCC_2, RCC_4, RCC_6, RCC_11 and RCC_12 are contaminant T/Myeloid cells; RCC_0 is RCC; RCC_3 is RCC; RCC_9 is RCC; RCC_7 is RCC; RCC_5 is RCC, RCC_10 is RCC; RCC_8 is probably RCC For LIANA consider RCC_0, RCC_1, RCC_3, RCC_5, RCC_7, RCC_8, RCC_9, RCC10 as RCC, and consider RCC_2, RCC_4, RCC_6, RCC_11, and RCC_12 as contaminants\n\nunique(scrna$rcc_subcluster)\n\n [1] \"NK\"            \"T\"             \"NORM.EPI\"      \"ENDO\"         \n [5] \"Myeloid\"       \"B\"             \"FIBRO\"         \"ERYTH\"        \n [9] \"NORM.PT\"       \"NORM.INTERCAL\" \"RCC_1\"         \"RCC_4\"        \n[13] \"RCC_2\"         \"RCC_6\"         \"RCC_0\"         \"RCC_3\"        \n[17] \"RCC_9\"         \"RCC_11\"        \"RCC_7\"         \"RCC_5\"        \n[21] \"RCC_10\"        \"RCC_8\"         \"RCC_12\"       \n\nscrna@meta.data &lt;- scrna@meta.data %&gt;%\n  mutate(rcc_labels = case_when(rcc_subcluster %in% c(\"RCC_0\", \"RCC_1\", \"RCC_3\", \"RCC_5\", \"RCC_7\", \"RCC_8\", \"RCC_9\", \"RCC_10\") ~ \"RCC\",\n                              T ~ NA))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#endothelial",
+    "href": "Clean_NeoVax_CancerCell.html#endothelial",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "5.6 Endothelial",
+    "text": "5.6 Endothelial\nEndothelial cells: ENDO_2 is tumor-associated endothelial cells; ENDO_6 is endothelial cells; ENDO_1 is T cell contamination; ENDO_3 is probably endothelial cells; ENDO_0 is endothelial cells; ENDO_8 is smooth muscle cells interestingly; ENDO_7 is myeloid contaminant; ENDO_4 is endothelial, ENDO_5 is endothelial. For LIANA, ENDO_0, ENDO_2, ENDO_3, ENDO_4, ENDO_5, ENDO_6 are all endothelial; you can discard ENDO_1, ENDO_7, and ENDO_8 as contaminant clusters\n\nunique(scrna$endo_subcluster)\n\n [1] \"NK\"            \"T\"             \"NORM.EPI\"      \"ENDO_2\"       \n [5] \"Myeloid\"       \"B\"             \"FIBRO\"         \"ENDO_6\"       \n [9] \"ERYTH\"         \"ENDO_1\"        \"NORM.PT\"       \"NORM.INTERCAL\"\n[13] \"ENDO_3\"        \"ENDO_0\"        \"RCC\"           \"ENDO_8\"       \n[17] \"ENDO_7\"        \"ENDO_4\"        \"ENDO_5\"       \n\nscrna@meta.data &lt;- scrna@meta.data %&gt;%\n  mutate(endo_labels = case_when(endo_subcluster %in% c(\"ENDO_0\", \"ENDO_2\", \"ENDO_3\", \"ENDO_4\", \"ENDO_5\", \"ENDO_6\") ~ \"ENDO\",\n                              T ~ NA))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#fibroblast",
+    "href": "Clean_NeoVax_CancerCell.html#fibroblast",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "5.7 Fibroblast",
+    "text": "5.7 Fibroblast\nFibroblast cells: I think 3, 0, 1, and 4 - agreed? based on the markers seems like 2 may be renal epithelium or tumor, 5 is immune contaminant, and 6 I have no idea but doesn’t seem like a fibroblast\n\nunique(scrna$fib_subcluster)\n\n [1] \"NK\"            \"T\"             \"NORM.EPI\"      \"ENDO\"         \n [5] \"Myeloid\"       \"B\"             \"FIBRO_3\"       \"ERYTH\"        \n [9] \"NORM.PT\"       \"NORM.INTERCAL\" \"FIBRO_2\"       \"RCC\"          \n[13] \"FIBRO_0\"       \"FIBRO_5\"       \"FIBRO_1\"       \"FIBRO_4\"      \n[17] \"FIBRO_6\"      \n\nscrna@meta.data &lt;- scrna@meta.data %&gt;%\n  mutate(fib_labels = case_when(fib_subcluster %in% c(\"FIBRO_0\", \"FIBRO_1\", \"FIBRO_3\", \"FIBRO_4\") ~ \"FIBRO\",\n                              T ~ NA))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#filter-for-source-target-interactions-of-interest",
+    "href": "Clean_NeoVax_CancerCell.html#filter-for-source-target-interactions-of-interest",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "12.1 Filter for source-target interactions of interest",
+    "text": "12.1 Filter for source-target interactions of interest\n\n12.1.0.1 Alex’s code from GPT\n\nliana_tls_pos$self &lt;- ifelse(liana_tls_pos$source == liana_tls_pos$target, 1, 0)\nliana_tls_neg$self &lt;- ifelse(liana_tls_neg$source == liana_tls_neg$target, 1, 0)\n\n#remove self-interactions (Tex-Tex, e.g.)\nliana_tls_pos &lt;- liana_tls_pos[liana_tls_pos$self == 0,] #down to 675168\nliana_tls_neg &lt;- liana_tls_neg[liana_tls_neg$self == 0,] #down to 666120\n\n#isolate interactions of Tex cells and Tmem cells\nliana_tls_pos &lt;- liana_tls_pos[(liana_tls_pos$source %in% c(\"TEX\", \"TMEM\", \"TREG\") | liana_tls_pos$target %in% c(\"TEX\", \"TMEM\", \"TREG\")),] #285648\nliana_tls_neg &lt;- liana_tls_neg[(liana_tls_neg$source %in% c(\"TEX\", \"TMEM\", \"TREG\") | liana_tls_neg$target %in% c(\"TEX\", \"TMEM\", \"TREG\")),] #281820\n\n#get rid of HLA interactions and CD3\nliana_tls_pos &lt;- liana_tls_pos %&gt;% \n  filter(!str_detect(ligand.complex, 'HLA|CD8A|CD8B|^CD4$'))\nliana_tls_pos &lt;- liana_tls_pos %&gt;% \n  filter(!str_detect(receptor.complex, 'CD3')) #278520\n\nliana_tls_neg &lt;- liana_tls_neg %&gt;% \n  filter(!str_detect(ligand.complex, 'HLA|CD8A|CD8B|^CD4$'))\nliana_tls_neg &lt;- liana_tls_neg %&gt;% \n  filter(!str_detect(receptor.complex, 'CD3')) #274758\n\nhist(liana_tls_pos$aggregate_rank, breaks = 50)\n\n\n\n\n\n\n\nhist(liana_tls_neg$aggregate_rank, breaks = 50)\n\n\n\n\n\n\n\n#0.05 seems to basically cut off all non-sig interactions\n\nliana_tls_pos &lt;- liana_tls_pos %&gt;% filter(aggregate_rank &lt; 0.05) #5890 - 2%\nliana_tls_neg &lt;- liana_tls_neg %&gt;% filter(aggregate_rank &lt; 0.05) #6225 - 16%",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#view-liana-results",
+    "href": "Clean_NeoVax_CancerCell.html#view-liana-results",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "12.2 View LIANA results",
+    "text": "12.2 View LIANA results\n\nhead(liana_tls_pos)\n\n# A tibble: 6 × 17\n  source     target   ligand.complex receptor.complex aggregate_rank mean_rank\n  &lt;chr&gt;      &lt;chr&gt;    &lt;chr&gt;          &lt;chr&gt;                     &lt;dbl&gt;     &lt;dbl&gt;\n1 TEX        B.PLASMA CCL5           SDC1                   9.41e-11     1853 \n2 ENDO       TEX      CD59           CD2                    3.19e- 9     2436.\n3 ENDO       TREG     CD59           CD2                    4.07e- 9     2574.\n4 MONO.CLASS TMEM     S100A8         CD69                   4.08e- 9     2176.\n5 ENDO       TREG     TIMP3          CD44                   5.06e- 9     2128.\n6 TEX        B.PLASMA HMGB1          SDC1                   7.06e- 9     2445.\n  natmi.edge_specificity natmi.rank connectome.weight_sc connectome.rank\n                   &lt;dbl&gt;      &lt;dbl&gt;                &lt;dbl&gt;           &lt;dbl&gt;\n1                 0.205         252                 5.45              22\n2                 0.0892       1165                 1.78            1272\n3                 0.0838       1304                 1.73            1335\n4                 0.102         897                 1.72            1353\n5                 0.106         837                 3.36             180\n6                 0.0788       1446                 5.18              39\n  logfc.logfc_comb logfc.rank sca.LRscore sca.rank cellphonedb.pvalue\n             &lt;dbl&gt;      &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;              &lt;dbl&gt;\n1             2.02        388       0.974      527                  0\n2             1.97        438       0.967     1228                  0\n3             1.70        805       0.966     1352                  0\n4             3.25         19       0.974      537                  0\n5             2.52        117       0.965     1428                  0\n6             1.53       1111       0.964     1552                  0\n  cellphonedb.rank  self\n             &lt;dbl&gt; &lt;dbl&gt;\n1             8076     0\n2             8076     0\n3             8076     0\n4             8076     0\n5             8076     0\n6             8076     0\n\nhead(liana_tls_neg)\n\n# A tibble: 6 × 17\n  source     target ligand.complex receptor.complex aggregate_rank mean_rank\n  &lt;chr&gt;      &lt;chr&gt;  &lt;chr&gt;          &lt;chr&gt;                     &lt;dbl&gt;     &lt;dbl&gt;\n1 ENDO       TREG   TIMP3          CD44                   2.93e-10     1855.\n2 ENDO       TMEM   TIMP3          CD44                   8.92e-10     1930.\n3 MONO.CLASS TMEM   S100A8         CD69                   1.28e- 9     1978.\n4 RCC        TREG   SPP1           CCR8                   2.26e- 9     2963.\n5 RCC        TREG   SPP1           CD44                   4.70e- 9     2160.\n6 MONO.CLASS TREG   S100A8         CD69                   5.33e- 9     2260.\n  natmi.edge_specificity natmi.rank connectome.weight_sc connectome.rank\n                   &lt;dbl&gt;      &lt;dbl&gt;                &lt;dbl&gt;           &lt;dbl&gt;\n1                 0.127         637                 3.56              51\n2                 0.111         780                 3.47              57\n3                 0.113         763                 1.82            1000\n4                 0.567          41                 2.99             133\n5                 0.0816       1384                 2.27             433\n6                 0.0806       1428                 1.60            1411\n  logfc.logfc_comb logfc.rank sca.LRscore sca.rank cellphonedb.pvalue\n             &lt;dbl&gt;      &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;              &lt;dbl&gt;\n1             2.99         40       0.969      691                  0\n2             2.93         46       0.967      913                  0\n3             3.27         18       0.975      255                  0\n4             2.70         85       0.927     6702                  0\n5             2.60        115       0.966     1013                  0\n6             2.81         68       0.971      536                  0\n  cellphonedb.rank  self\n             &lt;dbl&gt; &lt;dbl&gt;\n1            7854.     0\n2            7854.     0\n3            7854.     0\n4            7854.     0\n5            7854.     0\n6            7854.     0",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Clean_NeoVax_CancerCell.html#save-liana",
+    "href": "Clean_NeoVax_CancerCell.html#save-liana",
+    "title": "2  Clean clusters on NeoVax + CancerCell data",
+    "section": "12.3 Save LIANA",
+    "text": "12.3 Save LIANA\n\nsaveRDS(liana_tls_pos, \"../objects/clean_NeoVax.CancerCell_tls+_liana.rds\")\nsaveRDS(liana_tls_neg, \"../objects/clean_NeoVax.CancerCell_tls-_liana.rds\")\n\n\n12.3.0.1 Note: Upon re-running LIANA from scratch on the same object, aggregate_rank, mean_rank etc have changed very slightly likely due to a change in the random seed. The results being opened in this file are from the original run of LIANA.",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Clean clusters on NeoVax + CancerCell data</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html",
+    "href": "Create_single_cell_reference_for_RCTD.html",
+    "title": "3  scRNA References for RCTD",
+    "section": "",
+    "text": "4 Create patient specific scRNAseq references for RCTD",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html#libraries",
+    "href": "Create_single_cell_reference_for_RCTD.html#libraries",
+    "title": "3  scRNA References for RCTD",
+    "section": "4.1 Libraries",
+    "text": "4.1 Libraries\n\nlibrary(spacexr)\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html#p102",
+    "href": "Create_single_cell_reference_for_RCTD.html#p102",
+    "title": "3  scRNA References for RCTD",
+    "section": "6.1 P102",
+    "text": "6.1 P102\n\nscrna_subset &lt;- subset(scrna, subset = patient == \"16097-102\")\nscrna_subset@meta.data %&gt;%\n  distinct(sample)\n\n                     sample\nAAACCTGAGAGTGACC-3_1     2N\nAAACCTGCACAGGCCT-4_1     2T\n\nscrna_subset@meta.data %&gt;%\n  count(rctd_label)\n\n  rctd_label    n\n1          B  206\n2       ENDO  365\n3      FIBRO  118\n4    MYELOID 2622\n5         NK 2077\n6        RCC   75\n7          T 7120\n\n# Extract counts matrix\ncount_matrix &lt;- scrna_subset[[\"RNA\"]]$counts\n\n# Now create the single cell reference for RCTD\n# Extract a (barcode) named vector of cell types\ncell_types &lt;- as.factor(scrna_subset@meta.data$rctd_label)\nnames(cell_types) &lt;- colnames(scrna_subset)\n\n# Extract a umi counts w/ barcode as name\nnUMI &lt;- scrna_subset@meta.data$nCount_RNA\nnames(nUMI) &lt;-  colnames(scrna_subset)\n\n# Named vectors are input into RCTD\nreference &lt;- Reference(count_matrix, cell_types, nUMI)\n\n# Examine reference object -- see no. of genes + cells\nprint(dim(reference@counts))\n\n[1] 48443 12583\n\n# See no. of occurences for each cell type\ntable(reference@cell_types)\n\n\n      B    ENDO   FIBRO MYELOID      NK     RCC       T \n    206     365     118    2622    2077      75    7120 \n\n\n\n6.1.1 Save reference\n\n# Save each single cell reference\nsaveRDS(reference, \"P102_rctd_reference.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html#p107",
+    "href": "Create_single_cell_reference_for_RCTD.html#p107",
+    "title": "3  scRNA References for RCTD",
+    "section": "6.2 P107",
+    "text": "6.2 P107\n\nscrna_subset &lt;- subset(scrna, subset = patient == \"16097-107\")\n\n# Need more than 25 cells for each cell type, so remove fibroblasts\nscrna_subset &lt;- subset(scrna_subset, subset = rctd_label == \"FIBRO\", invert = TRUE)\n  \nscrna_subset@meta.data %&gt;%\n  distinct(sample)\n\n                      sample\nAAACCTGGTCCGTTAA-11_1     7N\nAAACCTGCAATTGCTG-12_1     7T\n\nscrna_subset@meta.data %&gt;%\n  count(rctd_label)\n\n  rctd_label    n\n1          B  688\n2       ENDO  236\n3    MYELOID  678\n4         NK  367\n5        RCC  198\n6          T 6779\n\n# Extract counts matrix\ncount_matrix &lt;- scrna_subset[[\"RNA\"]]$counts\n\n# Now create the single cell reference for RCTD\n# Extract a (barcode) named vector of cell types\ncell_types &lt;- as.factor(scrna_subset@meta.data$rctd_label)\nnames(cell_types) &lt;- colnames(scrna_subset)\n\n# Extract a umi counts w/ barcode as name\nnUMI &lt;- scrna_subset@meta.data$nCount_RNA\nnames(nUMI) &lt;-  colnames(scrna_subset)\n\n# Named vectors are input into RCTD\nreference &lt;- Reference(count_matrix, cell_types, nUMI)\n\n# Examine reference object -- see no. of genes + cells\nprint(dim(reference@counts))\n\n[1] 48443  8946\n\n# See no. of occurences for each cell type\ntable(reference@cell_types)\n\n\n      B    ENDO MYELOID      NK     RCC       T \n    688     236     678     367     198    6779 \n\n\n\n6.2.1 Save reference\n\n# Save each single cell reference\nsaveRDS(reference, \"P107_rctd_reference.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html#p108",
+    "href": "Create_single_cell_reference_for_RCTD.html#p108",
+    "title": "3  scRNA References for RCTD",
+    "section": "6.3 P108",
+    "text": "6.3 P108\n\nscrna_subset &lt;- subset(scrna, subset = patient == \"16097-108\")\nscrna_subset@meta.data %&gt;%\n  distinct(sample)\n\n                      sample\nAAACCTGAGATGCCAG-13_1     8M\nAAACCTGAGAATCTCC-14_1     8N\nAAACCTGAGACAGACC-15_1     8T\n\nscrna_subset@meta.data %&gt;%\n  count(rctd_label)\n\n  rctd_label     n\n1          B   280\n2       ENDO   685\n3      FIBRO    30\n4    MYELOID  6219\n5         NK  6022\n6        RCC   119\n7          T 11190\n\n# Extract counts matrix\ncount_matrix &lt;- scrna_subset[[\"RNA\"]]$counts\n\n# Now create the single cell reference for RCTD\n# Extract a (barcode) named vector of cell types\ncell_types &lt;- as.factor(scrna_subset@meta.data$rctd_label)\nnames(cell_types) &lt;- colnames(scrna_subset)\n\n# Extract a umi counts w/ barcode as name\nnUMI &lt;- scrna_subset@meta.data$nCount_RNA\nnames(nUMI) &lt;-  colnames(scrna_subset)\n\n# Named vectors are input into RCTD\nreference &lt;- Reference(count_matrix, cell_types, nUMI)\n\nWarning in Reference(count_matrix, cell_types, nUMI): Reference: number of\ncells per cell type is 11190, larger than maximum allowable of 10000.\nDownsampling number of cells to: 10000\n\n# Examine reference object -- see no. of genes + cells\nprint(dim(reference@counts))\n\n[1] 48443 23355\n\n# See no. of occurences for each cell type\ntable(reference@cell_types)\n\n\n      B    ENDO   FIBRO MYELOID      NK     RCC       T \n    280     685      30    6219    6022     119   10000 \n\n\n\n6.3.1 Save reference\n\n# Save each single cell reference\nsaveRDS(reference, \"P108_rctd_reference.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html#p109",
+    "href": "Create_single_cell_reference_for_RCTD.html#p109",
+    "title": "3  scRNA References for RCTD",
+    "section": "6.4 P109",
+    "text": "6.4 P109\n\nscrna_subset &lt;- subset(scrna, subset = patient == \"16097-109\")\n\n# Need more than 25 cells for each cell type, so remove fibroblasts\nscrna_subset &lt;- subset(scrna_subset, subset = rctd_label == \"FIBRO\", invert = TRUE)\n\nscrna_subset@meta.data %&gt;%\n  distinct(sample)\n\n                      sample\nAAAGTAGGTTTGACTG-16_1     9N\nAAACCTGAGAGTACCG-17_1     9T\n\nscrna_subset@meta.data %&gt;%\n  count(rctd_label)\n\n  rctd_label    n\n1          B   26\n2       ENDO   80\n3    MYELOID 2837\n4         NK  896\n5        RCC   34\n6          T 3951\n\n# Extract counts matrix\ncount_matrix &lt;- scrna_subset[[\"RNA\"]]$counts\n\n# Now create the single cell reference for RCTD\n# Extract a (barcode) named vector of cell types\ncell_types &lt;- as.factor(scrna_subset@meta.data$rctd_label)\nnames(cell_types) &lt;- colnames(scrna_subset)\n\n# Extract a umi counts w/ barcode as name\nnUMI &lt;- scrna_subset@meta.data$nCount_RNA\nnames(nUMI) &lt;-  colnames(scrna_subset)\n\n# Named vectors are input into RCTD\nreference &lt;- Reference(count_matrix, cell_types, nUMI)\n\n# Examine reference object -- see no. of genes + cells\nprint(dim(reference@counts))\n\n[1] 48443  7824\n\n# See no. of occurences for each cell type\ntable(reference@cell_types)\n\n\n      B    ENDO MYELOID      NK     RCC       T \n     26      80    2837     896      34    3951 \n\n\n\n6.4.1 Save reference\n\n# Save each single cell reference\nsaveRDS(reference, \"P109_rctd_reference.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html#p110",
+    "href": "Create_single_cell_reference_for_RCTD.html#p110",
+    "title": "3  scRNA References for RCTD",
+    "section": "6.5 P110",
+    "text": "6.5 P110\n\nscrna_subset &lt;- subset(scrna, subset = patient == \"16097-110\")\n\n# Need more than 25 cells for each cell type, so remove fibroblasts\nscrna_subset &lt;- subset(scrna_subset, subset = rctd_label == \"FIBRO\", invert = TRUE)\n\nscrna_subset@meta.data %&gt;%\n  distinct(sample)\n\n                      sample\nAAACCTGAGCTGCCCA-18_1    10N\nAAACCTGAGAATGTTG-19_1    10T\n\nscrna_subset@meta.data %&gt;%\n  count(rctd_label)\n\n  rctd_label    n\n1          B   56\n2       ENDO  262\n3    MYELOID 2310\n4         NK  603\n5        RCC   29\n6          T 4823\n\n# Extract counts matrix\ncount_matrix &lt;- scrna_subset[[\"RNA\"]]$counts\n\n# Now create the single cell reference for RCTD\n# Extract a (barcode) named vector of cell types\ncell_types &lt;- as.factor(scrna_subset@meta.data$rctd_label)\nnames(cell_types) &lt;- colnames(scrna_subset)\n\n# Extract a umi counts w/ barcode as name\nnUMI &lt;- scrna_subset@meta.data$nCount_RNA\nnames(nUMI) &lt;-  colnames(scrna_subset)\n\n# Named vectors are input into RCTD\nreference &lt;- Reference(count_matrix, cell_types, nUMI)\n\n# Examine reference object -- see no. of genes + cells\nprint(dim(reference@counts))\n\n[1] 48443  8083\n\n# See no. of occurences for each cell type\ntable(reference@cell_types)\n\n\n      B    ENDO MYELOID      NK     RCC       T \n     56     262    2310     603      29    4823 \n\n\n\n6.5.1 Save reference\n\n# Save each single cell reference\nsaveRDS(reference, \"P110_rctd_reference.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Create_single_cell_reference_for_RCTD.html#p111",
+    "href": "Create_single_cell_reference_for_RCTD.html#p111",
+    "title": "3  scRNA References for RCTD",
+    "section": "6.6 P111",
+    "text": "6.6 P111\n\nscrna_subset &lt;- subset(scrna, subset = patient == \"16097-111\")\n\n# Need more than 25 cells for each cell type, so remove fibroblasts\nscrna_subset &lt;- subset(scrna_subset, subset = rctd_label == \"FIBRO\", invert = TRUE)\n\nscrna_subset@meta.data %&gt;%\n  distinct(sample)\n\n                      sample\nAAACCTGAGAATGTGT-20_1    11N\nAAACCTGAGAAACCGC-21_1    11T\n\nscrna_subset@meta.data %&gt;%\n  count(rctd_label)\n\n  rctd_label    n\n1          B  227\n2       ENDO  117\n3    MYELOID 1008\n4         NK 1633\n5        RCC   47\n6          T 4709\n\n# Extract counts matrix\ncount_matrix &lt;- scrna_subset[[\"RNA\"]]$counts\n\n# Now create the single cell reference for RCTD\n# Extract a (barcode) named vector of cell types\ncell_types &lt;- as.factor(scrna_subset@meta.data$rctd_label)\nnames(cell_types) &lt;- colnames(scrna_subset)\n\n# Extract a umi counts w/ barcode as name\nnUMI &lt;- scrna_subset@meta.data$nCount_RNA\nnames(nUMI) &lt;-  colnames(scrna_subset)\n\n# Named vectors are input into RCTD\nreference &lt;- Reference(count_matrix, cell_types, nUMI)\n\n# Examine reference object -- see no. of genes + cells\nprint(dim(reference@counts))\n\n[1] 48443  7741\n\n# See no. of occurences for each cell type\ntable(reference@cell_types)\n\n\n      B    ENDO MYELOID      NK     RCC       T \n    227     117    1008    1633      47    4709 \n\n\n\n6.6.1 Save reference\n\n# Save each single cell reference\nsaveRDS(reference, \"P111_rctd_reference.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>3</span>  <span class='chapter-title'>scRNA References for RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html",
+    "href": "Run_RCTD_P102.html",
+    "title": "4  102T: RCTD",
+    "section": "",
+    "text": "5 Run RCTD on spatial data using patient-matched scRNAseq data",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#libraries",
+    "href": "Run_RCTD_P102.html#libraries",
+    "title": "4  102T: RCTD",
+    "section": "5.1 Libraries",
+    "text": "5.1 Libraries\n\nlibrary(spacexr)\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#read-in-slide-seq-puck",
+    "href": "Run_RCTD_P102.html#read-in-slide-seq-puck",
+    "title": "4  102T: RCTD",
+    "section": "7.1 Read in slide-seq puck",
+    "text": "7.1 Read in slide-seq puck\n\nP102TA_10_RNA &lt;- readRDS(\"01_Puck10_102TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#extract-rctd-required-data",
+    "href": "Run_RCTD_P102.html#extract-rctd-required-data",
+    "title": "4  102T: RCTD",
+    "section": "7.2 Extract RCTD required data",
+    "text": "7.2 Extract RCTD required data\n\nP102TA_10_counts &lt;- P102TA_10_RNA[[\"Spatial\"]]$counts\nP102TA_10_coords &lt;- GetTissueCoordinates(P102TA_10_RNA)\ncolnames(P102TA_10_coords) &lt;- c(\"x\", \"y\")\nP102TA_10_coords[is.na(colnames(P102TA_10_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#create-spatialrna-object",
+    "href": "Run_RCTD_P102.html#create-spatialrna-object",
+    "title": "4  102T: RCTD",
+    "section": "7.3 Create SpatialRNA object",
+    "text": "7.3 Create SpatialRNA object\n\nP102TA_10_query &lt;- SpatialRNA(P102TA_10_coords, P102TA_10_counts, colSums(P102TA_10_counts))\n\nprint(dim(P102TA_10_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 26957 42144\n\nhist(log(P102TA_10_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#run-rctd",
+    "href": "Run_RCTD_P102.html#run-rctd",
+    "title": "4  102T: RCTD",
+    "section": "7.4 Run RCTD",
+    "text": "7.4 Run RCTD\n\nP102TA_10_rctd &lt;- create.RCTD(P102TA_10_query, ref, max_cores = 8)\nrm(P102TA_10_RNA, P102TA_10_coords, P102TA_10_query, P102TA_10_counts)\ngc()\nP102TA_10_rctd &lt;- run.RCTD(P102TA_10_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#save-rctd-results",
+    "href": "Run_RCTD_P102.html#save-rctd-results",
+    "title": "4  102T: RCTD",
+    "section": "7.5 Save RCTD results",
+    "text": "7.5 Save RCTD results\n\nsaveRDS(P102TA_10_rctd, \"P102TA_10_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#read-in-slide-seq-puck-1",
+    "href": "Run_RCTD_P102.html#read-in-slide-seq-puck-1",
+    "title": "4  102T: RCTD",
+    "section": "8.1 Read in slide-seq puck",
+    "text": "8.1 Read in slide-seq puck\n\nP102TA_17_RNA &lt;- readRDS(\"01_Puck17_102TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#extract-rctd-required-data-1",
+    "href": "Run_RCTD_P102.html#extract-rctd-required-data-1",
+    "title": "4  102T: RCTD",
+    "section": "8.2 Extract RCTD required data",
+    "text": "8.2 Extract RCTD required data\n\nP102TA_17_counts &lt;- P102TA_17_RNA[[\"Spatial\"]]$counts\nP102TA_17_coords &lt;- GetTissueCoordinates(P102TA_17_RNA)\ncolnames(P102TA_17_coords) &lt;- c(\"x\", \"y\")\nP102TA_17_coords[is.na(colnames(P102TA_17_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#create-spatialrna-object-1",
+    "href": "Run_RCTD_P102.html#create-spatialrna-object-1",
+    "title": "4  102T: RCTD",
+    "section": "8.3 Create SpatialRNA object",
+    "text": "8.3 Create SpatialRNA object\n\nP102TA_17_query &lt;- SpatialRNA(P102TA_17_coords, P102TA_17_counts, colSums(P102TA_17_counts))\n\nprint(dim(P102TA_17_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 25220 33736\n\nhist(log(P102TA_17_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#run-rctd-1",
+    "href": "Run_RCTD_P102.html#run-rctd-1",
+    "title": "4  102T: RCTD",
+    "section": "8.4 Run RCTD",
+    "text": "8.4 Run RCTD\n\nP102TA_17_rctd &lt;- create.RCTD(P102TA_17_query, ref, max_cores = 8)\nrm(P102TA_17_RNA, P102TA_17_coords, P102TA_17_query, P102TA_17_counts)\ngc()\nP102TA_17_rctd &lt;- run.RCTD(P102TA_17_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#save-rctd-results-1",
+    "href": "Run_RCTD_P102.html#save-rctd-results-1",
+    "title": "4  102T: RCTD",
+    "section": "8.5 Save RCTD results",
+    "text": "8.5 Save RCTD results\n\nsaveRDS(P102TA_17_rctd, \"P102TA_17_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#read-in-slide-seq-puck-2",
+    "href": "Run_RCTD_P102.html#read-in-slide-seq-puck-2",
+    "title": "4  102T: RCTD",
+    "section": "9.1 Read in slide-seq puck",
+    "text": "9.1 Read in slide-seq puck\n\nP102TA_33_RNA &lt;- readRDS(\"01_Puck33_102TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#extract-rctd-required-data-2",
+    "href": "Run_RCTD_P102.html#extract-rctd-required-data-2",
+    "title": "4  102T: RCTD",
+    "section": "9.2 Extract RCTD required data",
+    "text": "9.2 Extract RCTD required data\n\nP102TA_33_counts &lt;- P102TA_33_RNA[[\"Spatial\"]]$counts\nP102TA_33_coords &lt;- GetTissueCoordinates(P102TA_33_RNA)\ncolnames(P102TA_33_coords) &lt;- c(\"x\", \"y\")\nP102TA_33_coords[is.na(colnames(P102TA_33_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#create-spatialrna-object-2",
+    "href": "Run_RCTD_P102.html#create-spatialrna-object-2",
+    "title": "4  102T: RCTD",
+    "section": "9.3 Create SpatialRNA object",
+    "text": "9.3 Create SpatialRNA object\n\nP102TA_33_query &lt;- SpatialRNA(P102TA_33_coords, P102TA_33_counts, colSums(P102TA_33_counts))\n\nprint(dim(P102TA_33_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 27287 41484\n\nhist(log(P102TA_33_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#run-rctd-2",
+    "href": "Run_RCTD_P102.html#run-rctd-2",
+    "title": "4  102T: RCTD",
+    "section": "9.4 Run RCTD",
+    "text": "9.4 Run RCTD\n\nP102TA_33_rctd &lt;- create.RCTD(P102TA_33_query, ref, max_cores = 8)\nrm(P102TA_33_RNA, P102TA_33_coords, P102TA_33_query, P102TA_33_counts)\ngc()\nP102TA_33_rctd &lt;- run.RCTD(P102TA_33_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#save-rctd-results-2",
+    "href": "Run_RCTD_P102.html#save-rctd-results-2",
+    "title": "4  102T: RCTD",
+    "section": "9.5 Save RCTD results",
+    "text": "9.5 Save RCTD results\n\nsaveRDS(P102TA_33_rctd, \"P102TA_33_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#read-in-slide-seq-puck-3",
+    "href": "Run_RCTD_P102.html#read-in-slide-seq-puck-3",
+    "title": "4  102T: RCTD",
+    "section": "10.1 Read in slide-seq puck",
+    "text": "10.1 Read in slide-seq puck\n\nP102TA_39_RNA &lt;- readRDS(\"01_Puck39_102TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#extract-rctd-required-data-3",
+    "href": "Run_RCTD_P102.html#extract-rctd-required-data-3",
+    "title": "4  102T: RCTD",
+    "section": "10.2 Extract RCTD required data",
+    "text": "10.2 Extract RCTD required data\n\nP102TA_39_counts &lt;- P102TA_39_RNA[[\"Spatial\"]]$counts\nP102TA_39_coords &lt;- GetTissueCoordinates(P102TA_39_RNA)\ncolnames(P102TA_39_coords) &lt;- c(\"x\", \"y\")\nP102TA_39_coords[is.na(colnames(P102TA_39_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#create-spatialrna-object-3",
+    "href": "Run_RCTD_P102.html#create-spatialrna-object-3",
+    "title": "4  102T: RCTD",
+    "section": "10.3 Create SpatialRNA object",
+    "text": "10.3 Create SpatialRNA object\n\nP102TA_39_query &lt;- SpatialRNA(P102TA_39_coords, P102TA_39_counts, colSums(P102TA_39_counts))\n\nprint(dim(P102TA_39_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 23961 24553\n\nhist(log(P102TA_39_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#run-rctd-3",
+    "href": "Run_RCTD_P102.html#run-rctd-3",
+    "title": "4  102T: RCTD",
+    "section": "10.4 Run RCTD",
+    "text": "10.4 Run RCTD\n\nP102TA_39_rctd &lt;- create.RCTD(P102TA_39_query, ref, max_cores = 8)\nrm(P102TA_39_RNA, P102TA_39_coords, P102TA_39_query, P102TA_39_counts)\ngc()\nP102TA_39_rctd &lt;- run.RCTD(P102TA_39_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P102.html#save-rctd-results-3",
+    "href": "Run_RCTD_P102.html#save-rctd-results-3",
+    "title": "4  102T: RCTD",
+    "section": "10.5 Save RCTD results",
+    "text": "10.5 Save RCTD results\n\nsaveRDS(P102TA_39_rctd, \"P102TA_39_rctd_results.rds\")\n\n\n10.5.0.1 Note: RCTD is too resource heavy to render in a quarto file. The original run of RCTD is being loaded and saved",
+    "crumbs": [
+      "<span class='chapter-number'>4</span>  <span class='chapter-title'>102T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html",
+    "href": "Run_RCTD_P107.html",
+    "title": "5  107T: RCTD",
+    "section": "",
+    "text": "6 Run RCTD on spatial data using patient-matched scRNAseq data",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#libraries",
+    "href": "Run_RCTD_P107.html#libraries",
+    "title": "5  107T: RCTD",
+    "section": "6.1 Libraries",
+    "text": "6.1 Libraries\n\nlibrary(spacexr)\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#read-in-slide-seq-puck",
+    "href": "Run_RCTD_P107.html#read-in-slide-seq-puck",
+    "title": "5  107T: RCTD",
+    "section": "8.1 Read in slide-seq puck",
+    "text": "8.1 Read in slide-seq puck\n\nP107TA_15_RNA &lt;- readRDS(\"01_Puck15_107TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#extract-rctd-required-data",
+    "href": "Run_RCTD_P107.html#extract-rctd-required-data",
+    "title": "5  107T: RCTD",
+    "section": "8.2 Extract RCTD required data",
+    "text": "8.2 Extract RCTD required data\n\nP107TA_15_counts &lt;- P107TA_15_RNA[[\"Spatial\"]]$counts\nP107TA_15_coords &lt;- GetTissueCoordinates(P107TA_15_RNA)\ncolnames(P107TA_15_coords) &lt;- c(\"x\", \"y\")\nP107TA_15_coords[is.na(colnames(P107TA_15_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#create-spatialrna-object",
+    "href": "Run_RCTD_P107.html#create-spatialrna-object",
+    "title": "5  107T: RCTD",
+    "section": "8.3 Create SpatialRNA object",
+    "text": "8.3 Create SpatialRNA object\n\nP107TA_15_query &lt;- SpatialRNA(P107TA_15_coords, P107TA_15_counts, colSums(P107TA_15_counts))\n\nprint(dim(P107TA_15_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 27925 45575\n\nhist(log(P107TA_15_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#run-rctd",
+    "href": "Run_RCTD_P107.html#run-rctd",
+    "title": "5  107T: RCTD",
+    "section": "8.4 Run RCTD",
+    "text": "8.4 Run RCTD\n\nP107TA_15_rctd &lt;- create.RCTD(P107TA_15_query, ref, max_cores = 8)\nrm(P107TA_15_RNA, P107TA_15_coords, P107TA_15_query, P107TA_15_counts)\ngc()\nP107TA_15_rctd &lt;- run.RCTD(P107TA_15_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#save-rctd-results",
+    "href": "Run_RCTD_P107.html#save-rctd-results",
+    "title": "5  107T: RCTD",
+    "section": "8.5 Save RCTD results",
+    "text": "8.5 Save RCTD results\n\nsaveRDS(P107TA_15_rctd, \"P107TA_15_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#read-in-slide-seq-puck-1",
+    "href": "Run_RCTD_P107.html#read-in-slide-seq-puck-1",
+    "title": "5  107T: RCTD",
+    "section": "9.1 Read in slide-seq puck",
+    "text": "9.1 Read in slide-seq puck\n\nP107TA_18_RNA &lt;- readRDS(\"01_Puck18_107TA_TCR_RNA_merged_110624.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#extract-rctd-required-data-1",
+    "href": "Run_RCTD_P107.html#extract-rctd-required-data-1",
+    "title": "5  107T: RCTD",
+    "section": "9.2 Extract RCTD required data",
+    "text": "9.2 Extract RCTD required data\n\nP107TA_18_counts &lt;- P107TA_18_RNA[[\"Spatial\"]]$counts\nP107TA_18_coords &lt;- GetTissueCoordinates(P107TA_18_RNA)\ncolnames(P107TA_18_coords) &lt;- c(\"x\", \"y\")\nP107TA_18_coords[is.na(colnames(P107TA_18_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#create-spatialrna-object-1",
+    "href": "Run_RCTD_P107.html#create-spatialrna-object-1",
+    "title": "5  107T: RCTD",
+    "section": "9.3 Create SpatialRNA object",
+    "text": "9.3 Create SpatialRNA object\n\nP107TA_18_query &lt;- SpatialRNA(P107TA_18_coords, P107TA_18_counts, colSums(P107TA_18_counts))\n\nprint(dim(P107TA_18_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 22766 34903\n\nhist(log(P107TA_18_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#run-rctd-1",
+    "href": "Run_RCTD_P107.html#run-rctd-1",
+    "title": "5  107T: RCTD",
+    "section": "9.4 Run RCTD",
+    "text": "9.4 Run RCTD\n\nP107TA_18_rctd &lt;- create.RCTD(P107TA_18_query, ref, max_cores = 8)\nrm(P107TA_18_RNA, P107TA_18_coords, P107TA_18_query, P107TA_18_counts)\ngc()\nP107TA_18_rctd &lt;- run.RCTD(P107TA_18_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#save-rctd-results-1",
+    "href": "Run_RCTD_P107.html#save-rctd-results-1",
+    "title": "5  107T: RCTD",
+    "section": "9.5 Save RCTD results",
+    "text": "9.5 Save RCTD results\n\nsaveRDS(P107TA_18_rctd, \"P107TA_18_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#read-in-slide-seq-puck-2",
+    "href": "Run_RCTD_P107.html#read-in-slide-seq-puck-2",
+    "title": "5  107T: RCTD",
+    "section": "10.1 Read in slide-seq puck",
+    "text": "10.1 Read in slide-seq puck\n\nP107TA_20_RNA &lt;- readRDS(\"01_Puck20_107TA_TCR_RNA_merged_110624.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#extract-rctd-required-data-2",
+    "href": "Run_RCTD_P107.html#extract-rctd-required-data-2",
+    "title": "5  107T: RCTD",
+    "section": "10.2 Extract RCTD required data",
+    "text": "10.2 Extract RCTD required data\n\nP107TA_20_counts &lt;- P107TA_20_RNA[[\"Spatial\"]]$counts\nP107TA_20_coords &lt;- GetTissueCoordinates(P107TA_20_RNA)\ncolnames(P107TA_20_coords) &lt;- c(\"x\", \"y\")\nP107TA_20_coords[is.na(colnames(P107TA_20_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#create-spatialrna-object-2",
+    "href": "Run_RCTD_P107.html#create-spatialrna-object-2",
+    "title": "5  107T: RCTD",
+    "section": "10.3 Create SpatialRNA object",
+    "text": "10.3 Create SpatialRNA object\n\nP107TA_20_query &lt;- SpatialRNA(P107TA_20_coords, P107TA_20_counts, colSums(P107TA_20_counts))\n\nprint(dim(P107TA_20_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 24763 34245\n\nhist(log(P107TA_20_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#run-rctd-2",
+    "href": "Run_RCTD_P107.html#run-rctd-2",
+    "title": "5  107T: RCTD",
+    "section": "10.4 Run RCTD",
+    "text": "10.4 Run RCTD\n\nP107TA_20_rctd &lt;- create.RCTD(P107TA_20_query, ref, max_cores = 8)\nrm(P107TA_20_RNA, P107TA_20_coords, P107TA_20_query, P107TA_20_counts)\ngc()\nP107TA_20_rctd &lt;- run.RCTD(P107TA_20_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P107.html#save-rctd-results-2",
+    "href": "Run_RCTD_P107.html#save-rctd-results-2",
+    "title": "5  107T: RCTD",
+    "section": "10.5 Save RCTD results",
+    "text": "10.5 Save RCTD results\n\nsaveRDS(P107TA_20_rctd, \"P107TA_20_rctd_results.rds\")\n\n\n10.5.0.1 Note: RCTD is too resource heavy to render in a quarto file. The original run of RCTD is being loaded and saved",
+    "crumbs": [
+      "<span class='chapter-number'>5</span>  <span class='chapter-title'>107T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html",
+    "href": "Run_RCTD_P108.html",
+    "title": "6  108T: RCTD",
+    "section": "",
+    "text": "7 Run RCTD on spatial data using patient-matched scRNAseq data",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#libraries",
+    "href": "Run_RCTD_P108.html#libraries",
+    "title": "6  108T: RCTD",
+    "section": "7.1 Libraries",
+    "text": "7.1 Libraries\n\nlibrary(spacexr)\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#read-in-slide-seq-puck",
+    "href": "Run_RCTD_P108.html#read-in-slide-seq-puck",
+    "title": "6  108T: RCTD",
+    "section": "9.1 Read in slide-seq puck",
+    "text": "9.1 Read in slide-seq puck\n\nP108TA_26_RNA &lt;- readRDS(\"01_Puck26_108TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#extract-rctd-required-data",
+    "href": "Run_RCTD_P108.html#extract-rctd-required-data",
+    "title": "6  108T: RCTD",
+    "section": "9.2 Extract RCTD required data",
+    "text": "9.2 Extract RCTD required data\n\nP108TA_26_counts &lt;- P108TA_26_RNA[[\"Spatial\"]]$counts\nP108TA_26_coords &lt;- GetTissueCoordinates(P108TA_26_RNA)\ncolnames(P108TA_26_coords) &lt;- c(\"x\", \"y\")\nP108TA_26_coords[is.na(colnames(P108TA_26_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#create-spatialrna-object",
+    "href": "Run_RCTD_P108.html#create-spatialrna-object",
+    "title": "6  108T: RCTD",
+    "section": "9.3 Create SpatialRNA object",
+    "text": "9.3 Create SpatialRNA object\n\nP108TA_26_query &lt;- SpatialRNA(P108TA_26_coords, P108TA_26_counts, colSums(P108TA_26_counts))\n\nprint(dim(P108TA_26_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 27522 40734\n\nhist(log(P108TA_26_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#run-rctd",
+    "href": "Run_RCTD_P108.html#run-rctd",
+    "title": "6  108T: RCTD",
+    "section": "9.4 Run RCTD",
+    "text": "9.4 Run RCTD\n\nP108TA_26_rctd &lt;- create.RCTD(P108TA_26_query, ref, max_cores = 8)\nrm(P108TA_26_RNA, P108TA_26_coords, P108TA_26_query, P108TA_26_counts)\ngc()\nP108TA_26_rctd &lt;- run.RCTD(P108TA_26_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#save-rctd-results",
+    "href": "Run_RCTD_P108.html#save-rctd-results",
+    "title": "6  108T: RCTD",
+    "section": "9.5 Save RCTD results",
+    "text": "9.5 Save RCTD results\n\nsaveRDS(P108TA_26_rctd, \"P108TA_26_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#read-in-slide-seq-puck-1",
+    "href": "Run_RCTD_P108.html#read-in-slide-seq-puck-1",
+    "title": "6  108T: RCTD",
+    "section": "10.1 Read in slide-seq puck",
+    "text": "10.1 Read in slide-seq puck\n\nP108TA_29_RNA &lt;- readRDS(\"01_Puck29_108TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#extract-rctd-required-data-1",
+    "href": "Run_RCTD_P108.html#extract-rctd-required-data-1",
+    "title": "6  108T: RCTD",
+    "section": "10.2 Extract RCTD required data",
+    "text": "10.2 Extract RCTD required data\n\nP108TA_29_counts &lt;- P108TA_29_RNA[[\"Spatial\"]]$counts\nP108TA_29_coords &lt;- GetTissueCoordinates(P108TA_29_RNA)\ncolnames(P108TA_29_coords) &lt;- c(\"x\", \"y\")\nP108TA_29_coords[is.na(colnames(P108TA_29_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#create-spatialrna-object-1",
+    "href": "Run_RCTD_P108.html#create-spatialrna-object-1",
+    "title": "6  108T: RCTD",
+    "section": "10.3 Create SpatialRNA object",
+    "text": "10.3 Create SpatialRNA object\n\nP108TA_29_query &lt;- SpatialRNA(P108TA_29_coords, P108TA_29_counts, colSums(P108TA_29_counts))\n\nprint(dim(P108TA_29_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 28903 48529\n\nhist(log(P108TA_29_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#run-rctd-1",
+    "href": "Run_RCTD_P108.html#run-rctd-1",
+    "title": "6  108T: RCTD",
+    "section": "10.4 Run RCTD",
+    "text": "10.4 Run RCTD\n\nP108TA_29_rctd &lt;- create.RCTD(P108TA_29_query, ref, max_cores = 8)\nrm(P108TA_29_RNA, P108TA_29_coords, P108TA_29_query, P108TA_29_counts)\ngc()\nP108TA_29_rctd &lt;- run.RCTD(P108TA_29_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#save-rctd-results-1",
+    "href": "Run_RCTD_P108.html#save-rctd-results-1",
+    "title": "6  108T: RCTD",
+    "section": "10.5 Save RCTD results",
+    "text": "10.5 Save RCTD results\n\nsaveRDS(P108TA_29_rctd, \"P108TA_29_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#read-in-slide-seq-puck-2",
+    "href": "Run_RCTD_P108.html#read-in-slide-seq-puck-2",
+    "title": "6  108T: RCTD",
+    "section": "11.1 Read in slide-seq puck",
+    "text": "11.1 Read in slide-seq puck\n\nP108TA_30_RNA &lt;- readRDS(\"01_Puck30_108TA_TCR_RNA_merged_111124.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#extract-rctd-required-data-2",
+    "href": "Run_RCTD_P108.html#extract-rctd-required-data-2",
+    "title": "6  108T: RCTD",
+    "section": "11.2 Extract RCTD required data",
+    "text": "11.2 Extract RCTD required data\n\nP108TA_30_counts &lt;- P108TA_30_RNA[[\"Spatial\"]]$counts\nP108TA_30_coords &lt;- GetTissueCoordinates(P108TA_30_RNA)\ncolnames(P108TA_30_coords) &lt;- c(\"x\", \"y\")\nP108TA_30_coords[is.na(colnames(P108TA_30_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#create-spatialrna-object-2",
+    "href": "Run_RCTD_P108.html#create-spatialrna-object-2",
+    "title": "6  108T: RCTD",
+    "section": "11.3 Create SpatialRNA object",
+    "text": "11.3 Create SpatialRNA object\n\nP108TA_30_query &lt;- SpatialRNA(P108TA_30_coords, P108TA_30_counts, colSums(P108TA_30_counts))\n\nprint(dim(P108TA_30_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 30046 36935\n\nhist(log(P108TA_30_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#run-rctd-2",
+    "href": "Run_RCTD_P108.html#run-rctd-2",
+    "title": "6  108T: RCTD",
+    "section": "11.4 Run RCTD",
+    "text": "11.4 Run RCTD\n\nP108TA_30_rctd &lt;- create.RCTD(P108TA_30_query, ref, max_cores = 8)\nrm(P108TA_30_RNA, P108TA_30_coords, P108TA_30_query, P108TA_30_counts)\ngc()\nP108TA_30_rctd &lt;- run.RCTD(P108TA_30_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#save-rctd-results-2",
+    "href": "Run_RCTD_P108.html#save-rctd-results-2",
+    "title": "6  108T: RCTD",
+    "section": "11.5 Save RCTD results",
+    "text": "11.5 Save RCTD results\n\nsaveRDS(P108TA_30_rctd, \"P108TA_30_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#read-in-slide-seq-puck-3",
+    "href": "Run_RCTD_P108.html#read-in-slide-seq-puck-3",
+    "title": "6  108T: RCTD",
+    "section": "12.1 Read in slide-seq puck",
+    "text": "12.1 Read in slide-seq puck\n\nP108TA_32_RNA &lt;- readRDS(\"01_Puck32_108TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#extract-rctd-required-data-3",
+    "href": "Run_RCTD_P108.html#extract-rctd-required-data-3",
+    "title": "6  108T: RCTD",
+    "section": "12.2 Extract RCTD required data",
+    "text": "12.2 Extract RCTD required data\n\nP108TA_32_counts &lt;- P108TA_32_RNA[[\"Spatial\"]]$counts\nP108TA_32_coords &lt;- GetTissueCoordinates(P108TA_32_RNA)\ncolnames(P108TA_32_coords) &lt;- c(\"x\", \"y\")\nP108TA_32_coords[is.na(colnames(P108TA_32_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#create-spatialrna-object-3",
+    "href": "Run_RCTD_P108.html#create-spatialrna-object-3",
+    "title": "6  108T: RCTD",
+    "section": "12.3 Create SpatialRNA object",
+    "text": "12.3 Create SpatialRNA object\n\nP108TA_32_query &lt;- SpatialRNA(P108TA_32_coords, P108TA_32_counts, colSums(P108TA_32_counts))\n\nprint(dim(P108TA_32_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 29959 42811\n\nhist(log(P108TA_32_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#run-rctd-3",
+    "href": "Run_RCTD_P108.html#run-rctd-3",
+    "title": "6  108T: RCTD",
+    "section": "12.4 Run RCTD",
+    "text": "12.4 Run RCTD\n\nP108TA_32_rctd &lt;- create.RCTD(P108TA_32_query, ref, max_cores = 8)\nrm(P108TA_32_RNA, P108TA_32_coords, P108TA_32_query, P108TA_32_counts)\ngc()\nP108TA_32_rctd &lt;- run.RCTD(P108TA_32_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#save-rctd-results-3",
+    "href": "Run_RCTD_P108.html#save-rctd-results-3",
+    "title": "6  108T: RCTD",
+    "section": "12.5 Save RCTD results",
+    "text": "12.5 Save RCTD results\n\nsaveRDS(P108TA_32_rctd, \"P108TA_32_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#read-in-slide-seq-puck-4",
+    "href": "Run_RCTD_P108.html#read-in-slide-seq-puck-4",
+    "title": "6  108T: RCTD",
+    "section": "13.1 Read in slide-seq puck",
+    "text": "13.1 Read in slide-seq puck\n\nP108TB_06_RNA &lt;- readRDS(\"01_Puck06_108TB_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#extract-rctd-required-data-4",
+    "href": "Run_RCTD_P108.html#extract-rctd-required-data-4",
+    "title": "6  108T: RCTD",
+    "section": "13.2 Extract RCTD required data",
+    "text": "13.2 Extract RCTD required data\n\nP108TB_06_counts &lt;- P108TB_06_RNA[[\"Spatial\"]]$counts\nP108TB_06_coords &lt;- GetTissueCoordinates(P108TB_06_RNA)\ncolnames(P108TB_06_coords) &lt;- c(\"x\", \"y\")\nP108TB_06_coords[is.na(colnames(P108TB_06_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#create-spatialrna-object-4",
+    "href": "Run_RCTD_P108.html#create-spatialrna-object-4",
+    "title": "6  108T: RCTD",
+    "section": "13.3 Create SpatialRNA object",
+    "text": "13.3 Create SpatialRNA object\n\nP108TB_06_query &lt;- SpatialRNA(P108TB_06_coords, P108TB_06_counts, colSums(P108TB_06_counts))\n\nprint(dim(P108TB_06_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 25686 26771\n\nhist(log(P108TB_06_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#run-rctd-4",
+    "href": "Run_RCTD_P108.html#run-rctd-4",
+    "title": "6  108T: RCTD",
+    "section": "13.4 Run RCTD",
+    "text": "13.4 Run RCTD\n\nP108TB_06_rctd &lt;- create.RCTD(P108TB_06_query, ref, max_cores = 8)\nrm(P108TB_06_RNA, P108TB_06_coords, P108TB_06_query, P108TB_06_counts)\ngc()\nP108TB_06_rctd &lt;- run.RCTD(P108TB_06_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#save-rctd-results-4",
+    "href": "Run_RCTD_P108.html#save-rctd-results-4",
+    "title": "6  108T: RCTD",
+    "section": "13.5 Save RCTD results",
+    "text": "13.5 Save RCTD results\n\nsaveRDS(P108TB_06_rctd, \"P108TB_06_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#read-in-slide-seq-puck-5",
+    "href": "Run_RCTD_P108.html#read-in-slide-seq-puck-5",
+    "title": "6  108T: RCTD",
+    "section": "14.1 Read in slide-seq puck",
+    "text": "14.1 Read in slide-seq puck\n\nP108TB_14_RNA &lt;- readRDS(\"01_Puck14_108TB_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#extract-rctd-required-data-5",
+    "href": "Run_RCTD_P108.html#extract-rctd-required-data-5",
+    "title": "6  108T: RCTD",
+    "section": "14.2 Extract RCTD required data",
+    "text": "14.2 Extract RCTD required data\n\nP108TB_14_counts &lt;- P108TB_14_RNA[[\"Spatial\"]]$counts\nP108TB_14_coords &lt;- GetTissueCoordinates(P108TB_14_RNA)\ncolnames(P108TB_14_coords) &lt;- c(\"x\", \"y\")\nP108TB_14_coords[is.na(colnames(P108TB_14_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#create-spatialrna-object-5",
+    "href": "Run_RCTD_P108.html#create-spatialrna-object-5",
+    "title": "6  108T: RCTD",
+    "section": "14.3 Create SpatialRNA object",
+    "text": "14.3 Create SpatialRNA object\n\nP108TB_14_query &lt;- SpatialRNA(P108TB_14_coords, P108TB_14_counts, colSums(P108TB_14_counts))\n\nprint(dim(P108TB_14_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 27136 46771\n\nhist(log(P108TB_14_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#run-rctd-5",
+    "href": "Run_RCTD_P108.html#run-rctd-5",
+    "title": "6  108T: RCTD",
+    "section": "14.4 Run RCTD",
+    "text": "14.4 Run RCTD\n\nP108TB_14_rctd &lt;- create.RCTD(P108TB_14_query, ref, max_cores = 8)\nrm(P108TB_14_RNA, P108TB_14_coords, P108TB_14_query, P108TB_14_counts)\ngc()\nP108TB_14_rctd &lt;- run.RCTD(P108TB_14_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P108.html#save-rctd-results-5",
+    "href": "Run_RCTD_P108.html#save-rctd-results-5",
+    "title": "6  108T: RCTD",
+    "section": "14.5 Save RCTD results",
+    "text": "14.5 Save RCTD results\n\nsaveRDS(P108TB_14_rctd, \"P108TB_14_rctd_results.rds\")\n\n\n14.5.0.1 Note: RCTD is too resource heavy to render in a quarto file. The original run of RCTD is being loaded and saved",
+    "crumbs": [
+      "<span class='chapter-number'>6</span>  <span class='chapter-title'>108T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html",
+    "href": "Run_RCTD_P109.html",
+    "title": "7  109T: RCTD",
+    "section": "",
+    "text": "8 Run RCTD on spatial data using patient-matched scRNAseq data",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#libraries",
+    "href": "Run_RCTD_P109.html#libraries",
+    "title": "7  109T: RCTD",
+    "section": "8.1 Libraries",
+    "text": "8.1 Libraries\n\nlibrary(spacexr)\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#read-in-slide-seq-puck",
+    "href": "Run_RCTD_P109.html#read-in-slide-seq-puck",
+    "title": "7  109T: RCTD",
+    "section": "10.1 Read in slide-seq puck",
+    "text": "10.1 Read in slide-seq puck\n\nP109TB_23_RNA &lt;- readRDS(\"01_Puck23_109TB_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#extract-rctd-required-data",
+    "href": "Run_RCTD_P109.html#extract-rctd-required-data",
+    "title": "7  109T: RCTD",
+    "section": "10.2 Extract RCTD required data",
+    "text": "10.2 Extract RCTD required data\n\nP109TB_23_counts &lt;- P109TB_23_RNA[[\"Spatial\"]]$counts\nP109TB_23_coords &lt;- GetTissueCoordinates(P109TB_23_RNA)\ncolnames(P109TB_23_coords) &lt;- c(\"x\", \"y\")\nP109TB_23_coords[is.na(colnames(P109TB_23_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#create-spatialrna-object",
+    "href": "Run_RCTD_P109.html#create-spatialrna-object",
+    "title": "7  109T: RCTD",
+    "section": "10.3 Create SpatialRNA object",
+    "text": "10.3 Create SpatialRNA object\n\nP109TB_23_query &lt;- SpatialRNA(P109TB_23_coords, P109TB_23_counts, colSums(P109TB_23_counts))\n\nprint(dim(P109TB_23_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 16337 17400\n\nhist(log(P109TB_23_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#run-rctd",
+    "href": "Run_RCTD_P109.html#run-rctd",
+    "title": "7  109T: RCTD",
+    "section": "10.4 Run RCTD",
+    "text": "10.4 Run RCTD\nMost beads have UMI ~ 50, so set 20 as minimum instead of 100\n\nP109TB_23_rctd &lt;- create.RCTD(P109TB_23_query, ref, max_cores = 8, UMI_min = 20)\nrm(P109TB_23_RNA, P109TB_23_coords, P109TB_23_query, P109TB_23_counts)\ngc()\nP109TB_23_rctd &lt;- run.RCTD(P109TB_23_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#save-rctd-results",
+    "href": "Run_RCTD_P109.html#save-rctd-results",
+    "title": "7  109T: RCTD",
+    "section": "10.5 Save RCTD results",
+    "text": "10.5 Save RCTD results\n\nsaveRDS(P109TB_23_rctd, \"P109TB_23_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#read-in-slide-seq-puck-1",
+    "href": "Run_RCTD_P109.html#read-in-slide-seq-puck-1",
+    "title": "7  109T: RCTD",
+    "section": "11.1 Read in slide-seq puck",
+    "text": "11.1 Read in slide-seq puck\n\nP109TB_34_RNA &lt;- readRDS(\"01_Puck34_109TB_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#extract-rctd-required-data-1",
+    "href": "Run_RCTD_P109.html#extract-rctd-required-data-1",
+    "title": "7  109T: RCTD",
+    "section": "11.2 Extract RCTD required data",
+    "text": "11.2 Extract RCTD required data\n\nP109TB_34_counts &lt;- P109TB_34_RNA[[\"Spatial\"]]$counts\nP109TB_34_coords &lt;- GetTissueCoordinates(P109TB_34_RNA)\ncolnames(P109TB_34_coords) &lt;- c(\"x\", \"y\")\nP109TB_34_coords[is.na(colnames(P109TB_34_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#create-spatialrna-object-1",
+    "href": "Run_RCTD_P109.html#create-spatialrna-object-1",
+    "title": "7  109T: RCTD",
+    "section": "11.3 Create SpatialRNA object",
+    "text": "11.3 Create SpatialRNA object\n\nP109TB_34_query &lt;- SpatialRNA(P109TB_34_coords, P109TB_34_counts, colSums(P109TB_34_counts))\n\nprint(dim(P109TB_34_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 28423 40221\n\nhist(log(P109TB_34_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#run-rctd-1",
+    "href": "Run_RCTD_P109.html#run-rctd-1",
+    "title": "7  109T: RCTD",
+    "section": "11.4 Run RCTD",
+    "text": "11.4 Run RCTD\n\nP109TB_34_rctd &lt;- create.RCTD(P109TB_34_query, ref, max_cores = 8)\nrm(P109TB_34_RNA, P109TB_34_coords, P109TB_34_query, P109TB_34_counts)\ngc()\nP109TB_34_rctd &lt;- run.RCTD(P109TB_34_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P109.html#save-rctd-results-1",
+    "href": "Run_RCTD_P109.html#save-rctd-results-1",
+    "title": "7  109T: RCTD",
+    "section": "11.5 Save RCTD results",
+    "text": "11.5 Save RCTD results\n\nsaveRDS(P109TB_34_rctd, \"P109TB_34_rctd_results.rds\")\n\n\n11.5.0.1 Note: RCTD is too resource heavy to render in a quarto file. The original run of RCTD is being loaded and saved",
+    "crumbs": [
+      "<span class='chapter-number'>7</span>  <span class='chapter-title'>109T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html",
+    "href": "Run_RCTD_P110.html",
+    "title": "8  110T: RCTD",
+    "section": "",
+    "text": "9 Run RCTD on spatial data using patient-matched scRNAseq data",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#libraries",
+    "href": "Run_RCTD_P110.html#libraries",
+    "title": "8  110T: RCTD",
+    "section": "9.1 Libraries",
+    "text": "9.1 Libraries\n\nlibrary(spacexr)\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#read-in-slide-seq-puck",
+    "href": "Run_RCTD_P110.html#read-in-slide-seq-puck",
+    "title": "8  110T: RCTD",
+    "section": "11.1 Read in slide-seq puck",
+    "text": "11.1 Read in slide-seq puck\n\nP110TA_28_RNA &lt;- readRDS(\"01_Puck28_110TA_TCR_RNA_merged_031925.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#extract-rctd-required-data",
+    "href": "Run_RCTD_P110.html#extract-rctd-required-data",
+    "title": "8  110T: RCTD",
+    "section": "11.2 Extract RCTD required data",
+    "text": "11.2 Extract RCTD required data\n\nP110TA_28_counts &lt;- P110TA_28_RNA[[\"Spatial\"]]$counts\nP110TA_28_coords &lt;- GetTissueCoordinates(P110TA_28_RNA)\ncolnames(P110TA_28_coords) &lt;- c(\"x\", \"y\")\nP110TA_28_coords[is.na(colnames(P110TA_28_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#create-spatialrna-object",
+    "href": "Run_RCTD_P110.html#create-spatialrna-object",
+    "title": "8  110T: RCTD",
+    "section": "11.3 Create SpatialRNA object",
+    "text": "11.3 Create SpatialRNA object\n\nP110TA_28_query &lt;- SpatialRNA(P110TA_28_coords, P110TA_28_counts, colSums(P110TA_28_counts))\n\nprint(dim(P110TA_28_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 27810 44390\n\nhist(log(P110TA_28_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#run-rctd",
+    "href": "Run_RCTD_P110.html#run-rctd",
+    "title": "8  110T: RCTD",
+    "section": "11.4 Run RCTD",
+    "text": "11.4 Run RCTD\n\nP110TA_28_rctd &lt;- create.RCTD(P110TA_28_query, ref, max_cores = 8)\nrm(P110TA_28_RNA, P110TA_28_coords, P110TA_28_query, P110TA_28_counts)\ngc()\nP110TA_28_rctd &lt;- run.RCTD(P110TA_28_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#save-rctd-results",
+    "href": "Run_RCTD_P110.html#save-rctd-results",
+    "title": "8  110T: RCTD",
+    "section": "11.5 Save RCTD results",
+    "text": "11.5 Save RCTD results\n\nsaveRDS(P110TA_28_rctd, \"P110TA_28_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#read-in-slide-seq-puck-1",
+    "href": "Run_RCTD_P110.html#read-in-slide-seq-puck-1",
+    "title": "8  110T: RCTD",
+    "section": "12.1 Read in slide-seq puck",
+    "text": "12.1 Read in slide-seq puck\n\nP110TA_30_RNA &lt;- readRDS(\"01_Puck30_110TA_TCR_RNA_merged_031925.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#extract-rctd-required-data-1",
+    "href": "Run_RCTD_P110.html#extract-rctd-required-data-1",
+    "title": "8  110T: RCTD",
+    "section": "12.2 Extract RCTD required data",
+    "text": "12.2 Extract RCTD required data\n\nP110TA_30_counts &lt;- P110TA_30_RNA[[\"Spatial\"]]$counts\nP110TA_30_coords &lt;- GetTissueCoordinates(P110TA_30_RNA)\ncolnames(P110TA_30_coords) &lt;- c(\"x\", \"y\")\nP110TA_30_coords[is.na(colnames(P110TA_30_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#create-spatialrna-object-1",
+    "href": "Run_RCTD_P110.html#create-spatialrna-object-1",
+    "title": "8  110T: RCTD",
+    "section": "12.3 Create SpatialRNA object",
+    "text": "12.3 Create SpatialRNA object\n\nP110TA_30_query &lt;- SpatialRNA(P110TA_30_coords, P110TA_30_counts, colSums(P110TA_30_counts))\n\nprint(dim(P110TA_30_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 28028 41293\n\nhist(log(P110TA_30_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#run-rctd-1",
+    "href": "Run_RCTD_P110.html#run-rctd-1",
+    "title": "8  110T: RCTD",
+    "section": "12.4 Run RCTD",
+    "text": "12.4 Run RCTD\n\nP110TA_30_rctd &lt;- create.RCTD(P110TA_30_query, ref, max_cores = 8)\nrm(P110TA_30_RNA, P110TA_30_coords, P110TA_30_query, P110TA_30_counts)\ngc()\nP110TA_30_rctd &lt;- run.RCTD(P110TA_30_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P110.html#save-rctd-results-1",
+    "href": "Run_RCTD_P110.html#save-rctd-results-1",
+    "title": "8  110T: RCTD",
+    "section": "12.5 Save RCTD results",
+    "text": "12.5 Save RCTD results\n\nsaveRDS(P110TA_30_rctd, \"P110TA_30_rctd_results.rds\")\n\n\n12.5.0.1 Note: RCTD is too resource heavy to render in a quarto file. The original run of RCTD is being loaded and saved",
+    "crumbs": [
+      "<span class='chapter-number'>8</span>  <span class='chapter-title'>110T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html",
+    "href": "Run_RCTD_P111.html",
+    "title": "9  111T: RCTD",
+    "section": "",
+    "text": "10 Run RCTD on spatial data using patient-matched scRNAseq data",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#libraries",
+    "href": "Run_RCTD_P111.html#libraries",
+    "title": "9  111T: RCTD",
+    "section": "10.1 Libraries",
+    "text": "10.1 Libraries\n\nlibrary(spacexr)\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#read-in-slide-seq-puck",
+    "href": "Run_RCTD_P111.html#read-in-slide-seq-puck",
+    "title": "9  111T: RCTD",
+    "section": "12.1 Read in slide-seq puck",
+    "text": "12.1 Read in slide-seq puck\n\nP111TA_32_RNA &lt;- readRDS(\"01_Puck32_111TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#extract-rctd-required-data",
+    "href": "Run_RCTD_P111.html#extract-rctd-required-data",
+    "title": "9  111T: RCTD",
+    "section": "12.2 Extract RCTD required data",
+    "text": "12.2 Extract RCTD required data\n\nP111TA_32_counts &lt;- P111TA_32_RNA[[\"Spatial\"]]$counts\nP111TA_32_coords &lt;- GetTissueCoordinates(P111TA_32_RNA)\ncolnames(P111TA_32_coords) &lt;- c(\"x\", \"y\")\nP111TA_32_coords[is.na(colnames(P111TA_32_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#create-spatialrna-object",
+    "href": "Run_RCTD_P111.html#create-spatialrna-object",
+    "title": "9  111T: RCTD",
+    "section": "12.3 Create SpatialRNA object",
+    "text": "12.3 Create SpatialRNA object\n\nP111TA_32_query &lt;- SpatialRNA(P111TA_32_coords, P111TA_32_counts, colSums(P111TA_32_counts))\n\nprint(dim(P111TA_32_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 26519 49004\n\nhist(log(P111TA_32_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#run-rctd",
+    "href": "Run_RCTD_P111.html#run-rctd",
+    "title": "9  111T: RCTD",
+    "section": "12.4 Run RCTD",
+    "text": "12.4 Run RCTD\n\nP111TA_32_rctd &lt;- create.RCTD(P111TA_32_query, ref, max_cores = 8)\nrm(P111TA_32_RNA, P111TA_32_coords, P111TA_32_query, P111TA_32_counts)\ngc()\nP111TA_32_rctd &lt;- run.RCTD(P111TA_32_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#save-rctd-results",
+    "href": "Run_RCTD_P111.html#save-rctd-results",
+    "title": "9  111T: RCTD",
+    "section": "12.5 Save RCTD results",
+    "text": "12.5 Save RCTD results\n\nsaveRDS(P111TA_32_rctd, \"P111TA_32_rctd_results.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#read-in-slide-seq-puck-1",
+    "href": "Run_RCTD_P111.html#read-in-slide-seq-puck-1",
+    "title": "9  111T: RCTD",
+    "section": "13.1 Read in slide-seq puck",
+    "text": "13.1 Read in slide-seq puck\n\nP111TA_37_RNA &lt;- readRDS(\"01_Puck37_111TA_TCR_RNA_merged_110724.Rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#extract-rctd-required-data-1",
+    "href": "Run_RCTD_P111.html#extract-rctd-required-data-1",
+    "title": "9  111T: RCTD",
+    "section": "13.2 Extract RCTD required data",
+    "text": "13.2 Extract RCTD required data\n\nP111TA_37_counts &lt;- P111TA_37_RNA[[\"Spatial\"]]$counts\nP111TA_37_coords &lt;- GetTissueCoordinates(P111TA_37_RNA)\ncolnames(P111TA_37_coords) &lt;- c(\"x\", \"y\")\nP111TA_37_coords[is.na(colnames(P111TA_37_coords))] &lt;- NULL",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#create-spatialrna-object-1",
+    "href": "Run_RCTD_P111.html#create-spatialrna-object-1",
+    "title": "9  111T: RCTD",
+    "section": "13.3 Create SpatialRNA object",
+    "text": "13.3 Create SpatialRNA object\n\nP111TA_37_query &lt;- SpatialRNA(P111TA_37_coords, P111TA_37_counts, colSums(P111TA_37_counts))\n\nprint(dim(P111TA_37_query@counts)) # observe Digital Gene Expression matrix\n\n[1] 27397 37307\n\nhist(log(P111TA_37_query@nUMI,2)) # histogram of log_2 nUMI",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#run-rctd-1",
+    "href": "Run_RCTD_P111.html#run-rctd-1",
+    "title": "9  111T: RCTD",
+    "section": "13.4 Run RCTD",
+    "text": "13.4 Run RCTD\n\nP111TA_37_rctd &lt;- create.RCTD(P111TA_37_query, ref, max_cores = 8)\nrm(P111TA_37_RNA, P111TA_37_coords, P111TA_37_query, P111TA_37_counts)\ngc()\nP111TA_37_rctd &lt;- run.RCTD(P111TA_37_rctd, doublet_mode = 'doublet')",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  },
+  {
+    "objectID": "Run_RCTD_P111.html#save-rctd-results-1",
+    "href": "Run_RCTD_P111.html#save-rctd-results-1",
+    "title": "9  111T: RCTD",
+    "section": "13.5 Save RCTD results",
+    "text": "13.5 Save RCTD results\n\nsaveRDS(P111TA_37_rctd, \"P111TA_37_rctd_results.rds\")\n\n\n13.5.0.1 Note: RCTD is too resource heavy to render in a quarto file. The original run of RCTD is being loaded and saved",
+    "crumbs": [
+      "<span class='chapter-number'>9</span>  <span class='chapter-title'>111T: RCTD</span>"
+    ]
+  }
+]

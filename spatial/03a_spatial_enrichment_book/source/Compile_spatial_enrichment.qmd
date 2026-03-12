@@ -1,0 +1,401 @@
+# Plot enrichment {#sec-clone-enrichment}
+
+# Compile and plot enrichment of clonotypes or T cell phenotypes in spatial compartments 
+
+# Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(ggbreak)
+library(tibble)
+
+source("../source_scripts/slideseq_functions_main.R")
+```
+
+###### Joining the enrichment values of clones in the boundary, tumor and TLS across patients for a summarized visualization in volcano plots. Enrichment scores and p-vals (Permutation test) were calculated for clones with at least 5 beads across pucks in a patient. P-vals were FDR corrected using the BH (FDR) method.
+
+###### Note: current_in_all = the number of beads with the clone (or specificity) across all areas in a patient. current_in_given_area = the number of beads with the clone across a given area in a patient.
+
+# Pick significance level
+```{r}
+sig_level <- 0.05
+```
+
+# Open clone objects
+```{r}
+# P102
+P102TA_clone_tls <- readRDS("../objects/P102TA_TLS_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P102TA_clone_tumor <- readRDS("../objects/P102TA_tumor_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P102TA_clone_boundary <- readRDS("../objects/P102TA_boundary_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+
+# P107
+P107TA_clone_tls <- readRDS("../objects/P107TA_TLS_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P107TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P107TA_clone_tumor <- readRDS("../objects/P107TA_tumor_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P107TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+
+# P108TA
+P108TA_clone_tls <- readRDS("../objects/P108TA_TLS_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_clone_tumor <- readRDS("../objects/P108TA_tumor_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_clone_boundary <- readRDS("../objects/P108TA_boundary_clone_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+```
+
+# Open phenotype objects
+```{r}
+P102TA_phenotype_tls <- readRDS("../objects/P102TA_TLS_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P102TA_phenotype_boundary <- readRDS("../objects/P102TA_boundary_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P102TA_phenotype_tumor <- readRDS("../objects/P102TA_tumor_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+
+P107TA_phenotype_tls <- readRDS("../objects/P107TA_TLS_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P107TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P107TA_phenotype_tumor <- readRDS("../objects/P107TA_tumor_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P107TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+
+P108TA_phenotype_tls <- readRDS("../objects/P108TA_TLS_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_phenotype_tumor <- readRDS("../objects/P108TA_tumor_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_phenotype_boundary <- readRDS("../objects/P108TA_boundary_phenotype_list.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+```
+
+# Save results to compare to QC
+## Merge clonotype and phenotype dataframes for each patient
+```{r}
+# P102TA
+P102TA_tls <- P102TA_clone_tls %>%
+  rbind(P102TA_phenotype_tls) %>%
+  mutate(Region = "TLS")
+P102TA_boundary <- P102TA_clone_boundary %>%
+  rbind(P102TA_phenotype_boundary) %>%
+  mutate(Region = "Boundary")
+P102TA_tumor <- P102TA_clone_tumor %>%
+  rbind(P102TA_phenotype_tumor) %>%
+  mutate(Region = "Tumor")
+
+# P107TA
+P107TA_tls <- P107TA_clone_tls %>%
+  rbind(P107TA_phenotype_tls) %>%
+  mutate(Region = "TLS")
+P107TA_tumor <- P107TA_clone_tumor %>%
+  rbind(P107TA_phenotype_tumor) %>%
+  mutate(Region = "Tumor")
+
+# P108TA
+P108TA_tls <- P108TA_clone_tls %>%
+  rbind(P108TA_phenotype_tls) %>%
+  mutate(Region = "TLS")
+P108TA_tumor <- P108TA_clone_tumor %>%
+  rbind(P108TA_phenotype_tumor) %>%
+  mutate(Region = "Tumor")
+P108TA_boundary <- P108TA_clone_boundary %>%
+  rbind(P108TA_phenotype_boundary) %>%
+  mutate(Region = "Boundary")
+```
+
+## Merge across patients for each area
+```{r}
+tls <- rbind(P102TA_tls, P107TA_tls, P108TA_tls)
+boundary <- rbind(P102TA_boundary, P108TA_boundary)
+tumor <- rbind(P102TA_tumor, P107TA_tumor, P108TA_tumor)
+```
+
+## Save results
+```{r}
+write.csv(tls, "../objects/P102TA_P107TA_P108TA_TLS_aggregated.csv", row.names = FALSE)
+write.csv(boundary, "../objects/P102TA_P108TA_boundary_aggregated.csv", row.names = FALSE)
+write.csv(tumor, "../objects/P102TA_P107TA_P108TA_tumor_aggregated.csv", row.names = FALSE)
+```
+
+# Open scRNA-scTCR derived phenotypes
+```{r}
+scrna_phenotypes <- read.csv("../objects/reformatted_RCC_slideseq_parameters_052925.csv") %>%
+  distinct(sctcr_clone, PrimaryCluster)
+```
+
+# Plot TLS
+```{r}
+TLS_clone <- do.call(rbind, list(P102TA_clone_tls, P107TA_clone_tls, P108TA_clone_tls)) %>%
+  mutate(text_size = count_in_area/(12),
+         sig_qval = case_when(qval <= sig_level ~ "Significant",
+                         qval > sig_level ~ "Non-significant")) %>%
+  left_join(scrna_phenotypes, by = c("clone" = "sctcr_clone"))
+      
+TLS_phenotype <- do.call(rbind, list(P102TA_phenotype_tls, P107TA_phenotype_tls, P108TA_phenotype_tls)) %>%
+  mutate(text_size = count_in_area/(12),
+         sig_pval = case_when(pval <= sig_level ~ "Significant",
+                         pval > sig_level ~ "Non-significant"))
+```
+
+## TLS clones
+```{r, fig.width = 8, fig.height = 5}
+TLS_clone %>% 
+  ggplot(aes(x = enrichment, y = -log10(qval), 
+             label = ifelse(qval <= sig_level, clone, NA), 
+             shape = sig_qval)) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(qval <= sig_level, PrimaryCluster, ""), 
+                 color = ifelse(qval <= sig_level, Patient, ""), 
+                 size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 500)) +
+  theme_classic() + 
+  xlab("Enrichment in TLS") +
+  ylab("-log10(adjusted pval)") +
+  scale_fill_manual(values = c("white","red", "black")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Clone", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 3), xlim = c(-2, 6)) +
+  scale_size(breaks=c(1, 31.62, 1000), limits = c(1, 1000))
+
+```
+
+## TLS phenotypes
+```{r, fig.width = 8, fig.height = 5}
+TLS_phenotype %>%
+  ggplot(aes(x = enrichment, y = -log10(pval), label = ifelse(pval <= sig_level, clone, NA))) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(pval <= sig_level, clone, ""), color = ifelse(pval <= sig_level, Patient, ""), size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 1000)) +
+  theme_classic() + 
+  xlab("Enrichment in TLS") +
+  ylab("-log10(pval)") +
+  scale_shape_manual(guide=FALSE, values=c(21, 19)) +
+  scale_fill_manual(values = c("white","red")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Phenotype", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 4), xlim = c(-1, 2)) +
+  scale_size(breaks=c(1, 44.72, 2000), limits = c(1, 2000))
+```
+
+# Plot tumor
+```{r}
+tumor_clone <- do.call(rbind, list(P102TA_clone_tumor, P107TA_clone_tumor, P108TA_clone_tumor)) %>%
+  mutate(text_size = count_in_area/(2+40),
+         sig_qval = case_when(qval <= sig_level ~ "Significant",
+                              qval > sig_level ~ "Non-significant")) %>%
+  left_join(scrna_phenotypes, by = c("clone" = "sctcr_clone"))
+
+tumor_phenotype <- do.call(rbind, list(P102TA_phenotype_tumor, P107TA_phenotype_tumor, P108TA_phenotype_tumor)) %>%
+  mutate(text_size = count_in_area/(2+40),
+         sig_pval = case_when(pval <= sig_level ~ "Significant",
+                              pval > sig_level ~ "Non-significant"))
+```
+
+## Tumor clones
+```{r}
+tumor_clone %>% 
+  ggplot(aes(x = enrichment, y = -log10(qval), 
+             label = ifelse(qval <= sig_level, clone, NA), 
+             shape = sig_qval)) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(qval <= sig_level, PrimaryCluster, ""), 
+                 color = ifelse(qval <= sig_level, Patient, ""), 
+                 size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 500)) +
+  theme_classic() + 
+  xlab("Enrichment in Tumor") +
+  ylab("-log10(adjusted pval)") +
+  scale_fill_manual(values = c("white","red", "black")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Clone", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 3), xlim = c(-2, 6)) +
+  scale_size(breaks=c(1, 31.62, 1000), limits = c(1, 1000))
+```
+
+## Tumor phenotype
+```{r, fig.width = 8, fig.height = 5}
+tumor_phenotype %>%
+  ggplot(aes(x = enrichment, y = -log10(pval), label = ifelse(pval <= sig_level, clone, NA))) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(pval <= sig_level, clone, ""), color = ifelse(pval <= sig_level, Patient, ""), size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 1000)) +
+  theme_classic() + 
+  xlab("Enrichment in Tumor") +
+  ylab("-log10(pval)") +
+  scale_shape_manual(guide=FALSE, values=c(21, 19)) +
+  scale_fill_manual(values = c("white","red")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Phenotype", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 4), xlim = c(-1, 2)) +
+  scale_size(breaks=c(1, 44.72, 2000), limits = c(1, 2000))
+```
+
+# Plot boundary
+```{r,  fig.width = 8, fig.height = 6}
+boundary_clone <- do.call(rbind, list(P102TA_clone_boundary, P108TA_clone_boundary)) %>%
+  mutate(text_size = enrichment/(2+100),
+         sig_qval = case_when(qval <= sig_level ~ "Significant",
+                         qval > sig_level ~ "Non-significant")) %>%
+  left_join(scrna_phenotypes, by = c("clone" = "sctcr_clone"))
+
+boundary_phenotype <- do.call(rbind, list(P102TA_phenotype_boundary, P108TA_phenotype_boundary)) %>%
+  mutate(text_size = enrichment/(2+100),
+         sig_pval = case_when(pval <= sig_level ~ "Significant",
+                         pval > sig_level ~ "Non-significant"))
+```
+
+## Boundary clones
+```{r, fig.width = 8, fig.height = 5}
+boundary_clone %>% 
+  ggplot(aes(x = enrichment, y = -log10(qval), 
+             label = ifelse(qval <= sig_level, clone, NA), 
+             shape = sig_qval)) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(qval <= sig_level, PrimaryCluster, ""), 
+                 color = ifelse(qval <= sig_level, Patient, ""), 
+                 size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 500)) +
+  theme_classic() + 
+  xlab("Enrichment in Boundary") +
+  ylab("-log10(adjusted pval)") +
+  scale_fill_manual(values = c("white","red", "black")) +
+  scale_color_manual(values = c("grey70", "#FF9300", "#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Clone", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 3), xlim = c(-2, 6)) +
+  scale_size(breaks=c(1, 31.62, 1000), limits = c(1, 1000)) 
+```
+
+## Boundary phenotype
+```{r}
+boundary_phenotype %>%
+  ggplot(aes(x = enrichment, y = -log10(pval), label = ifelse(pval <= sig_level, clone, NA))) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(pval <= sig_level, clone, ""), color = ifelse(pval <= sig_level, Patient, ""), size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 1000)) +
+  theme_classic() + 
+  xlab("Enrichment in Boundary") +
+  ylab("-log10(pval)") +
+  scale_shape_manual(guide=FALSE, values=c(21, 19)) +
+  scale_fill_manual(values = c("white","red", "hotpink")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Phenotype", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 4), xlim = c(-1, 2)) +
+  scale_size(breaks=c(1, 44.72, 2000), limits = c(1, 2000))
+
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```

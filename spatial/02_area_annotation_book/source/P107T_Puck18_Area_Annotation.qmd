@@ -1,0 +1,396 @@
+# 107TA Puck18: Area annotation {#sec-area-annotation}
+
+# Integrating RCTD calls and area annotations
+
+## Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(viridis)
+library(tidyverse)
+library(imager)
+library(spacexr)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+four_area_colors <- c("#eeeeee","#8A9A5B", "#8A9A5B", "#1786f5")
+```
+
+## Load object from script 01
+```{r, echo=FALSE}
+P107TA_18_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/01_TCR_RNA_integration/01_Puck18_107TA_TCR_RNA_merged_120125.Rds")
+P107TA_18_rctd <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/RCTD/rctd_results_rds_091125/P107TA_18_rctd_results.rds")
+
+P107TA_18_RNA <- UpdateSeuratObject(P107TA_18_RNA)
+```
+```{r, eval=FALSE}
+P107TA_18_RNA <- readRDS("01_Puck18_107TA_TCR_RNA_merged_120125.Rds")
+```
+
+## Open rctd objects
+```{r, eval=FALSE}
+P107TA_18_rctd <- readRDS("P107TA_18_rctd_results.rds")
+```
+
+## Remove reject beads and normalize RCTD weights
+```{r}
+# Remove reject beads
+rejects <- P107TA_18_rctd@results[["results_df"]] %>%
+  filter(spot_class == "reject") %>%
+  rownames()
+
+P107TA_18_weights <- as.data.frame(normalize_weights(P107TA_18_rctd@results$weights)) %>%
+  # Remove reject beads
+  filter(!(rownames(.) %in% rejects)) %>%
+  dplyr::rename("Endothelial" = "ENDO",
+                "Tumor" = "RCC",
+                "Myeloid" = "MYELOID",
+                "Tcell" = "T")
+```
+
+## Save normalized weights
+```{r, eval = FALSE}
+write.csv(P107TA_18_weights, "P107TA_18_normalized_weights.csv")
+```
+
+## Add RCTD weights
+```{r,echo=FALSE}
+P107TA_18_weights <- read.csv("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/RCTD/normalized_weights_091125/P107TA_18_normalized_weights.csv", row.names = 1)
+```
+```{r,eval=FALSE}
+P107TA_18_weights <- read.csv("P107TA_18_normalized_weights.csv", row.names = 1)
+```
+```{r}
+P107TA_18_RNA <- AddMetaData(P107TA_18_RNA, P107TA_18_weights)
+
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(B = ifelse(is.na(B), 0, B),
+         Tcell = ifelse(is.na(Tcell), 0, Tcell),
+         Endothelial = ifelse(is.na(Endothelial), 0, Endothelial),
+         Myeloid = ifelse(is.na(Myeloid), 0, Myeloid),
+         NK = ifelse(is.na(NK), 0, NK),
+         Tumor = ifelse(is.na(Tumor), 0, Tumor))
+```
+
+## Plot myeloid signature, CD4T, CD8, B cell signature
+```{r}
+SpatialFeaturePlot(P107TA_18_RNA, features = c("B"), pt.size.factor = 2, alpha = c(0.01,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P107TA_18_RNA, features = c("Tcell"), pt.size.factor = 2, alpha = c(0.01,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P107TA_18_RNA, features = c("Myeloid"), pt.size.factor = 2, alpha = c(0.01,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P107TA_18_RNA, features = c("Endothelial"), pt.size.factor = 2, alpha = c(0.01,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P107TA_18_RNA, features = c("Tumor"), pt.size.factor = 2, alpha = c(0.01,1)) & scale_fill_viridis(direction = -1)
+```
+
+## Plot feature and counts for empty area annotation
+```{r}
+SpatialFeaturePlot(P107TA_18_RNA, features = c("log_nFeature_Spatial", "log_nCount_Spatial"))
+```
+
+## Plot TCRs
+```{r}
+P107TA_18_RNA %>% 
+  subset(nFeature_TCR > 0) %>%
+SpatialFeaturePlot(features = "puck18_count", pt.size = 3, stroke = 0.1, alpha = 0.5) + scale_fill_viridis()
+P107TA_18_RNA %>% 
+  subset(nFeature_TCR > 0) %>%
+SpatialFeaturePlot(features = "log_puck18_count", pt.size = 3, stroke = 0.1, alpha = 0.5) + scale_fill_viridis()
+```
+
+
+## Areas with less than 25th percentile UMI were removed as empty areas
+```{r}
+quantile(P107TA_18_RNA$nCount_Spatial)
+beads_25th_umi <- Cells(subset(P107TA_18_RNA, nCount_Spatial <= 20))
+
+P107TA_18_RNA %>%
+  subset(cells = beads_25th_umi) %>%
+  SpatialDimPlot() +
+  ggtitle("UMI<25th percentile (20)")
+
+SpatialDimPlot(P107TA_18_RNA, cells.highlight = beads_25th_umi)
+```
+
+## Update co-ordinates
+```{r}
+plot_coords <- P107TA_18_RNA@images$image@coordinates %>%
+  mutate(plot_x = y,
+         plot_y = -x+4750)
+
+P107TA_18_RNA <- AddMetaData(P107TA_18_RNA, plot_coords)
+```
+
+## Check that plotting co-ordinates are perfect
+```{r}
+P107TA_18_RNA %>%
+  subset(nFeature_TCR > 0) %>%
+SpatialDimPlot(group.by = "nFeature_TCR", alpha = 1, stroke = 0, pt.size.factor = 2)
+
+beads_t <- P107TA_18_RNA@meta.data %>%
+  subset(nFeature_TCR > 0)
+
+SpatialDimPlot(P107TA_18_RNA, group.by = "chains", alpha = 1, stroke = 0, pt.size.factor = 2) +
+  geom_point(data = beads_t, aes(x = plot_x, y = plot_y), size = 0.1)
+
+```
+
+
+## Plot the B, myeloid, and CD8T signature of the beads
+```{r}
+SpatialFeaturePlot(P107TA_18_RNA, features = c("B"), pt.size.factor = 2, alpha = c(0,1)) +
+  NoLegend() &
+  scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P107TA_18_RNA, features = c("Myeloid"), pt.size.factor = 2, alpha = c(0,1)) +
+  NoLegend() &
+  scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P107TA_18_RNA, features = c("Tcell"), pt.size.factor = 2, alpha = c(0,1)) +
+  NoLegend() &
+  scale_fill_viridis(direction = -1)
+
+```
+
+
+## Save images to annotate in Imagescope
+```{r}
+# jpeg("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/area_annotation/area_annotation_jpgs_032824/Puck18_107TA_B_RCTD_weights.jpeg", width = 7, height = 7, units = "in", res = 300)
+SpatialFeaturePlot(P107TA_18_RNA, features = c("B"), pt.size.factor = 2, alpha = c(0,1)) +
+  scale_fill_viridis(direction = -1) +
+  theme_bw() +
+  coord_fixed(ratio = 1, xlim = c(0,5000), ylim = c(0,5000), expand = FALSE, clip = "off") +
+  scale_alpha(range = c(0, 1)) +
+  theme(legend.position = "None")
+# dev.off()
+
+# jpeg("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/area_annotation/area_annotation_jpgs_032824/Puck18_107TA_empty.jpeg", width = 7, height = 7, units = "in", res = 300)
+  SpatialDimPlot(P107TA_18_RNA, cells.highlight = beads_25th_umi, alpha = 0.5, stroke = 0.1, pt.size.factor = 2) + scale_fill_manual(values = c("darkred", "white")) +
+  theme_bw() +
+  coord_fixed(ratio = 1, xlim = c(0,5000), ylim = c(0,5000), expand = FALSE, clip = "off") +
+  scale_alpha(range = c(0, 1)) +
+  theme(legend.position = "None")
+# dev.off()
+
+# jpeg("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/area_annotation/area_annotation_jpgs_032824/Puck18_107TA_T_RCTD_weights.jpeg", width = 7, height = 7, units = "in", res = 300)
+  SpatialFeaturePlot(P107TA_18_RNA, features = c("Tcell"), pt.size.factor = 2, alpha = c(0,1)) +
+  scale_fill_viridis(direction = -1) +
+  theme_bw() +
+  coord_fixed(ratio = 1, xlim = c(0,5000), ylim = c(0,5000), expand = FALSE, clip = "off") +
+  scale_alpha(range = c(0, 1)) +
+  theme(legend.position = "None")
+# dev.off()
+```
+
+## Need anndata object to convert ImageScope XML to PNG in python, so convert seurat object to anndata and save the anndata obj
+```{r, eval = FALSE}
+save_seurat_as_anndata(P107TA_18_RNA, "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/area_annotation/area_annotation_anndata_032824", puck_name = "01_Puck18_107TA_TCR_RNA_area")
+```
+
+## After running python script and creating mask PNGs, convert the PNGs into masks and attach to object metadata
+```{r}
+P107TA_18_RNA <- add_masks_to_obj(P107TA_18_RNA, "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/area_annotation/area_png_masks/Puck18_107TA/", adjust_x = -250, adjust_y = 0)
+```
+
+## Make sure the masks look good and are centered correctly, make sure to reference the screenshot of the annotated areas straight from ImageScope
+```{r}
+suppressMessages(SpatialFeaturePlot(P107TA_18_RNA, features = c("B"), pt.size.factor = 2, alpha = c(0,1)) + NoLegend() & scale_fill_viridis(direction = -1) )
+
+suppressMessages(P107TA_18_RNA %>%
+  subset(cells = beads_25th_umi) %>%
+  SpatialDimPlot(stroke = 0) + NoLegend())
+
+SpatialDimPlot(P107TA_18_RNA, group.by = "mask_1") + NoLegend()
+SpatialDimPlot(P107TA_18_RNA, group.by = "mask_2") + NoLegend()
+SpatialDimPlot(P107TA_18_RNA, group.by = "mask_3") + NoLegend()
+SpatialDimPlot(P107TA_18_RNA, group.by = "mask_4") + NoLegend()
+SpatialDimPlot(P107TA_18_RNA, group.by = "mask_5") + NoLegend()
+```
+
+## Merge layers into one column
+```{r}
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(mask_sum = rowSums(select(., mask_1, mask_2, mask_3, mask_4, mask_5)))
+
+SpatialDimPlot(P107TA_18_RNA, group.by = "mask_sum")
+```
+
+## Translate numericals into names, make sure to reference the screenshot of the annotated areas taken straight from ImageScope
+```{r}
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(area = case_when(mask_sum %in% c(15) ~ "Tumor",
+                          mask_sum %in% c(10, 11, 12) ~ "Empty",
+                          mask_sum %in% c(14) ~ "TLS2",
+                          mask_sum %in% c(13) ~ "TLS3"))
+
+suppressMessages(SpatialFeaturePlot(P107TA_18_RNA, features = "B", pt.size.factor = 2, alpha = c(0,1)) + NoLegend() & scale_fill_viridis(direction = -1) )
+
+suppressMessages(P107TA_18_RNA %>%
+  subset(cells = beads_25th_umi) %>%
+  SpatialDimPlot(stroke = 0) +
+  NoLegend())
+
+SpatialDimPlot(P107TA_18_RNA, group.by = "area", stroke = 0.1) + scale_fill_manual(values = four_area_colors)
+```
+
+## Do we have any straggling beads
+```{r}
+unique(P107TA_18_RNA$area)
+# Plot empty beads only
+SpatialDimPlot(subset(P107TA_18_RNA, area == "Empty"), group.by = "area", alpha = 0.7, stroke = 0)
+# Plot tumor beads only
+SpatialDimPlot(subset(P107TA_18_RNA, area == "Tumor"), group.by = "area", alpha = 0.7, stroke = 0)
+# Plot TLS beads only
+SpatialDimPlot(subset(P107TA_18_RNA, area == "TLS2"), group.by = "area", alpha = 0.7, stroke = 0)
+SpatialDimPlot(subset(P107TA_18_RNA, area == "TLS3"), group.by = "area", alpha = 0.7, stroke = 0)
+
+```
+
+
+## Straggling beads have the tumor label when they should be empty
+```{r}
+# Find affected beads
+SpatialDimPlot(P107TA_18_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  geom_point(data = filter(P107TA_18_RNA@meta.data, plot_x < 350), aes(x = plot_x, y = plot_y), size = 1, alpha = 0.05) +
+  theme(legend.position = "None") +
+  scale_fill_manual(values = four_area_colors)
+# Extract straggling beads
+beads_to_empty <- P107TA_18_RNA@meta.data %>%
+  filter(plot_x < 350) %>%
+  pull(barcode)
+# Cast to empty
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(area = case_when(barcode %in% beads_to_empty ~ "Empty",
+                          !(barcode %in% beads_to_empty) ~ area))
+
+# Find affected beads
+SpatialDimPlot(P107TA_18_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  geom_point(data = filter(P107TA_18_RNA@meta.data, plot_x > 3100 & plot_y > 4000), aes(x = plot_x, y = plot_y), size = 1, alpha = 0.05) +
+  theme(legend.position = "None") +
+  scale_fill_manual(values = four_area_colors)
+# Extract straggling beads
+beads_to_empty <- P107TA_18_RNA@meta.data %>%
+  filter(plot_x > 3100 & plot_y > 4000) %>%
+  pull(barcode)
+# Cast to empty
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(area = case_when(barcode %in% beads_to_empty ~ "Empty",
+                          !(barcode %in% beads_to_empty) ~ area))
+
+# Find affected beads
+SpatialDimPlot(P107TA_18_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  geom_point(data = filter(P107TA_18_RNA@meta.data, plot_x > 4000), aes(x = plot_x, y = plot_y), size = 1, alpha = 0.05) +
+  theme(legend.position = "None") +
+  scale_fill_manual(values = four_area_colors)
+# Extract straggling beads
+beads_to_empty <- P107TA_18_RNA@meta.data %>%
+  filter(plot_x > 4000) %>%
+  pull(barcode)
+# Cast to empty
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(area = case_when(barcode %in% beads_to_empty ~ "Empty",
+                          !(barcode %in% beads_to_empty) ~ area))
+```
+
+
+## Do we have any straggling beads
+```{r}
+unique(P107TA_18_RNA$area)
+# Plot empty beads only
+SpatialDimPlot(subset(P107TA_18_RNA, area == "Empty"), group.by = "area", alpha = 0.7, stroke = 0)
+# Plot tumor beads only
+SpatialDimPlot(subset(P107TA_18_RNA, area == "Tumor"), group.by = "area", alpha = 0.7, stroke = 0)
+# Plot TLS beads only
+SpatialDimPlot(subset(P107TA_18_RNA, area == "TLS2"), group.by = "area", alpha = 0.7, stroke = 0)
+SpatialDimPlot(subset(P107TA_18_RNA, area == "TLS3"), group.by = "area", alpha = 0.7, stroke = 0)
+
+```
+
+## Save bead area annotations
+```{r, eval = FALSE}
+P107TA_18_RNA@meta.data %>%
+ select(barcode, area) %>%
+  write.csv("Puck18_107TA_bead_area_annot.csv")
+```
+
+
+## Before removing TCRs in the empty areas
+## Plot where all TCRs are
+```{r}
+beads_w_tcr <- P107TA_18_RNA@meta.data %>%
+  filter(nFeature_TCR > 0)
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P107TA_18_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = four_area_colors)))
+
+plot <- SpatialDimPlot(P107TA_18_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = four_area_colors) +
+  geom_point(data = beads_w_tcr, aes(x = plot_x, y = plot_y), size = 0.7) +
+  theme(legend.position = "None") 
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 ,3)) + ggtitle("TCR location")
+```
+
+## Plot where neoAg TCRs are
+```{r}
+beads_neoag <- P107TA_18_RNA@meta.data %>%
+  filter(tumor_antigen_specific == TRUE)
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P107TA_18_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = four_area_colors))) 
+
+plot <- SpatialDimPlot(P107TA_18_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = four_area_colors) +
+  geom_point(data = beads_neoag, aes(x = plot_x, y = plot_y), size = 1) +
+  theme(legend.position = "None")
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 , 3)) + ggtitle("NeoAg TCR location")
+```
+
+## Plot where TCRs are AFTER removing TCRs associated with the beads in the "empty" areas
+
+## Remove TCRs, also remove mask columns in metadata 
+```{r}
+P107TA_18_RNA <- remove_tcrs_in_empty_area(P107TA_18_RNA)
+
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  select(-c(mask_1, mask_2, mask_3, mask_4, mask_5, mask_sum))
+
+```
+
+## Plot where all TCRs are
+```{r}
+beads_w_tcr <- P107TA_18_RNA@meta.data %>%
+  filter(nFeature_TCR > 0)
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P107TA_18_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = four_area_colors))) 
+
+plot <- SpatialDimPlot(P107TA_18_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = four_area_colors) +
+  geom_point(data = beads_w_tcr, aes(x = plot_x, y = plot_y), size = 1) +
+  theme(legend.position = "None") 
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 ,3)) + ggtitle("TCR location")
+```
+
+## Plot areas
+```{r}
+SpatialDimPlot(P107TA_18_RNA, group.by = "area", stroke = 0.1) + scale_fill_manual(values = four_area_colors)
+```
+
+## Save puck
+```{r, eval = FALSE}
+saveRDS(P107TA_18_RNA, "02_Puck18_107TA_TCR_RNA_area_121125.Rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+

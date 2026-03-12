@@ -1,0 +1,1765 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>2&nbsp; Clean clusters on NeoVax + CancerCell data – Afeyan, Nagler &amp; Tu (2025): Spatial RCC analysis: RCTD Analysis</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./Create_single_cell_reference_for_RCTD.html" rel="next">
+<link href="./Subcluster_NeoVax_CancerCell.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./Clean_NeoVax_CancerCell.html"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Clean clusters on NeoVax + CancerCell data</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Afeyan, Nagler &amp; Tu (2025): Spatial RCC analysis: RCTD Analysis</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Subcluster_NeoVax_CancerCell.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Subcluster NeoVax + CancerCell data</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Clean_NeoVax_CancerCell.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Clean clusters on NeoVax + CancerCell data</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Create_single_cell_reference_for_RCTD.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">scRNA References for RCTD</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Run_RCTD_P102.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">102T: RCTD</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Run_RCTD_P107.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">107T: RCTD</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Run_RCTD_P108.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">108T: RCTD</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Run_RCTD_P109.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">7</span>&nbsp; <span class="chapter-title">109T: RCTD</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Run_RCTD_P110.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">8</span>&nbsp; <span class="chapter-title">110T: RCTD</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Run_RCTD_P111.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">9</span>&nbsp; <span class="chapter-title">111T: RCTD</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#section" id="toc-section" class="nav-link active" data-scroll-target="#section"><span class="header-section-number">2.0.1</span> </a></li>
+  <li><a href="#libraries" id="toc-libraries" class="nav-link" data-scroll-target="#libraries"><span class="header-section-number">3</span> Libraries</a></li>
+  <li><a href="#load-subclustered-object" id="toc-load-subclustered-object" class="nav-link" data-scroll-target="#load-subclustered-object"><span class="header-section-number">4</span> Load subclustered object</a></li>
+  <li><a href="#update-subcluster-labels" id="toc-update-subcluster-labels" class="nav-link" data-scroll-target="#update-subcluster-labels"><span class="header-section-number">5</span> Update subcluster labels</a>
+  <ul class="collapse">
+  <li><a href="#b-cell" id="toc-b-cell" class="nav-link" data-scroll-target="#b-cell"><span class="header-section-number">5.1</span> B cell</a></li>
+  <li><a href="#myeloid" id="toc-myeloid" class="nav-link" data-scroll-target="#myeloid"><span class="header-section-number">5.2</span> Myeloid</a></li>
+  <li><a href="#t" id="toc-t" class="nav-link" data-scroll-target="#t"><span class="header-section-number">5.3</span> T</a></li>
+  <li><a href="#nk" id="toc-nk" class="nav-link" data-scroll-target="#nk"><span class="header-section-number">5.4</span> NK</a></li>
+  <li><a href="#rcc" id="toc-rcc" class="nav-link" data-scroll-target="#rcc"><span class="header-section-number">5.5</span> RCC</a></li>
+  <li><a href="#endothelial" id="toc-endothelial" class="nav-link" data-scroll-target="#endothelial"><span class="header-section-number">5.6</span> Endothelial</a></li>
+  <li><a href="#fibroblast" id="toc-fibroblast" class="nav-link" data-scroll-target="#fibroblast"><span class="header-section-number">5.7</span> Fibroblast</a></li>
+  </ul></li>
+  <li><a href="#merge-subcluster-labels" id="toc-merge-subcluster-labels" class="nav-link" data-scroll-target="#merge-subcluster-labels"><span class="header-section-number">6</span> Merge subcluster labels</a></li>
+  <li><a href="#subset-for-rctd-cells" id="toc-subset-for-rctd-cells" class="nav-link" data-scroll-target="#subset-for-rctd-cells"><span class="header-section-number">7</span> Subset for RCTD cells</a></li>
+  <li><a href="#merge-into-general-clusters-for-rctd-calling" id="toc-merge-into-general-clusters-for-rctd-calling" class="nav-link" data-scroll-target="#merge-into-general-clusters-for-rctd-calling"><span class="header-section-number">8</span> Merge into general clusters for RCTD calling</a></li>
+  <li><a href="#save-object-for-rctd-calling" id="toc-save-object-for-rctd-calling" class="nav-link" data-scroll-target="#save-object-for-rctd-calling"><span class="header-section-number">9</span> Save object for RCTD calling</a></li>
+  <li><a href="#subset-further-for-liana" id="toc-subset-further-for-liana" class="nav-link" data-scroll-target="#subset-further-for-liana"><span class="header-section-number">10</span> Subset further for LIANA</a></li>
+  <li><a href="#subset-for-tls-patients-and-run-liana" id="toc-subset-for-tls-patients-and-run-liana" class="nav-link" data-scroll-target="#subset-for-tls-patients-and-run-liana"><span class="header-section-number">11</span> Subset for TLS+ patients and run LIANA</a></li>
+  <li><a href="#subset-for-tls--patients-and-run-liana" id="toc-subset-for-tls--patients-and-run-liana" class="nav-link" data-scroll-target="#subset-for-tls--patients-and-run-liana"><span class="header-section-number">12</span> Subset for TLS- patients and run LIANA</a>
+  <ul class="collapse">
+  <li><a href="#filter-for-source-target-interactions-of-interest" id="toc-filter-for-source-target-interactions-of-interest" class="nav-link" data-scroll-target="#filter-for-source-target-interactions-of-interest"><span class="header-section-number">12.1</span> Filter for source-target interactions of interest</a></li>
+  <li><a href="#view-liana-results" id="toc-view-liana-results" class="nav-link" data-scroll-target="#view-liana-results"><span class="header-section-number">12.2</span> View LIANA results</a></li>
+  <li><a href="#save-liana" id="toc-save-liana" class="nav-link" data-scroll-target="#save-liana"><span class="header-section-number">12.3</span> Save LIANA</a></li>
+  </ul></li>
+  <li><a href="#get-session-info" id="toc-get-session-info" class="nav-link" data-scroll-target="#get-session-info"><span class="header-section-number">13</span> Get session info</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-rctd" class="quarto-section-identifier"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Clean clusters on NeoVax + CancerCell data</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="section" class="level3" data-number="2.0.1">
+<h3 data-number="2.0.1" class="anchored" data-anchor-id="section"><span class="header-section-number">2.0.1</span> </h3>
+</section>
+<section id="libraries" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Libraries</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: SeuratObject</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: sp</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'SeuratObject'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, t</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(paletteer)</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(liana)</span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ dplyr     1.1.4     ✔ readr     2.1.6
+✔ forcats   1.0.1     ✔ stringr   1.6.0
+✔ ggplot2   4.0.1     ✔ tibble    3.3.0
+✔ lubridate 1.9.4     ✔ tidyr     1.3.1
+✔ purrr     1.2.0     </code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb9"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpointdensity)</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rmarkdown)</span>
+<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
+<span id="cb9-4"><a href="#cb9-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-5"><a href="#cb9-5" aria-hidden="true" tabindex="-1"></a>knitr<span class="sc">::</span>opts_chunk<span class="sc">$</span><span class="fu">set</span>(<span class="at">cache =</span> <span class="cn">TRUE</span>, <span class="at">warning =</span> <span class="cn">FALSE</span>, </span>
+<span id="cb9-6"><a href="#cb9-6" aria-hidden="true" tabindex="-1"></a>                      <span class="at">message =</span> <span class="cn">FALSE</span>, <span class="at">cache.lazy =</span> <span class="cn">FALSE</span>)</span>
+<span id="cb9-7"><a href="#cb9-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb9-8"><a href="#cb9-8" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">tibble.print_min =</span> <span class="cn">Inf</span>, <span class="at">tibble.width =</span> <span class="cn">Inf</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="load-subclustered-object" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Load subclustered object</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a>scrna <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"../objects/subclustered_RCC.NeoVax.CancerCell.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="update-subcluster-labels" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Update subcluster labels</h1>
+<section id="b-cell" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="b-cell"><span class="header-section-number">5.1</span> B cell</h2>
+<p>B_1, B_0 are good (B.Mem), B_2 contains contaminant cells (i think these are interacting cells with B cells), B_3 is good (Plasma), B_4 is probably cytotoxic T contaminant (although not catastrophic, this one is borderline), B_5 is contains too much erythroid markers, B_6 is myeloid contaminant, B8 seems like a fine plasma cell cluster to me, and B9 may contain tumor contaminant, as ALDOB is a PT marker.</p>
+<p>Summary: B_0, B_1 (memory), B_3, B_8 (plasma), B_2, B_4, B_5, B_6, B_7, B_9 are unideal for LIANA because they contain markers of other genes in addition to clear B cell markers (one sees clearly that they do contain B cell transcripts too so at least the clustering algo makes sense)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb11"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>b_subcluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK"            "T"             "NORM.EPI"      "ENDO"         
+ [5] "Myeloid"       "B_6"           "FIBRO"         "ERYTH"        
+ [9] "NORM.PT"       "NORM.INTERCAL" "B_1"           "B_0"          
+[13] "RCC"           "B_4"           "B_2"           "B_3"          
+[17] "B_5"           "B_7"           "B_8"           "B_9"          </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">b_labels =</span> <span class="fu">case_when</span>(b_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"B_0"</span>, <span class="st">"B_1"</span>) <span class="sc">~</span> <span class="st">"B.MEM"</span>,</span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>                              b_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"B_3"</span>, <span class="st">"B_8"</span>) <span class="sc">~</span> <span class="st">"B.PLASMA"</span>,</span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>                              T <span class="sc">~</span> <span class="cn">NA</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="myeloid" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="myeloid"><span class="header-section-number">5.2</span> Myeloid</h2>
+<p>M_4 is DCs, M_2 is non-classical monocytes, M_1 is classical monocytes, M_14 is DCs, M_11 is M2-Macs, M_8, M_3, and M13 are T cell contaminants. M_0 is TAMs, M_9 is Mast cells, M_12 is pDCs, M6 is Macs, M_7 is M2-macs, M_10 is monocytes, M_15 is monocytes, M_5 is M2-mac.</p>
+<p>Summary: M_0 and M_6 are Mac (these are likely anti-inflammatory as well, but not as much as M2s); M_5, M_7, M_11 are M2. Mac; M_1, M_10 are Classical Monocytes; M_2, M_15 are non-classical monocytes, M_4, M_14 is DCs; M_9 is Mast (don’t need for LIANA); M_12 is pDCs (not needed for LIANA); M_3, M_8, and M_13 should be discarded as contaminant</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb14"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>myeloid_subcluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK"            "T"             "NORM.EPI"      "ENDO"         
+ [5] "Myeloid_4"     "Myeloid_2"     "B"             "Myeloid_1"    
+ [9] "Myeloid_14"    "FIBRO"         "ERYTH"         "NORM.PT"      
+[13] "NORM.INTERCAL" "Myeloid_11"    "Myeloid_8"     "Myeloid_3"    
+[17] "Myeloid_0"     "Myeloid_9"     "Myeloid_13"    "Myeloid_12"   
+[21] "RCC"           "Myeloid_6"     "Myeloid_7"     "Myeloid_10"   
+[25] "Myeloid_15"    "Myeloid_5"    </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb16"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">myeloid_labels =</span> <span class="fu">case_when</span>(myeloid_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Myeloid_0"</span>, <span class="st">"Myeloid_6"</span>) <span class="sc">~</span> <span class="st">"MAC"</span>,</span>
+<span id="cb16-3"><a href="#cb16-3" aria-hidden="true" tabindex="-1"></a>                                    myeloid_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Myeloid_5"</span>, <span class="st">"Myeloid_7"</span>, <span class="st">"Myeloid_11"</span>) <span class="sc">~</span> <span class="st">"M2.MAC"</span>,</span>
+<span id="cb16-4"><a href="#cb16-4" aria-hidden="true" tabindex="-1"></a>                                    myeloid_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Myeloid_1"</span>, <span class="st">"Myeloid_10"</span>) <span class="sc">~</span> <span class="st">"MONO.CLASS"</span>,</span>
+<span id="cb16-5"><a href="#cb16-5" aria-hidden="true" tabindex="-1"></a>                                    myeloid_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Myeloid_2"</span>, <span class="st">"Myeloid_15"</span>) <span class="sc">~</span> <span class="st">"MONO.NONCLASS"</span>,</span>
+<span id="cb16-6"><a href="#cb16-6" aria-hidden="true" tabindex="-1"></a>                                    myeloid_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"Myeloid_4"</span>, <span class="st">"Myeloid_14"</span>) <span class="sc">~</span> <span class="st">"DC"</span>,</span>
+<span id="cb16-7"><a href="#cb16-7" aria-hidden="true" tabindex="-1"></a>                              T <span class="sc">~</span> <span class="cn">NA</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="t" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="t"><span class="header-section-number">5.3</span> T</h2>
+<p>For T: T_3: NK-like TEM; T_0 is TEx; T_2 is TAp; T_1 is TMem; T_4 is TRM; T_10 is TProl; T_5 is Treg; T_6 is TEx; T_8 is myeloid contaminant; T_9 is TProl; T_7 is TProl; T_11 is TIFN; T_12 is TAp For LIANA: TEx is T_0, T_6, T_7, T_9, T_10, T_11; TMem is T_1, T_3, T_4; Treg is T_5; and you can ignore TAp (T_2, T_12) and the myeloid contaminant (T_8), and ignore small clusters with only 2 cells (T_13 and T_14)</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>t_subcluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK"            "T_3"           "NORM.EPI"      "T_0"          
+ [5] "ENDO"          "Myeloid"       "B"             "T_2"          
+ [9] "FIBRO"         "T_1"           "T_4"           "ERYTH"        
+[13] "NORM.PT"       "NORM.INTERCAL" "T_10"          "T_5"          
+[17] "T_6"           "T_8"           "RCC"           "T_9"          
+[21] "T_7"           "T_11"          "T_13"          "T_12"         
+[25] "T_14"         </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">t_labels =</span> <span class="fu">case_when</span>(t_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"T_0"</span>, <span class="st">"T_6"</span>, <span class="st">"T_7"</span>, <span class="st">"T_9"</span>, <span class="st">"T_10"</span>, <span class="st">"T_11"</span>) <span class="sc">~</span> <span class="st">"TEX"</span>,</span>
+<span id="cb19-3"><a href="#cb19-3" aria-hidden="true" tabindex="-1"></a>                              t_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"T_1"</span>, <span class="st">"T_3"</span>, <span class="st">"T_4"</span>) <span class="sc">~</span> <span class="st">"TMEM"</span>,</span>
+<span id="cb19-4"><a href="#cb19-4" aria-hidden="true" tabindex="-1"></a>                              t_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"T_5"</span>) <span class="sc">~</span> <span class="st">"TREG"</span>,</span>
+<span id="cb19-5"><a href="#cb19-5" aria-hidden="true" tabindex="-1"></a>                              T <span class="sc">~</span> <span class="cn">NA</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="nk" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="nk"><span class="header-section-number">5.4</span> NK</h2>
+<p>NK_0 are NKs, NK_3 are NKs, NK_1 are NKs, NK_2 are NKs, NK_4 may be T cells or NK cells, so we’ll exclude them, NK_6 are NKs, NK_8 are T cell contaminants (tregs interestingly, maybe there is a treg-like NK state…), NK_5 are likely T cell-like contaminants - these aren’t NK genes, but they’re not strictly CD3 positive; NK_7 is some contaminant. For LIANA: NKs are NK_0, NK_1, NK_2, NK_3, NK_6; contaminants are NK_4, NK_5, NK_7, NK_8</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb20"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb20-1"><a href="#cb20-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>nk_subcluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK_0"          "T"             "NORM.EPI"      "ENDO"         
+ [5] "Myeloid"       "B"             "NK_3"          "FIBRO"        
+ [9] "ERYTH"         "NK_1"          "NORM.PT"       "NK_2"         
+[13] "NORM.INTERCAL" "NK_4"          "NK_6"          "RCC"          
+[17] "NK_8"          "NK_5"          "NK_7"         </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb22"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb22-1"><a href="#cb22-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb22-2"><a href="#cb22-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">nk_labels =</span> <span class="fu">case_when</span>(nk_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"NK_0"</span>, <span class="st">"NK_1"</span>, <span class="st">"NK_2"</span>, <span class="st">"NK_3"</span>, <span class="st">"NK_6"</span>) <span class="sc">~</span> <span class="st">"NK"</span>,</span>
+<span id="cb22-3"><a href="#cb22-3" aria-hidden="true" tabindex="-1"></a>                              T <span class="sc">~</span> <span class="cn">NA</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="rcc" class="level2" data-number="5.5">
+<h2 data-number="5.5" class="anchored" data-anchor-id="rcc"><span class="header-section-number">5.5</span> RCC</h2>
+<p>Tumor: RCC_1 is RCC; RCC_2, RCC_4, RCC_6, RCC_11 and RCC_12 are contaminant T/Myeloid cells; RCC_0 is RCC; RCC_3 is RCC; RCC_9 is RCC; RCC_7 is RCC; RCC_5 is RCC, RCC_10 is RCC; RCC_8 is probably RCC For LIANA consider RCC_0, RCC_1, RCC_3, RCC_5, RCC_7, RCC_8, RCC_9, RCC10 as RCC, and consider RCC_2, RCC_4, RCC_6, RCC_11, and RCC_12 as contaminants</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>rcc_subcluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK"            "T"             "NORM.EPI"      "ENDO"         
+ [5] "Myeloid"       "B"             "FIBRO"         "ERYTH"        
+ [9] "NORM.PT"       "NORM.INTERCAL" "RCC_1"         "RCC_4"        
+[13] "RCC_2"         "RCC_6"         "RCC_0"         "RCC_3"        
+[17] "RCC_9"         "RCC_11"        "RCC_7"         "RCC_5"        
+[21] "RCC_10"        "RCC_8"         "RCC_12"       </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb25-2"><a href="#cb25-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">rcc_labels =</span> <span class="fu">case_when</span>(rcc_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"RCC_0"</span>, <span class="st">"RCC_1"</span>, <span class="st">"RCC_3"</span>, <span class="st">"RCC_5"</span>, <span class="st">"RCC_7"</span>, <span class="st">"RCC_8"</span>, <span class="st">"RCC_9"</span>, <span class="st">"RCC_10"</span>) <span class="sc">~</span> <span class="st">"RCC"</span>,</span>
+<span id="cb25-3"><a href="#cb25-3" aria-hidden="true" tabindex="-1"></a>                              T <span class="sc">~</span> <span class="cn">NA</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="endothelial" class="level2" data-number="5.6">
+<h2 data-number="5.6" class="anchored" data-anchor-id="endothelial"><span class="header-section-number">5.6</span> Endothelial</h2>
+<p>Endothelial cells: ENDO_2 is tumor-associated endothelial cells; ENDO_6 is endothelial cells; ENDO_1 is T cell contamination; ENDO_3 is probably endothelial cells; ENDO_0 is endothelial cells; ENDO_8 is smooth muscle cells interestingly; ENDO_7 is myeloid contaminant; ENDO_4 is endothelial, ENDO_5 is endothelial. For LIANA, ENDO_0, ENDO_2, ENDO_3, ENDO_4, ENDO_5, ENDO_6 are all endothelial; you can discard ENDO_1, ENDO_7, and ENDO_8 as contaminant clusters</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb26"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb26-1"><a href="#cb26-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>endo_subcluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK"            "T"             "NORM.EPI"      "ENDO_2"       
+ [5] "Myeloid"       "B"             "FIBRO"         "ENDO_6"       
+ [9] "ERYTH"         "ENDO_1"        "NORM.PT"       "NORM.INTERCAL"
+[13] "ENDO_3"        "ENDO_0"        "RCC"           "ENDO_8"       
+[17] "ENDO_7"        "ENDO_4"        "ENDO_5"       </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb28"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb28-1"><a href="#cb28-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb28-2"><a href="#cb28-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">endo_labels =</span> <span class="fu">case_when</span>(endo_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"ENDO_0"</span>, <span class="st">"ENDO_2"</span>, <span class="st">"ENDO_3"</span>, <span class="st">"ENDO_4"</span>, <span class="st">"ENDO_5"</span>, <span class="st">"ENDO_6"</span>) <span class="sc">~</span> <span class="st">"ENDO"</span>,</span>
+<span id="cb28-3"><a href="#cb28-3" aria-hidden="true" tabindex="-1"></a>                              T <span class="sc">~</span> <span class="cn">NA</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="fibroblast" class="level2" data-number="5.7">
+<h2 data-number="5.7" class="anchored" data-anchor-id="fibroblast"><span class="header-section-number">5.7</span> Fibroblast</h2>
+<p>Fibroblast cells: I think 3, 0, 1, and 4 - agreed? based on the markers seems like 2 may be renal epithelium or tumor, 5 is immune contaminant, and 6 I have no idea but doesn’t seem like a fibroblast</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>fib_subcluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK"            "T"             "NORM.EPI"      "ENDO"         
+ [5] "Myeloid"       "B"             "FIBRO_3"       "ERYTH"        
+ [9] "NORM.PT"       "NORM.INTERCAL" "FIBRO_2"       "RCC"          
+[13] "FIBRO_0"       "FIBRO_5"       "FIBRO_1"       "FIBRO_4"      
+[17] "FIBRO_6"      </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb31-2"><a href="#cb31-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">fib_labels =</span> <span class="fu">case_when</span>(fib_subcluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"FIBRO_0"</span>, <span class="st">"FIBRO_1"</span>, <span class="st">"FIBRO_3"</span>, <span class="st">"FIBRO_4"</span>) <span class="sc">~</span> <span class="st">"FIBRO"</span>,</span>
+<span id="cb31-3"><a href="#cb31-3" aria-hidden="true" tabindex="-1"></a>                              T <span class="sc">~</span> <span class="cn">NA</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="merge-subcluster-labels" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Merge subcluster labels</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb32"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb32-1"><a href="#cb32-1" aria-hidden="true" tabindex="-1"></a>scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb32-2"><a href="#cb32-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">liana_label =</span> <span class="fu">case_when</span>(<span class="sc">!</span><span class="fu">is.na</span>(b_labels) <span class="sc">~</span> b_labels,</span>
+<span id="cb32-3"><a href="#cb32-3" aria-hidden="true" tabindex="-1"></a>                                 <span class="sc">!</span><span class="fu">is.na</span>(myeloid_labels) <span class="sc">~</span> myeloid_labels,</span>
+<span id="cb32-4"><a href="#cb32-4" aria-hidden="true" tabindex="-1"></a>                                 <span class="sc">!</span><span class="fu">is.na</span>(t_labels) <span class="sc">~</span> t_labels,</span>
+<span id="cb32-5"><a href="#cb32-5" aria-hidden="true" tabindex="-1"></a>                                 <span class="sc">!</span><span class="fu">is.na</span>(nk_labels) <span class="sc">~</span> nk_labels,</span>
+<span id="cb32-6"><a href="#cb32-6" aria-hidden="true" tabindex="-1"></a>                                 <span class="sc">!</span><span class="fu">is.na</span>(rcc_labels) <span class="sc">~</span> rcc_labels,</span>
+<span id="cb32-7"><a href="#cb32-7" aria-hidden="true" tabindex="-1"></a>                                 <span class="sc">!</span><span class="fu">is.na</span>(endo_labels) <span class="sc">~</span> endo_labels,</span>
+<span id="cb32-8"><a href="#cb32-8" aria-hidden="true" tabindex="-1"></a>                                 <span class="sc">!</span><span class="fu">is.na</span>(fib_labels) <span class="sc">~</span> fib_labels))</span>
+<span id="cb32-9"><a href="#cb32-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb32-10"><a href="#cb32-10" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>liana_label)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+        B.MEM      B.PLASMA            DC          ENDO         FIBRO 
+         5455           870          9402          4985           678 
+       M2.MAC           MAC    MONO.CLASS MONO.NONCLASS            NK 
+        12467         27016         17351         13224         44536 
+          RCC           TEX          TMEM          TREG 
+         4138         91477         73431         10742 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb34"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb34-1"><a href="#cb34-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>b_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+   B.MEM B.PLASMA 
+    5455      870 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb36"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb36-1"><a href="#cb36-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>myeloid_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+           DC        M2.MAC           MAC    MONO.CLASS MONO.NONCLASS 
+         9402         12467         27016         17351         13224 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb38"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb38-1"><a href="#cb38-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>t_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+  TEX  TMEM  TREG 
+91477 73431 10742 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb40"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb40-1"><a href="#cb40-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>nk_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+   NK 
+44536 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>rcc_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+ RCC 
+4138 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>endo_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+ENDO 
+4985 </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">table</span>(scrna<span class="sc">$</span>fib_labels)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>
+FIBRO 
+  678 </code></pre>
+</div>
+</div>
+</section>
+<section id="subset-for-rctd-cells" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Subset for RCTD cells</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a>cells_keep <span class="ot">&lt;-</span> scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb48-2"><a href="#cb48-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">is.na</span>(liana_label)) <span class="sc">%&gt;%</span></span>
+<span id="cb48-3"><a href="#cb48-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>(.)</span>
+<span id="cb48-4"><a href="#cb48-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-5"><a href="#cb48-5" aria-hidden="true" tabindex="-1"></a>clean_scrna <span class="ot">&lt;-</span> scrna <span class="sc">%&gt;%</span> <span class="fu">subset</span>(<span class="at">cells =</span> cells_keep)</span>
+<span id="cb48-6"><a href="#cb48-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb48-7"><a href="#cb48-7" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(scrna)</span>
+<span id="cb48-8"><a href="#cb48-8" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>             used    (Mb) gc trigger    (Mb)   max used    (Mb)
+Ncells   10443032   557.8   18182461   971.1   18182461   971.1
+Vcells 1951971104 14892.4 6292988388 48011.7 4974572980 37953.0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>clean_scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(patient, liana_label) <span class="sc">%&gt;%</span></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">count</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="st">"patient"</span>, <span class="at">values_from =</span> <span class="st">"n"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 14 × 25
+# Groups:   liana_label [14]
+   liana_label   `16097-101` `16097-102` `16097-104` `16097-105` `16097-106`
+   &lt;chr&gt;               &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;
+ 1 B.MEM                 185         188         113         275         100
+ 2 B.PLASMA                4          18          31         193          32
+ 3 DC                    941         346        3050         879         593
+ 4 ENDO                 1057         365         152         974          82
+ 5 FIBRO                 148         118          10         106           3
+ 6 M2.MAC                695         248        5098         784        1638
+ 7 MAC                  1044         553       10033        3437        2469
+ 8 MONO.CLASS           1504         557        1885         959         448
+ 9 MONO.NONCLASS        1561         918         630         995         200
+10 NK                   3535        2077        2045        1142        1759
+11 RCC                   393          75         374         198          94
+12 TEX                  1580        4821        7565       10359        9149
+13 TMEM                 2378        2119        3600        1698        2597
+14 TREG                  286         180         876         181         458
+   `16097-107` `16097-108` `16097-109` `16097-110` `16097-111` `16097-112`
+         &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;
+ 1         332         272          26          54         226          61
+ 2         356           8          NA           2           1           1
+ 3          99         858         330         200          77          38
+ 4         236         685          80         262         117         109
+ 5           7          30          17          14          13          14
+ 6         168        1155         321         137          90          69
+ 7         177        1892         591         258         163          76
+ 8         166        1098         602         663         261         405
+ 9          68        1216         993        1052         417         268
+10         367        6022         896         603        1633        1476
+11         198         119          34          29          47           8
+12        4054        6336        2591        2393        1724        1066
+13        1965        4595        1189        2126        2707        2865
+14         760         259         171         304         278         235
+   DBCC01 DBCC02 DBCC03 DBCC05 DBCC06 DBCC07 DBCC08 DBCC10 DBCC11 DBCC12 DBCC14
+    &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;
+ 1    346    127    817     34     37    692    200    402     90    292     34
+ 2     15      4     16      6      1     32     10      7     31     24      1
+ 3    281    155     81     20     45     62    299     64     12    361     24
+ 4    176    221     45     42     41     45     32     59     15     74     19
+ 5     33     15      6     13      9     14     36      6     25     12      7
+ 6    160    114     28     24     80    191    467     19     86    252      5
+ 7    573    352    112    156    336    343   1865    118     62    995     34
+ 8    613    998    152     51   1036    474    352    513    207   1268    132
+ 9    524    811     52     26    552    377    351    202     82    475     61
+10   3227   2799    527    322   3197   1013    677    566    852   5413    297
+11    489    225      5    151     65    313    188     13    714     87     39
+12   1510   6388   3043   7832   1407    602    794    685   1735   3048    204
+13   4916   3272   6003   1981   2904   2866   1783   2182   1257   6357    517
+14    520    273    623    154    294    294    359    371    160    497     36
+   DBCC15 DBCC16
+    &lt;int&gt;  &lt;int&gt;
+ 1    467     85
+ 2     49     28
+ 3    467    120
+ 4     49     48
+ 5     21      1
+ 6    515    123
+ 7    948    429
+ 8   1974   1033
+ 9   1134    259
+10   2784   1307
+11    161    119
+12   7779   4812
+13   8302   3252
+14   3028    145</code></pre>
+</div>
+</div>
+</section>
+<section id="merge-into-general-clusters-for-rctd-calling" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Merge into general clusters for RCTD calling</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb52"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb52-1"><a href="#cb52-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(clean_scrna<span class="sc">$</span>liana_label)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK"            "TMEM"          "TEX"           "ENDO"         
+ [5] "DC"            "MONO.NONCLASS" "MONO.CLASS"    "FIBRO"        
+ [9] "TREG"          "M2.MAC"        "MAC"           "B.MEM"        
+[13] "RCC"           "B.PLASMA"     </code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb54"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb54-1"><a href="#cb54-1" aria-hidden="true" tabindex="-1"></a>clean_scrna<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> clean_scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb54-2"><a href="#cb54-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">rctd_label =</span> <span class="fu">case_when</span>(liana_label <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"NK"</span>) <span class="sc">~</span> <span class="st">"NK"</span>,</span>
+<span id="cb54-3"><a href="#cb54-3" aria-hidden="true" tabindex="-1"></a>                                liana_label <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"TMEM"</span>, <span class="st">"TEX"</span>, <span class="st">"TREG"</span>) <span class="sc">~</span> <span class="st">"T"</span>,</span>
+<span id="cb54-4"><a href="#cb54-4" aria-hidden="true" tabindex="-1"></a>                                liana_label <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"ENDO"</span>) <span class="sc">~</span> <span class="st">"ENDO"</span>,</span>
+<span id="cb54-5"><a href="#cb54-5" aria-hidden="true" tabindex="-1"></a>                                liana_label <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"DC"</span>, <span class="st">"MONO.NONCLASS"</span>, <span class="st">"MONO.CLASS"</span>, <span class="st">"M2.MAC"</span>, <span class="st">"MAC"</span>) <span class="sc">~</span> <span class="st">"MYELOID"</span>,</span>
+<span id="cb54-6"><a href="#cb54-6" aria-hidden="true" tabindex="-1"></a>                                liana_label <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"FIBRO"</span>) <span class="sc">~</span> <span class="st">"FIBRO"</span>,</span>
+<span id="cb54-7"><a href="#cb54-7" aria-hidden="true" tabindex="-1"></a>                                liana_label <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"B.MEM"</span>, <span class="st">"B.PLASMA"</span>) <span class="sc">~</span> <span class="st">"B"</span>,</span>
+<span id="cb54-8"><a href="#cb54-8" aria-hidden="true" tabindex="-1"></a>                                liana_label <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"RCC"</span>) <span class="sc">~</span> <span class="st">"RCC"</span>))</span>
+<span id="cb54-9"><a href="#cb54-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-10"><a href="#cb54-10" aria-hidden="true" tabindex="-1"></a>rctd_cell_counts <span class="ot">&lt;-</span> clean_scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb54-11"><a href="#cb54-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(patient, rctd_label) <span class="sc">%&gt;%</span></span>
+<span id="cb54-12"><a href="#cb54-12" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">count</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb54-13"><a href="#cb54-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_wider</span>(<span class="at">names_from =</span> <span class="st">"patient"</span>, <span class="at">values_from =</span> <span class="st">"n"</span>)</span>
+<span id="cb54-14"><a href="#cb54-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb54-15"><a href="#cb54-15" aria-hidden="true" tabindex="-1"></a>rctd_cell_counts</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 7 × 25
+# Groups:   rctd_label [7]
+  rctd_label `16097-101` `16097-102` `16097-104` `16097-105` `16097-106`
+  &lt;chr&gt;            &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;
+1 B                  189         206         144         468         132
+2 ENDO              1057         365         152         974          82
+3 FIBRO              148         118          10         106           3
+4 MYELOID           5745        2622       20696        7054        5348
+5 NK                3535        2077        2045        1142        1759
+6 RCC                393          75         374         198          94
+7 T                 4244        7120       12041       12238       12204
+  `16097-107` `16097-108` `16097-109` `16097-110` `16097-111` `16097-112` DBCC01
+        &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;       &lt;int&gt;  &lt;int&gt;
+1         688         280          26          56         227          62    361
+2         236         685          80         262         117         109    176
+3           7          30          17          14          13          14     33
+4         678        6219        2837        2310        1008         856   2151
+5         367        6022         896         603        1633        1476   3227
+6         198         119          34          29          47           8    489
+7        6779       11190        3951        4823        4709        4166   6946
+  DBCC02 DBCC03 DBCC05 DBCC06 DBCC07 DBCC08 DBCC10 DBCC11 DBCC12 DBCC14 DBCC15
+   &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;  &lt;int&gt;
+1    131    833     40     38    724    210    409    121    316     35    516
+2    221     45     42     41     45     32     59     15     74     19     49
+3     15      6     13      9     14     36      6     25     12      7     21
+4   2430    425    277   2049   1447   3334    916    449   3351    256   5038
+5   2799    527    322   3197   1013    677    566    852   5413    297   2784
+6    225      5    151     65    313    188     13    714     87     39    161
+7   9933   9669   9967   4605   3762   2936   3238   3152   9902    757  19109
+  DBCC16
+   &lt;int&gt;
+1    113
+2     48
+3      1
+4   1964
+5   1307
+6    119
+7   8209</code></pre>
+</div>
+</div>
+</section>
+<section id="save-object-for-rctd-calling" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Save object for RCTD calling</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb56"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb56-1"><a href="#cb56-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(clean_scrna, <span class="st">"../objects/clean_NeoVax.CancerCell_RCTD.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="subset-further-for-liana" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> Subset further for LIANA</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a>cells_keep <span class="ot">&lt;-</span> clean_scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb57-2"><a href="#cb57-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(liana_label <span class="sc">!=</span> <span class="st">"FIBRO"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb57-3"><a href="#cb57-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">rownames</span>(.)</span>
+<span id="cb57-4"><a href="#cb57-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-5"><a href="#cb57-5" aria-hidden="true" tabindex="-1"></a>clean_scrna <span class="ot">&lt;-</span> clean_scrna <span class="sc">%&gt;%</span> <span class="fu">subset</span>(<span class="at">cells =</span> cells_keep)</span>
+<span id="cb57-6"><a href="#cb57-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb57-7"><a href="#cb57-7" aria-hidden="true" tabindex="-1"></a>clean_scrna<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb57-8"><a href="#cb57-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(patient, liana_label) <span class="sc">%&gt;%</span></span>
+<span id="cb57-9"><a href="#cb57-9" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">count</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 311 × 3
+# Groups:   patient, liana_label [311]
+    patient   liana_label       n
+    &lt;chr&gt;     &lt;chr&gt;         &lt;int&gt;
+  1 16097-101 B.MEM           185
+  2 16097-101 B.PLASMA          4
+  3 16097-101 DC              941
+  4 16097-101 ENDO           1057
+  5 16097-101 M2.MAC          695
+  6 16097-101 MAC            1044
+  7 16097-101 MONO.CLASS     1504
+  8 16097-101 MONO.NONCLASS  1561
+  9 16097-101 NK             3535
+ 10 16097-101 RCC             393
+ 11 16097-101 TEX            1580
+ 12 16097-101 TMEM           2378
+ 13 16097-101 TREG            286
+ 14 16097-102 B.MEM           188
+ 15 16097-102 B.PLASMA         18
+ 16 16097-102 DC              346
+ 17 16097-102 ENDO            365
+ 18 16097-102 M2.MAC          248
+ 19 16097-102 MAC             553
+ 20 16097-102 MONO.CLASS      557
+ 21 16097-102 MONO.NONCLASS   918
+ 22 16097-102 NK             2077
+ 23 16097-102 RCC              75
+ 24 16097-102 TEX            4821
+ 25 16097-102 TMEM           2119
+ 26 16097-102 TREG            180
+ 27 16097-104 B.MEM           113
+ 28 16097-104 B.PLASMA         31
+ 29 16097-104 DC             3050
+ 30 16097-104 ENDO            152
+ 31 16097-104 M2.MAC         5098
+ 32 16097-104 MAC           10033
+ 33 16097-104 MONO.CLASS     1885
+ 34 16097-104 MONO.NONCLASS   630
+ 35 16097-104 NK             2045
+ 36 16097-104 RCC             374
+ 37 16097-104 TEX            7565
+ 38 16097-104 TMEM           3600
+ 39 16097-104 TREG            876
+ 40 16097-105 B.MEM           275
+ 41 16097-105 B.PLASMA        193
+ 42 16097-105 DC              879
+ 43 16097-105 ENDO            974
+ 44 16097-105 M2.MAC          784
+ 45 16097-105 MAC            3437
+ 46 16097-105 MONO.CLASS      959
+ 47 16097-105 MONO.NONCLASS   995
+ 48 16097-105 NK             1142
+ 49 16097-105 RCC             198
+ 50 16097-105 TEX           10359
+ 51 16097-105 TMEM           1698
+ 52 16097-105 TREG            181
+ 53 16097-106 B.MEM           100
+ 54 16097-106 B.PLASMA         32
+ 55 16097-106 DC              593
+ 56 16097-106 ENDO             82
+ 57 16097-106 M2.MAC         1638
+ 58 16097-106 MAC            2469
+ 59 16097-106 MONO.CLASS      448
+ 60 16097-106 MONO.NONCLASS   200
+ 61 16097-106 NK             1759
+ 62 16097-106 RCC              94
+ 63 16097-106 TEX            9149
+ 64 16097-106 TMEM           2597
+ 65 16097-106 TREG            458
+ 66 16097-107 B.MEM           332
+ 67 16097-107 B.PLASMA        356
+ 68 16097-107 DC               99
+ 69 16097-107 ENDO            236
+ 70 16097-107 M2.MAC          168
+ 71 16097-107 MAC             177
+ 72 16097-107 MONO.CLASS      166
+ 73 16097-107 MONO.NONCLASS    68
+ 74 16097-107 NK              367
+ 75 16097-107 RCC             198
+ 76 16097-107 TEX            4054
+ 77 16097-107 TMEM           1965
+ 78 16097-107 TREG            760
+ 79 16097-108 B.MEM           272
+ 80 16097-108 B.PLASMA          8
+ 81 16097-108 DC              858
+ 82 16097-108 ENDO            685
+ 83 16097-108 M2.MAC         1155
+ 84 16097-108 MAC            1892
+ 85 16097-108 MONO.CLASS     1098
+ 86 16097-108 MONO.NONCLASS  1216
+ 87 16097-108 NK             6022
+ 88 16097-108 RCC             119
+ 89 16097-108 TEX            6336
+ 90 16097-108 TMEM           4595
+ 91 16097-108 TREG            259
+ 92 16097-109 B.MEM            26
+ 93 16097-109 DC              330
+ 94 16097-109 ENDO             80
+ 95 16097-109 M2.MAC          321
+ 96 16097-109 MAC             591
+ 97 16097-109 MONO.CLASS      602
+ 98 16097-109 MONO.NONCLASS   993
+ 99 16097-109 NK              896
+100 16097-109 RCC              34
+101 16097-109 TEX            2591
+102 16097-109 TMEM           1189
+103 16097-109 TREG            171
+104 16097-110 B.MEM            54
+105 16097-110 B.PLASMA          2
+106 16097-110 DC              200
+107 16097-110 ENDO            262
+108 16097-110 M2.MAC          137
+109 16097-110 MAC             258
+110 16097-110 MONO.CLASS      663
+111 16097-110 MONO.NONCLASS  1052
+112 16097-110 NK              603
+113 16097-110 RCC              29
+114 16097-110 TEX            2393
+115 16097-110 TMEM           2126
+116 16097-110 TREG            304
+117 16097-111 B.MEM           226
+118 16097-111 B.PLASMA          1
+119 16097-111 DC               77
+120 16097-111 ENDO            117
+121 16097-111 M2.MAC           90
+122 16097-111 MAC             163
+123 16097-111 MONO.CLASS      261
+124 16097-111 MONO.NONCLASS   417
+125 16097-111 NK             1633
+126 16097-111 RCC              47
+127 16097-111 TEX            1724
+128 16097-111 TMEM           2707
+129 16097-111 TREG            278
+130 16097-112 B.MEM            61
+131 16097-112 B.PLASMA          1
+132 16097-112 DC               38
+133 16097-112 ENDO            109
+134 16097-112 M2.MAC           69
+135 16097-112 MAC              76
+136 16097-112 MONO.CLASS      405
+137 16097-112 MONO.NONCLASS   268
+138 16097-112 NK             1476
+139 16097-112 RCC               8
+140 16097-112 TEX            1066
+141 16097-112 TMEM           2865
+142 16097-112 TREG            235
+143 DBCC01    B.MEM           346
+144 DBCC01    B.PLASMA         15
+145 DBCC01    DC              281
+146 DBCC01    ENDO            176
+147 DBCC01    M2.MAC          160
+148 DBCC01    MAC             573
+149 DBCC01    MONO.CLASS      613
+150 DBCC01    MONO.NONCLASS   524
+151 DBCC01    NK             3227
+152 DBCC01    RCC             489
+153 DBCC01    TEX            1510
+154 DBCC01    TMEM           4916
+155 DBCC01    TREG            520
+156 DBCC02    B.MEM           127
+157 DBCC02    B.PLASMA          4
+158 DBCC02    DC              155
+159 DBCC02    ENDO            221
+160 DBCC02    M2.MAC          114
+161 DBCC02    MAC             352
+162 DBCC02    MONO.CLASS      998
+163 DBCC02    MONO.NONCLASS   811
+164 DBCC02    NK             2799
+165 DBCC02    RCC             225
+166 DBCC02    TEX            6388
+167 DBCC02    TMEM           3272
+168 DBCC02    TREG            273
+169 DBCC03    B.MEM           817
+170 DBCC03    B.PLASMA         16
+171 DBCC03    DC               81
+172 DBCC03    ENDO             45
+173 DBCC03    M2.MAC           28
+174 DBCC03    MAC             112
+175 DBCC03    MONO.CLASS      152
+176 DBCC03    MONO.NONCLASS    52
+177 DBCC03    NK              527
+178 DBCC03    RCC               5
+179 DBCC03    TEX            3043
+180 DBCC03    TMEM           6003
+181 DBCC03    TREG            623
+182 DBCC05    B.MEM            34
+183 DBCC05    B.PLASMA          6
+184 DBCC05    DC               20
+185 DBCC05    ENDO             42
+186 DBCC05    M2.MAC           24
+187 DBCC05    MAC             156
+188 DBCC05    MONO.CLASS       51
+189 DBCC05    MONO.NONCLASS    26
+190 DBCC05    NK              322
+191 DBCC05    RCC             151
+192 DBCC05    TEX            7832
+193 DBCC05    TMEM           1981
+194 DBCC05    TREG            154
+195 DBCC06    B.MEM            37
+196 DBCC06    B.PLASMA          1
+197 DBCC06    DC               45
+198 DBCC06    ENDO             41
+199 DBCC06    M2.MAC           80
+200 DBCC06    MAC             336
+201 DBCC06    MONO.CLASS     1036
+202 DBCC06    MONO.NONCLASS   552
+203 DBCC06    NK             3197
+204 DBCC06    RCC              65
+205 DBCC06    TEX            1407
+206 DBCC06    TMEM           2904
+207 DBCC06    TREG            294
+208 DBCC07    B.MEM           692
+209 DBCC07    B.PLASMA         32
+210 DBCC07    DC               62
+211 DBCC07    ENDO             45
+212 DBCC07    M2.MAC          191
+213 DBCC07    MAC             343
+214 DBCC07    MONO.CLASS      474
+215 DBCC07    MONO.NONCLASS   377
+216 DBCC07    NK             1013
+217 DBCC07    RCC             313
+218 DBCC07    TEX             602
+219 DBCC07    TMEM           2866
+220 DBCC07    TREG            294
+221 DBCC08    B.MEM           200
+222 DBCC08    B.PLASMA         10
+223 DBCC08    DC              299
+224 DBCC08    ENDO             32
+225 DBCC08    M2.MAC          467
+226 DBCC08    MAC            1865
+227 DBCC08    MONO.CLASS      352
+228 DBCC08    MONO.NONCLASS   351
+229 DBCC08    NK              677
+230 DBCC08    RCC             188
+231 DBCC08    TEX             794
+232 DBCC08    TMEM           1783
+233 DBCC08    TREG            359
+234 DBCC10    B.MEM           402
+235 DBCC10    B.PLASMA          7
+236 DBCC10    DC               64
+237 DBCC10    ENDO             59
+238 DBCC10    M2.MAC           19
+239 DBCC10    MAC             118
+240 DBCC10    MONO.CLASS      513
+241 DBCC10    MONO.NONCLASS   202
+242 DBCC10    NK              566
+243 DBCC10    RCC              13
+244 DBCC10    TEX             685
+245 DBCC10    TMEM           2182
+246 DBCC10    TREG            371
+247 DBCC11    B.MEM            90
+248 DBCC11    B.PLASMA         31
+249 DBCC11    DC               12
+250 DBCC11    ENDO             15
+251 DBCC11    M2.MAC           86
+252 DBCC11    MAC              62
+253 DBCC11    MONO.CLASS      207
+254 DBCC11    MONO.NONCLASS    82
+255 DBCC11    NK              852
+256 DBCC11    RCC             714
+257 DBCC11    TEX            1735
+258 DBCC11    TMEM           1257
+259 DBCC11    TREG            160
+260 DBCC12    B.MEM           292
+261 DBCC12    B.PLASMA         24
+262 DBCC12    DC              361
+263 DBCC12    ENDO             74
+264 DBCC12    M2.MAC          252
+265 DBCC12    MAC             995
+266 DBCC12    MONO.CLASS     1268
+267 DBCC12    MONO.NONCLASS   475
+268 DBCC12    NK             5413
+269 DBCC12    RCC              87
+270 DBCC12    TEX            3048
+271 DBCC12    TMEM           6357
+272 DBCC12    TREG            497
+273 DBCC14    B.MEM            34
+274 DBCC14    B.PLASMA          1
+275 DBCC14    DC               24
+276 DBCC14    ENDO             19
+277 DBCC14    M2.MAC            5
+278 DBCC14    MAC              34
+279 DBCC14    MONO.CLASS      132
+280 DBCC14    MONO.NONCLASS    61
+281 DBCC14    NK              297
+282 DBCC14    RCC              39
+283 DBCC14    TEX             204
+284 DBCC14    TMEM            517
+285 DBCC14    TREG             36
+286 DBCC15    B.MEM           467
+287 DBCC15    B.PLASMA         49
+288 DBCC15    DC              467
+289 DBCC15    ENDO             49
+290 DBCC15    M2.MAC          515
+291 DBCC15    MAC             948
+292 DBCC15    MONO.CLASS     1974
+293 DBCC15    MONO.NONCLASS  1134
+294 DBCC15    NK             2784
+295 DBCC15    RCC             161
+296 DBCC15    TEX            7779
+297 DBCC15    TMEM           8302
+298 DBCC15    TREG           3028
+299 DBCC16    B.MEM            85
+300 DBCC16    B.PLASMA         28
+301 DBCC16    DC              120
+302 DBCC16    ENDO             48
+303 DBCC16    M2.MAC          123
+304 DBCC16    MAC             429
+305 DBCC16    MONO.CLASS     1033
+306 DBCC16    MONO.NONCLASS   259
+307 DBCC16    NK             1307
+308 DBCC16    RCC             119
+309 DBCC16    TEX            4812
+310 DBCC16    TMEM           3252
+311 DBCC16    TREG            145</code></pre>
+</div>
+</div>
+</section>
+<section id="subset-for-tls-patients-and-run-liana" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> Subset for TLS+ patients and run LIANA</h1>
+<p>TLS+: 107, 102, 108, 106, 112, 104, 101, DBCC03, DBCC15, DBCC16, DBCC11, DBCC05</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(clean_scrna<span class="sc">$</span>patient)</span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Idents</span>(clean_scrna) <span class="ot">&lt;-</span> clean_scrna<span class="sc">$</span>patient</span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>tls_pos <span class="ot">&lt;-</span> clean_scrna <span class="sc">%&gt;%</span> </span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">subset</span>(<span class="at">idents =</span> <span class="fu">c</span>(<span class="st">"16097-107"</span>, <span class="st">"16097-102"</span>, <span class="st">"16097-108"</span>,<span class="st">"16097-106"</span>, </span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"16097-112"</span>, <span class="st">"16097-104"</span>, <span class="st">"16097-101"</span>, <span class="st">"DBCC03"</span>, </span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"DBCC15"</span>, <span class="st">"DBCC16"</span>, <span class="st">"DBCC11"</span>, <span class="st">"DBCC05"</span>))</span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>tls_pos <span class="ot">&lt;-</span> <span class="fu">JoinLayers</span>(tls_pos)</span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a>tls_pos_sce <span class="ot">&lt;-</span> <span class="fu">as.SingleCellExperiment</span>(tls_pos, <span class="at">assay =</span> <span class="st">"RNA"</span>)</span>
+<span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-13"><a href="#cb59-13" aria-hidden="true" tabindex="-1"></a>liana_tls_pos <span class="ot">&lt;-</span> tls_pos_sce <span class="sc">%&gt;%</span></span>
+<span id="cb59-14"><a href="#cb59-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">liana_wrap</span>(<span class="at">idents_col =</span> <span class="st">"liana_label"</span>, <span class="at">return_all =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb59-15"><a href="#cb59-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">liana_aggregate</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="subset-for-tls--patients-and-run-liana" class="level1" data-number="12">
+<h1 data-number="12"><span class="header-section-number">12</span> Subset for TLS- patients and run LIANA</h1>
+<p>TLS-: 105, 110, 111, 109, S1, S2, S6, S7, S8, S10, S12, S14</p>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(clean_scrna<span class="sc">$</span>patient)</span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a><span class="fu">Idents</span>(clean_scrna) <span class="ot">&lt;-</span> clean_scrna<span class="sc">$</span>patient</span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>tls_neg <span class="ot">&lt;-</span> clean_scrna <span class="sc">%&gt;%</span> </span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">subset</span>(<span class="at">idents =</span> <span class="fu">c</span>(<span class="st">"16097-105"</span>, <span class="st">"16097-110"</span>, <span class="st">"16097-111"</span>,<span class="st">"16097-109"</span>, </span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"DBCC01"</span>, <span class="st">"DBCC02"</span>, <span class="st">"DBCC06"</span>, <span class="st">"DBCC07"</span>, <span class="st">"DBCC08"</span>, </span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a>                    <span class="st">"DBCC10"</span>, <span class="st">"DBCC12"</span>, <span class="st">"DBCC14"</span>))</span>
+<span id="cb60-8"><a href="#cb60-8" aria-hidden="true" tabindex="-1"></a><span class="fu">rm</span>(clean_scrna)</span>
+<span id="cb60-9"><a href="#cb60-9" aria-hidden="true" tabindex="-1"></a><span class="fu">gc</span>()</span>
+<span id="cb60-10"><a href="#cb60-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-11"><a href="#cb60-11" aria-hidden="true" tabindex="-1"></a>tls_neg_sce <span class="ot">&lt;-</span> <span class="fu">as.SingleCellExperiment</span>(tls_neg, <span class="at">assay =</span> <span class="st">"RNA"</span>)</span>
+<span id="cb60-12"><a href="#cb60-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb60-13"><a href="#cb60-13" aria-hidden="true" tabindex="-1"></a>liana_tls_neg <span class="ot">&lt;-</span> tls_neg_sce <span class="sc">%&gt;%</span></span>
+<span id="cb60-14"><a href="#cb60-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">liana_wrap</span>(<span class="at">idents_col =</span> <span class="st">"liana_label"</span>, <span class="at">return_all =</span> <span class="cn">TRUE</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb60-15"><a href="#cb60-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">liana_aggregate</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="filter-for-source-target-interactions-of-interest" class="level2" data-number="12.1">
+<h2 data-number="12.1" class="anchored" data-anchor-id="filter-for-source-target-interactions-of-interest"><span class="header-section-number">12.1</span> Filter for source-target interactions of interest</h2>
+<section id="alexs-code-from-gpt" class="level4" data-number="12.1.0.1">
+<h4 data-number="12.1.0.1" class="anchored" data-anchor-id="alexs-code-from-gpt"><span class="header-section-number">12.1.0.1</span> Alex’s code from GPT</h4>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a>liana_tls_pos<span class="sc">$</span>self <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(liana_tls_pos<span class="sc">$</span>source <span class="sc">==</span> liana_tls_pos<span class="sc">$</span>target, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb61-2"><a href="#cb61-2" aria-hidden="true" tabindex="-1"></a>liana_tls_neg<span class="sc">$</span>self <span class="ot">&lt;-</span> <span class="fu">ifelse</span>(liana_tls_neg<span class="sc">$</span>source <span class="sc">==</span> liana_tls_neg<span class="sc">$</span>target, <span class="dv">1</span>, <span class="dv">0</span>)</span>
+<span id="cb61-3"><a href="#cb61-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-4"><a href="#cb61-4" aria-hidden="true" tabindex="-1"></a><span class="co">#remove self-interactions (Tex-Tex, e.g.)</span></span>
+<span id="cb61-5"><a href="#cb61-5" aria-hidden="true" tabindex="-1"></a>liana_tls_pos <span class="ot">&lt;-</span> liana_tls_pos[liana_tls_pos<span class="sc">$</span>self <span class="sc">==</span> <span class="dv">0</span>,] <span class="co">#down to 675168</span></span>
+<span id="cb61-6"><a href="#cb61-6" aria-hidden="true" tabindex="-1"></a>liana_tls_neg <span class="ot">&lt;-</span> liana_tls_neg[liana_tls_neg<span class="sc">$</span>self <span class="sc">==</span> <span class="dv">0</span>,] <span class="co">#down to 666120</span></span>
+<span id="cb61-7"><a href="#cb61-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-8"><a href="#cb61-8" aria-hidden="true" tabindex="-1"></a><span class="co">#isolate interactions of Tex cells and Tmem cells</span></span>
+<span id="cb61-9"><a href="#cb61-9" aria-hidden="true" tabindex="-1"></a>liana_tls_pos <span class="ot">&lt;-</span> liana_tls_pos[(liana_tls_pos<span class="sc">$</span>source <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"TEX"</span>, <span class="st">"TMEM"</span>, <span class="st">"TREG"</span>) <span class="sc">|</span> liana_tls_pos<span class="sc">$</span>target <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"TEX"</span>, <span class="st">"TMEM"</span>, <span class="st">"TREG"</span>)),] <span class="co">#285648</span></span>
+<span id="cb61-10"><a href="#cb61-10" aria-hidden="true" tabindex="-1"></a>liana_tls_neg <span class="ot">&lt;-</span> liana_tls_neg[(liana_tls_neg<span class="sc">$</span>source <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"TEX"</span>, <span class="st">"TMEM"</span>, <span class="st">"TREG"</span>) <span class="sc">|</span> liana_tls_neg<span class="sc">$</span>target <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"TEX"</span>, <span class="st">"TMEM"</span>, <span class="st">"TREG"</span>)),] <span class="co">#281820</span></span>
+<span id="cb61-11"><a href="#cb61-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-12"><a href="#cb61-12" aria-hidden="true" tabindex="-1"></a><span class="co">#get rid of HLA interactions and CD3</span></span>
+<span id="cb61-13"><a href="#cb61-13" aria-hidden="true" tabindex="-1"></a>liana_tls_pos <span class="ot">&lt;-</span> liana_tls_pos <span class="sc">%&gt;%</span> </span>
+<span id="cb61-14"><a href="#cb61-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_detect</span>(ligand.complex, <span class="st">'HLA|CD8A|CD8B|^CD4$'</span>))</span>
+<span id="cb61-15"><a href="#cb61-15" aria-hidden="true" tabindex="-1"></a>liana_tls_pos <span class="ot">&lt;-</span> liana_tls_pos <span class="sc">%&gt;%</span> </span>
+<span id="cb61-16"><a href="#cb61-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_detect</span>(receptor.complex, <span class="st">'CD3'</span>)) <span class="co">#278520</span></span>
+<span id="cb61-17"><a href="#cb61-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-18"><a href="#cb61-18" aria-hidden="true" tabindex="-1"></a>liana_tls_neg <span class="ot">&lt;-</span> liana_tls_neg <span class="sc">%&gt;%</span> </span>
+<span id="cb61-19"><a href="#cb61-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_detect</span>(ligand.complex, <span class="st">'HLA|CD8A|CD8B|^CD4$'</span>))</span>
+<span id="cb61-20"><a href="#cb61-20" aria-hidden="true" tabindex="-1"></a>liana_tls_neg <span class="ot">&lt;-</span> liana_tls_neg <span class="sc">%&gt;%</span> </span>
+<span id="cb61-21"><a href="#cb61-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="sc">!</span><span class="fu">str_detect</span>(receptor.complex, <span class="st">'CD3'</span>)) <span class="co">#274758</span></span>
+<span id="cb61-22"><a href="#cb61-22" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb61-23"><a href="#cb61-23" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(liana_tls_pos<span class="sc">$</span>aggregate_rank, <span class="at">breaks =</span> <span class="dv">50</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Clean_NeoVax_CancerCell_files/figure-html/unnamed-chunk-18-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="fu">hist</span>(liana_tls_neg<span class="sc">$</span>aggregate_rank, <span class="at">breaks =</span> <span class="dv">50</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Clean_NeoVax_CancerCell_files/figure-html/unnamed-chunk-18-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a><span class="co">#0.05 seems to basically cut off all non-sig interactions</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>liana_tls_pos <span class="ot">&lt;-</span> liana_tls_pos <span class="sc">%&gt;%</span> <span class="fu">filter</span>(aggregate_rank <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="co">#5890 - 2%</span></span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>liana_tls_neg <span class="ot">&lt;-</span> liana_tls_neg <span class="sc">%&gt;%</span> <span class="fu">filter</span>(aggregate_rank <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="co">#6225 - 16%</span></span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="view-liana-results" class="level2" data-number="12.2">
+<h2 data-number="12.2" class="anchored" data-anchor-id="view-liana-results"><span class="header-section-number">12.2</span> View LIANA results</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb64"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb64-1"><a href="#cb64-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(liana_tls_pos)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 17
+  source     target   ligand.complex receptor.complex aggregate_rank mean_rank
+  &lt;chr&gt;      &lt;chr&gt;    &lt;chr&gt;          &lt;chr&gt;                     &lt;dbl&gt;     &lt;dbl&gt;
+1 TEX        B.PLASMA CCL5           SDC1                   9.41e-11     1853 
+2 ENDO       TEX      CD59           CD2                    3.19e- 9     2436.
+3 ENDO       TREG     CD59           CD2                    4.07e- 9     2574.
+4 MONO.CLASS TMEM     S100A8         CD69                   4.08e- 9     2176.
+5 ENDO       TREG     TIMP3          CD44                   5.06e- 9     2128.
+6 TEX        B.PLASMA HMGB1          SDC1                   7.06e- 9     2445.
+  natmi.edge_specificity natmi.rank connectome.weight_sc connectome.rank
+                   &lt;dbl&gt;      &lt;dbl&gt;                &lt;dbl&gt;           &lt;dbl&gt;
+1                 0.205         252                 5.45              22
+2                 0.0892       1165                 1.78            1272
+3                 0.0838       1304                 1.73            1335
+4                 0.102         897                 1.72            1353
+5                 0.106         837                 3.36             180
+6                 0.0788       1446                 5.18              39
+  logfc.logfc_comb logfc.rank sca.LRscore sca.rank cellphonedb.pvalue
+             &lt;dbl&gt;      &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;              &lt;dbl&gt;
+1             2.02        388       0.974      527                  0
+2             1.97        438       0.967     1228                  0
+3             1.70        805       0.966     1352                  0
+4             3.25         19       0.974      537                  0
+5             2.52        117       0.965     1428                  0
+6             1.53       1111       0.964     1552                  0
+  cellphonedb.rank  self
+             &lt;dbl&gt; &lt;dbl&gt;
+1             8076     0
+2             8076     0
+3             8076     0
+4             8076     0
+5             8076     0
+6             8076     0</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb66"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb66-1"><a href="#cb66-1" aria-hidden="true" tabindex="-1"></a><span class="fu">head</span>(liana_tls_neg)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code># A tibble: 6 × 17
+  source     target ligand.complex receptor.complex aggregate_rank mean_rank
+  &lt;chr&gt;      &lt;chr&gt;  &lt;chr&gt;          &lt;chr&gt;                     &lt;dbl&gt;     &lt;dbl&gt;
+1 ENDO       TREG   TIMP3          CD44                   2.93e-10     1855.
+2 ENDO       TMEM   TIMP3          CD44                   8.92e-10     1930.
+3 MONO.CLASS TMEM   S100A8         CD69                   1.28e- 9     1978.
+4 RCC        TREG   SPP1           CCR8                   2.26e- 9     2963.
+5 RCC        TREG   SPP1           CD44                   4.70e- 9     2160.
+6 MONO.CLASS TREG   S100A8         CD69                   5.33e- 9     2260.
+  natmi.edge_specificity natmi.rank connectome.weight_sc connectome.rank
+                   &lt;dbl&gt;      &lt;dbl&gt;                &lt;dbl&gt;           &lt;dbl&gt;
+1                 0.127         637                 3.56              51
+2                 0.111         780                 3.47              57
+3                 0.113         763                 1.82            1000
+4                 0.567          41                 2.99             133
+5                 0.0816       1384                 2.27             433
+6                 0.0806       1428                 1.60            1411
+  logfc.logfc_comb logfc.rank sca.LRscore sca.rank cellphonedb.pvalue
+             &lt;dbl&gt;      &lt;dbl&gt;       &lt;dbl&gt;    &lt;dbl&gt;              &lt;dbl&gt;
+1             2.99         40       0.969      691                  0
+2             2.93         46       0.967      913                  0
+3             3.27         18       0.975      255                  0
+4             2.70         85       0.927     6702                  0
+5             2.60        115       0.966     1013                  0
+6             2.81         68       0.971      536                  0
+  cellphonedb.rank  self
+             &lt;dbl&gt; &lt;dbl&gt;
+1            7854.     0
+2            7854.     0
+3            7854.     0
+4            7854.     0
+5            7854.     0
+6            7854.     0</code></pre>
+</div>
+</div>
+</section>
+<section id="save-liana" class="level2" data-number="12.3">
+<h2 data-number="12.3" class="anchored" data-anchor-id="save-liana"><span class="header-section-number">12.3</span> Save LIANA</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb68"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb68-1"><a href="#cb68-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(liana_tls_pos, <span class="st">"../objects/clean_NeoVax.CancerCell_tls+_liana.rds"</span>)</span>
+<span id="cb68-2"><a href="#cb68-2" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(liana_tls_neg, <span class="st">"../objects/clean_NeoVax.CancerCell_tls-_liana.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+<section id="note-upon-re-running-liana-from-scratch-on-the-same-object-aggregate_rank-mean_rank-etc-have-changed-very-slightly-likely-due-to-a-change-in-the-random-seed.-the-results-being-opened-in-this-file-are-from-the-original-run-of-liana." class="level4" data-number="12.3.0.1">
+<h4 data-number="12.3.0.1" class="anchored" data-anchor-id="note-upon-re-running-liana-from-scratch-on-the-same-object-aggregate_rank-mean_rank-etc-have-changed-very-slightly-likely-due-to-a-change-in-the-random-seed.-the-results-being-opened-in-this-file-are-from-the-original-run-of-liana."><span class="header-section-number">12.3.0.1</span> Note: Upon re-running LIANA from scratch on the same object, aggregate_rank, mean_rank etc have changed very slightly likely due to a change in the random seed. The results being opened in this file are from the original run of LIANA.</h4>
+</section>
+</section>
+</section>
+<section id="get-session-info" class="level1" data-number="13">
+<h1 data-number="13"><span class="header-section-number">13</span> Get session info</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.4.2 (2024-10-31)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.5 (Plow)
+
+Matrix products: default
+BLAS:   /n/app/R/4.4.2-gcc-14.2.0/lib64/R/lib/libRblas.so 
+LAPACK: /n/app/R/4.4.2-gcc-14.2.0/lib64/R/lib/libRlapack.so;  LAPACK version 3.12.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: US/Eastern
+tzcode source: system (glibc)
+
+attached base packages:
+[1] stats     graphics  grDevices utils     datasets  methods   base     
+
+other attached packages:
+ [1] knitr_1.51           rmarkdown_2.30       ggpointdensity_0.2.1
+ [4] lubridate_1.9.4      forcats_1.0.1        stringr_1.6.0       
+ [7] dplyr_1.1.4          purrr_1.2.0          readr_2.1.6         
+[10] tidyr_1.3.1          tibble_3.3.0         ggplot2_4.0.1       
+[13] tidyverse_2.0.0      liana_0.1.14         paletteer_1.6.0     
+[16] Seurat_5.4.0         SeuratObject_5.3.0   sp_2.2-0            
+
+loaded via a namespace (and not attached):
+  [1] fs_1.6.6                    matrixStats_1.5.0          
+  [3] spatstat.sparse_3.1-0       httr_1.4.7                 
+  [5] RColorBrewer_1.1-3          doParallel_1.0.17          
+  [7] tools_4.4.2                 sctransform_0.4.2          
+  [9] backports_1.5.0             utf8_1.2.6                 
+ [11] R6_2.6.1                    lazyeval_0.2.2             
+ [13] uwot_0.2.4                  GetoptLong_1.1.0           
+ [15] withr_3.0.2                 prettyunits_1.2.0          
+ [17] gridExtra_2.3               progressr_0.18.0           
+ [19] cli_3.6.5                   Biobase_2.66.0             
+ [21] spatstat.explore_3.6-0      fastDummies_1.7.5          
+ [23] S7_0.2.1                    spatstat.data_3.1-9        
+ [25] ggridges_0.5.7              pbapply_1.7-4              
+ [27] R.utils_2.13.0              dichromat_2.0-0.1          
+ [29] parallelly_1.46.0           sessioninfo_1.2.3          
+ [31] limma_3.62.2                readxl_1.4.5               
+ [33] rstudioapi_0.17.1           RSQLite_2.4.5              
+ [35] generics_0.1.4              shape_1.4.6.1              
+ [37] ica_1.0-3                   spatstat.random_3.4-3      
+ [39] zip_2.3.3                   Matrix_1.7-4               
+ [41] S4Vectors_0.44.0            logger_0.4.1               
+ [43] abind_1.4-8                 R.methodsS3_1.8.2          
+ [45] lifecycle_1.0.5             edgeR_4.4.2                
+ [47] yaml_2.3.12                 SummarizedExperiment_1.36.0
+ [49] SparseArray_1.6.2           Rtsne_0.17                 
+ [51] grid_4.4.2                  blob_1.2.4                 
+ [53] dqrng_0.4.1                 promises_1.5.0             
+ [55] crayon_1.5.3                dir.expiry_1.14.0          
+ [57] miniUI_0.1.2                lattice_0.22-7             
+ [59] beachmat_2.22.0             cowplot_1.2.0              
+ [61] metapod_1.14.0              pillar_1.11.1              
+ [63] ComplexHeatmap_2.22.0       GenomicRanges_1.58.0       
+ [65] tcltk_4.4.2                 rjson_0.2.23               
+ [67] future.apply_1.20.1         codetools_0.2-20           
+ [69] glue_1.8.0                  spatstat.univar_3.1-5      
+ [71] data.table_1.18.0           vctrs_0.6.5                
+ [73] png_0.1-8                   spam_2.11-3                
+ [75] cellranger_1.1.0            gtable_0.3.6               
+ [77] rematch2_2.1.2              cachem_1.1.0               
+ [79] OmnipathR_3.17.4            xfun_0.54                  
+ [81] S4Arrays_1.6.0              mime_0.13                  
+ [83] survival_3.8-3              SingleCellExperiment_1.28.1
+ [85] iterators_1.0.14            statmod_1.5.1              
+ [87] bluster_1.16.0              fitdistrplus_1.2-4         
+ [89] ROCR_1.0-11                 nlme_3.1-168               
+ [91] bit64_4.6.0-1               progress_1.2.3             
+ [93] filelock_1.0.3              RcppAnnoy_0.0.22           
+ [95] GenomeInfoDb_1.42.3         irlba_2.3.5.1              
+ [97] KernSmooth_2.23-26          otel_0.2.0                 
+ [99] colorspace_2.1-2            BiocGenerics_0.52.0        
+[101] DBI_1.2.3                   tidyselect_1.2.1           
+[103] bit_4.6.0                   compiler_4.4.2             
+[105] curl_7.0.0                  rvest_1.0.5                
+[107] httr2_1.2.2                 BiocNeighbors_2.0.1        
+[109] xml2_1.5.1                  DelayedArray_0.32.0        
+[111] plotly_4.11.0               checkmate_2.3.3            
+[113] scales_1.4.0                lmtest_0.9-40              
+[115] rappdirs_0.3.4              digest_0.6.39              
+[117] goftest_1.2-3               spatstat.utils_3.2-0       
+[119] basilisk_1.21.5             XVector_0.46.0             
+[121] htmltools_0.5.9             pkgconfig_2.0.3            
+[123] MatrixGenerics_1.18.1       fastmap_1.2.0              
+[125] rlang_1.1.6                 GlobalOptions_0.1.3        
+[127] htmlwidgets_1.6.4           UCSC.utils_1.2.0           
+[129] shiny_1.12.1                farver_2.1.2               
+[131] zoo_1.8-15                  jsonlite_2.0.0             
+[133] BiocParallel_1.40.2         R.oo_1.27.1                
+[135] BiocSingular_1.22.0         magrittr_2.0.4             
+[137] scuttle_1.16.0              GenomeInfoDbData_1.2.13    
+[139] dotCall64_1.2               patchwork_1.3.2            
+[141] Rcpp_1.1.1                  reticulate_1.44.1          
+[143] stringi_1.8.7               zlibbioc_1.52.0            
+[145] MASS_7.3-65                 plyr_1.8.9                 
+[147] parallel_4.4.2              listenv_0.10.0             
+[149] ggrepel_0.9.6               deldir_2.0-4               
+[151] splines_4.4.2               tensor_1.5.1               
+[153] hms_1.1.4                   circlize_0.4.17            
+[155] locfit_1.5-9.12             igraph_2.2.1               
+[157] spatstat.geom_3.6-1         RcppHNSW_0.6.0             
+[159] reshape2_1.4.5              stats4_4.4.2               
+[161] ScaledMatrix_1.14.0         XML_3.99-0.20              
+[163] evaluate_1.0.5              scran_1.34.0               
+[165] tzdb_0.5.0                  foreach_1.5.2              
+[167] httpuv_1.6.16               RANN_2.6.2                 
+[169] polyclip_1.10-7             future_1.68.0              
+[171] clue_0.3-66                 scattermore_1.2            
+[173] rsvd_1.0.5                  xtable_1.8-4               
+[175] RSpectra_0.16-2             later_1.4.4                
+[177] viridisLite_0.4.2           memoise_2.0.1              
+[179] IRanges_2.40.1              cluster_2.1.8.1            
+[181] timechange_0.3.0            globals_0.18.0             </code></pre>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./Subcluster_NeoVax_CancerCell.html" class="pagination-link" aria-label="Subcluster NeoVax + CancerCell data">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Subcluster NeoVax + CancerCell data</span></span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./Create_single_cell_reference_for_RCTD.html" class="pagination-link" aria-label="scRNA References for RCTD">
+        <span class="nav-page-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">scRNA References for RCTD</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

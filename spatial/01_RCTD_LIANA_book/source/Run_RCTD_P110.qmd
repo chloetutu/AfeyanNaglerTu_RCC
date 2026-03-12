@@ -1,0 +1,106 @@
+# 110T: RCTD {#sec-rctd}
+
+# Run RCTD on spatial data using patient-matched scRNAseq data
+
+## Libraries
+```{r}
+library(spacexr)
+library(Seurat)
+library(dplyr)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+# Read in the single cell reference
+```{r, echo = FALSE}
+ref <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/RCTD/scrna_references_091125/P110_rctd_reference.Rds")
+```
+```{r, eval = FALSE}
+ref <- readRDS("P110_rctd_reference.Rds")
+```
+
+# Puck 28
+## Read in slide-seq puck
+```{r, echo = FALSE}
+P110TA_28_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/01_TCR_RNA_integration/01_Puck28_110TA_TCR_RNA_merged_031925.Rds")
+```
+```{r, eval = FALSE}
+P110TA_28_RNA <- readRDS("01_Puck28_110TA_TCR_RNA_merged_031925.Rds")
+```
+
+## Extract RCTD required data
+```{r}
+P110TA_28_counts <- P110TA_28_RNA[["Spatial"]]$counts
+P110TA_28_coords <- GetTissueCoordinates(P110TA_28_RNA)
+colnames(P110TA_28_coords) <- c("x", "y")
+P110TA_28_coords[is.na(colnames(P110TA_28_coords))] <- NULL
+```
+
+## Create SpatialRNA object
+```{r}
+P110TA_28_query <- SpatialRNA(P110TA_28_coords, P110TA_28_counts, colSums(P110TA_28_counts))
+
+print(dim(P110TA_28_query@counts)) # observe Digital Gene Expression matrix
+hist(log(P110TA_28_query@nUMI,2)) # histogram of log_2 nUMI
+```
+
+## Run RCTD
+```{r, eval = FALSE}
+P110TA_28_rctd <- create.RCTD(P110TA_28_query, ref, max_cores = 8)
+rm(P110TA_28_RNA, P110TA_28_coords, P110TA_28_query, P110TA_28_counts)
+gc()
+P110TA_28_rctd <- run.RCTD(P110TA_28_rctd, doublet_mode = 'doublet')
+```
+
+## Save RCTD results
+```{r, eval = FALSE}
+saveRDS(P110TA_28_rctd, "P110TA_28_rctd_results.rds")
+```
+
+# Puck 30
+## Read in slide-seq puck
+```{r, echo = FALSE}
+P110TA_30_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/01_TCR_RNA_integration/01_Puck30_110TA_TCR_RNA_merged_031925.Rds")
+```
+```{r, eval = FALSE}
+P110TA_30_RNA <- readRDS("01_Puck30_110TA_TCR_RNA_merged_031925.Rds")
+```
+
+## Extract RCTD required data
+```{r}
+P110TA_30_counts <- P110TA_30_RNA[["Spatial"]]$counts
+P110TA_30_coords <- GetTissueCoordinates(P110TA_30_RNA)
+colnames(P110TA_30_coords) <- c("x", "y")
+P110TA_30_coords[is.na(colnames(P110TA_30_coords))] <- NULL
+```
+
+## Create SpatialRNA object
+```{r}
+P110TA_30_query <- SpatialRNA(P110TA_30_coords, P110TA_30_counts, colSums(P110TA_30_counts))
+
+print(dim(P110TA_30_query@counts)) # observe Digital Gene Expression matrix
+hist(log(P110TA_30_query@nUMI,2)) # histogram of log_2 nUMI
+```
+
+## Run RCTD
+```{r, eval = FALSE}
+P110TA_30_rctd <- create.RCTD(P110TA_30_query, ref, max_cores = 8)
+rm(P110TA_30_RNA, P110TA_30_coords, P110TA_30_query, P110TA_30_counts)
+gc()
+P110TA_30_rctd <- run.RCTD(P110TA_30_rctd, doublet_mode = 'doublet')
+```
+
+## Save RCTD results
+```{r, eval = FALSE}
+saveRDS(P110TA_30_rctd, "P110TA_30_rctd_results.rds")
+```
+
+#### Note: RCTD is too resource heavy to render in a quarto file. The original run of RCTD is being loaded and saved
+
+# Get session info
+```{r}
+sessionInfo()
+```
+

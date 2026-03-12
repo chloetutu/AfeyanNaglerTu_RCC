@@ -1,0 +1,384 @@
+# Myeloid boundary bead composition {#sec-area-annotation}
+
+# Show increased density of myeloid cells within the myeloid boundary compared to tumor using a linear mixed model
+
+# Libraries
+```{r}
+library(Seurat)
+library(dplyr)
+library(ggpointdensity)
+library(tidyverse)
+library(ComplexHeatmap)
+library(stringr)
+library(readxl)
+library(circlize)
+library(RANN)
+library(ggridges)
+library(ash)
+library(ggpubr)
+library(rcompanion)
+library(patchwork)
+library(ggprism)
+library(lme4)
+library(infer)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Functions
+```{r}
+get_pct_myeloid_in_bin <- function(obj, bin_length = 30){
+  md <- obj@meta.data %>%
+    select(plot_x, plot_y, area, assignment1)
+  
+  # Create bins for x and y
+  md$x_bin <- cut(md$plot_x, breaks = bin_length, labels = FALSE) 
+  md$y_bin <- cut(md$plot_y, breaks = bin_length, labels = FALSE)
+  
+  # Don't consider empty areas
+  md <- md %>%
+    filter(area != "Empty")
+  bin_df <- data.frame()
+
+  for(i in c(1:bin_length)){
+    for(j in c(1:bin_length)){
+      bin <- md %>%
+        filter(x_bin == i,
+               y_bin == j)
+      boundary_count <- bin %>%
+        filter(area == "Boundary") %>%
+        dplyr::count() %>%
+        pull(n)
+      tumor_count <- bin %>%
+        filter(area == "Tumor") %>%
+        dplyr::count() %>%
+        pull(n)
+      tls_count <- bin %>%
+        filter(area %in% c("TLS1", "TLS2", "TLS3", "TLS4", "M2")) %>%
+        dplyr::count() %>%
+        pull(n)
+      total_count <- bin %>%
+        dplyr::count() %>%
+        pull(n)
+      myeloid_count <- bin %>%
+        filter(assignment1 == "Myeloid") %>%
+        dplyr::count() %>%
+        pull(n)
+      
+      bin_summary <- c(i, j, total_count, boundary_count/total_count, tumor_count/total_count, tls_count/total_count, myeloid_count, myeloid_count/total_count)
+      bin_df <- rbind(bin_df, bin_summary)
+    }
+  }
+  colnames(bin_df) <- c("x_bin", "y_bin", "total_beads", "pct_boundary", "pct_tumor", "pct_tls", "ct_myeloid", "pct_myeloid")
+  
+  return(bin_df)
+}
+
+assign_bin_annotation <- function(bin_df){
+  bin_df <- bin_df %>%
+  mutate(area = case_when(pct_tls > 0.8 ~ "TLS",
+                          pct_boundary > 0.8 ~ "Boundary",
+                          pct_tumor > 0.8 ~ "Tumor",
+                          total_beads == 0 ~ "Empty",
+                          T ~ "Mix"))
+  return(bin_df)
+}
+
+```
+
+# Process spatial data
+## Open objects with annotated areas
+```{r}
+P102TA_10_RNA <- readRDS("../objects/02_Puck10_102TA_TCR_RNA_area_121125.Rds")
+P102TA_17_RNA <- readRDS("../objects/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+
+P108TA_26_RNA <- readRDS("../objects/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("../objects/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("../objects/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+```
+
+## Assign celltypes
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_10_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_17_RNA@meta.data <- P102TA_17_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_17_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_33_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_26_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_29_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_30_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_32_RNA@meta.data %>%
+  dplyr::count(assignment1)
+```
+
+# Bin the beads and calculate percentage of myeloid beads / all beads in each bin
+```{r}
+P102TA_10_bin <- get_pct_myeloid_in_bin(P102TA_10_RNA)
+P102TA_17_bin <- get_pct_myeloid_in_bin(P102TA_17_RNA)
+P102TA_33_bin <- get_pct_myeloid_in_bin(P102TA_33_RNA)
+P108TA_26_bin <- get_pct_myeloid_in_bin(P108TA_26_RNA)
+P108TA_29_bin <- get_pct_myeloid_in_bin(P108TA_29_RNA)
+P108TA_30_bin <- get_pct_myeloid_in_bin(P108TA_30_RNA)
+P108TA_32_bin <- get_pct_myeloid_in_bin(P108TA_32_RNA)
+```
+
+# Filter for bins with 5 beads or more
+```{r}
+P102TA_10_bin <- P102TA_10_bin %>%
+  filter(total_beads >= 5)
+P102TA_17_bin <- P102TA_17_bin %>%
+  filter(total_beads >= 5)
+P102TA_33_bin <- P102TA_33_bin %>%
+  filter(total_beads >= 5)
+
+P108TA_26_bin <- P108TA_26_bin %>%
+  filter(total_beads >= 5)
+P108TA_29_bin <- P108TA_29_bin %>%
+  filter(total_beads >= 5)
+P108TA_30_bin <- P108TA_30_bin %>%
+  filter(total_beads >= 5)
+P108TA_32_bin <- P108TA_32_bin %>%
+  filter(total_beads >= 5)
+```
+
+# Assign an area to each bin 
+```{r}
+P102TA_10_bin <- P102TA_10_bin %>%
+  assign_bin_annotation %>%
+  mutate(Patient = "P102TA",
+         orig.ident = "P102TA_10")
+P102TA_17_bin <- P102TA_17_bin %>%
+  assign_bin_annotation %>%
+  mutate(Patient = "P102TA",
+         orig.ident = "P102TA_17")
+P102TA_33_bin <- P102TA_33_bin %>%
+  assign_bin_annotation %>%
+  mutate(Patient = "P102TA",
+         orig.ident = "P102TA_33")
+
+P108TA_26_bin <- P108TA_26_bin %>%
+  assign_bin_annotation %>%
+  mutate(Patient = "P108TA",
+         orig.ident = "P108TA_26")
+P108TA_29_bin <- P108TA_29_bin %>%
+  assign_bin_annotation %>%
+  mutate(Patient = "P108TA",
+         orig.ident = "P108TA_29")
+P108TA_30_bin <- P108TA_30_bin %>%
+  assign_bin_annotation %>%
+  mutate(Patient = "P108TA",
+         orig.ident = "P108TA_30")
+P108TA_32_bin <- P108TA_32_bin %>%
+  assign_bin_annotation %>%
+  mutate(Patient = "P108TA",
+         orig.ident = "P108TA_32")
+```
+
+# Plot the bins, colored by area
+```{r, fig.width = 6, fig.height = 5}
+ggplot(P102TA_10_bin, aes(x = x_bin, y = y_bin, color = area)) +
+  geom_point(shape = 15, size = 3) +
+  scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000", "Mix" = "grey80", "Empty" = "#eeeeee")) +
+  xlab("Binned x") +
+  ylab("Binned y") +
+  theme_bw() +
+  coord_fixed(xlim = c(0, 30), ylim = c(0, 30))
+ggplot(P102TA_17_bin, aes(x = x_bin, y = y_bin, color = area)) +
+  geom_point(shape = 15, size = 3) +
+  scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000", "Mix" = "grey80", "Empty" = "#eeeeee")) +
+  xlab("Binned x") +
+  ylab("Binned y") +
+  theme_bw() +
+  coord_fixed(xlim = c(0, 30), ylim = c(0, 30))
+ggplot(P102TA_33_bin, aes(x = x_bin, y = y_bin, color = area)) +
+  geom_point(shape = 15, size = 3) +
+  scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000", "Mix" = "grey80", "Empty" = "#eeeeee")) +
+  xlab("Binned x") +
+  ylab("Binned y") +
+  theme_bw() +
+  coord_fixed(xlim = c(0, 30), ylim = c(0, 30))
+
+
+ggplot(P108TA_26_bin, aes(x = x_bin, y = y_bin, color = area)) +
+  geom_point(shape = 15, size = 3) +
+  scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000", "Mix" = "grey80", "Empty" = "#eeeeee")) +
+  xlab("Binned x") +
+  ylab("Binned y") +
+  theme_bw() +
+  coord_fixed(xlim = c(0, 30), ylim = c(0, 30))
+ggplot(P108TA_29_bin, aes(x = x_bin, y = y_bin, color = area)) +
+  geom_point(shape = 15, size = 3) +
+  scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000", "Mix" = "grey80", "Empty" = "#eeeeee")) +
+  xlab("Binned x") +
+  ylab("Binned y") +
+  theme_bw() +
+  coord_fixed(xlim = c(0, 30), ylim = c(0, 30))
+ggplot(P108TA_30_bin, aes(x = x_bin, y = y_bin, color = area)) +
+  geom_point(shape = 15, size = 3) +
+  scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000", "Mix" = "grey80", "Empty" = "#eeeeee")) +
+  xlab("Binned x") +
+  ylab("Binned y") +
+  theme_bw() +
+  coord_fixed(xlim = c(0, 30), ylim = c(0, 30))
+ggplot(P108TA_32_bin, aes(x = x_bin, y = y_bin, color = area)) +
+  geom_point(shape = 15, size = 3) +
+  scale_color_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000", "Mix" = "grey80", "Empty" = "#eeeeee")) +
+  xlab("Binned x") +
+  ylab("Binned y") +
+  theme_bw() +
+  coord_fixed(xlim = c(0, 30), ylim = c(0, 30))
+```
+
+# Merge data
+```{r}
+df <- do.call(rbind, list(P102TA_10_bin, P102TA_17_bin, P102TA_33_bin,
+                          P108TA_26_bin, P108TA_29_bin, P108TA_30_bin, P108TA_32_bin))
+
+```
+
+## Plot % myeloid beads in tumor and boundary
+```{r}
+subset_df <- df %>%
+  filter(area %in% c("Tumor", "Boundary")) %>%
+  mutate(area = factor(area, levels = c("Tumor", "Boundary")))
+
+subset_df %>%
+  summarize(mean_total_beads = mean(total_beads))
+
+subset_df %>%
+  dplyr::count(area)
+```
+
+## Plot proportion of beads
+```{r}
+subset_df %>%
+  ggplot(aes(x = paste0(orig.ident, area), y = pct_myeloid, fill = orig.ident)) +
+  geom_boxplot() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+# Try building a linear model
+```{r}
+model_obs <- lmer(pct_myeloid ~ area + (1 | Patient / orig.ident), data = subset_df, REML = TRUE)
+t_val_obs <- coef(summary(model_obs))["areaBoundary","t value"]
+```
+
+# Permute data
+```{r}
+n_perm_safe = 1500
+
+set.seed(123)
+# Swap location labels within pucks and clonotypes
+df_perm <- subset_df %>%
+    rep_sample_n(size = nrow(subset_df), replace = FALSE, reps = n_perm_safe) %>%
+    group_by(replicate, orig.ident) %>%
+    mutate(perm_area = sample(area, size = n(), replace = FALSE))
+
+```
+
+## Get permuted test statistic
+```{r}
+# Get permuted test statistic for each gene set
+n_perm <- 1000
+
+set.seed(123)
+
+n_run <- 1
+n_saved <- 1
+non_conv <- 0
+
+t_val_perm.vec <- c()
+# Do 1000 converging loops
+while(n_saved <= n_perm){
+  # Print every saved 100 perms
+  if (n_saved %% 100 == 0) { print(n_saved) }
+  # Get the permuted replicate
+  md_rep <- df_perm %>%
+    filter(replicate == n_run)
+  # Set runs as good
+  bad_run <- FALSE
+  # Attempt the model
+  model <- withCallingHandlers(
+    expr = {
+      # Build linear model on permuted data
+      lmer(pct_myeloid ~ perm_area + (1 | Patient / orig.ident), data = md_rep, REML = TRUE)},
+    warning = function(w) {
+    # Note if the model can't converge
+    bad_run <<- TRUE
+    non_conv <<- non_conv + 1
+    n_run <<- n_run + 1
+    print("Couldn't converge")
+    invokeRestart("muffleWarning")
+    }
+  )
+      
+  # Save the t val from the model if it has no errors
+  if(!bad_run){
+    # Get and save t val
+    t_val_perm <- coef(summary(model))["perm_areaBoundary","t value"]
+    t_val_perm.vec <- c(t_val_perm.vec, t_val_perm)
+    # Count that we've saved a run
+    n_saved <- n_saved + 1
+    n_run <- n_run + 1
+  } else {
+    print("Skipping model")
+  }
+}
+
+model_perm <- t_val_perm.vec
+non_convergences <- non_conv
+```
+
+## Plot permuted test statstic distribution
+```{r, fig.height = 5, fig.width = 8}
+ggplot(as.data.frame(model_perm), aes(x = model_perm)) +
+  geom_histogram(bins = 100) +
+  geom_vline(aes(xintercept = t_val_obs))
+
+```
+
+## Calculate pval
+```{r}
+# Two sided symmetrical distributions
+n_extreme <- length(model_perm[model_perm >= t_val_obs])
+pval <- n_extreme/n_perm*2
+
+pval
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+
+

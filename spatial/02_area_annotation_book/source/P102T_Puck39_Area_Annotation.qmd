@@ -1,0 +1,375 @@
+# 102T Puck39: Area annotation {#sec-area-annotation}
+
+# Integrating RCTD calls and area annotations
+
+## Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(viridis)
+library(tidyverse)
+library(imager)
+library(spacexr)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+two_area_colors <- c("#eeeeee", "#1786f5")
+```
+
+## Load object from script 01- where I integrated TCR and RNA data from C26 together
+```{r, echo=FALSE}
+P102TA_39_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/01_TCR_RNA_integration/01_Puck39_102TA_TCR_RNA_merged_110724.Rds")
+P102TA_39_rctd <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/RCTD/rctd_results_rds_091125/P102TA_39_rctd_results.rds")
+
+P102TA_39_RNA <- UpdateSeuratObject(P102TA_39_RNA)
+```
+```{r, eval=FALSE}
+P102TA_39_RNA <- readRDS("01_Puck39_102TA_TCR_RNA_merged_110724.Rds")
+```
+
+## Open rctd objects
+```{r, eval=FALSE}
+P102TA_39_rctd <- readRDS("P102TA_39_rctd_results.rds")
+```
+
+## Remove reject beads and normalize RCTD weights
+```{r}
+# Remove reject beads
+rejects <- P102TA_39_rctd@results[["results_df"]] %>%
+  filter(spot_class == "reject") %>%
+  rownames()
+
+P102TA_39_weights <- as.data.frame(normalize_weights(P102TA_39_rctd@results$weights)) %>%
+  # Remove reject beads
+  filter(!(rownames(.) %in% rejects)) %>%
+  dplyr::rename("Endothelial" = "ENDO",
+                "Fibroblast" = "FIBRO",
+                "Tumor" = "RCC",
+                "Myeloid" = "MYELOID",
+                "Tcell" = "T")
+```
+
+## Save normalized weights
+```{r, eval = FALSE}
+write.csv(P102TA_39_weights, "P102TA_39_normalized_weights.csv")
+```
+
+## Add RCTD weights
+```{r,echo=FALSE}
+P102TA_39_weights <- read.csv("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/RCTD/normalized_weights_091125/P102TA_39_normalized_weights.csv", row.names = 1)
+```
+```{r, eval = FALSE}
+P102TA_39_weights <- read.csv("P102TA_39_normalized_weights.csv", row.names = 1)
+```
+```{r}
+P102TA_39_RNA <- AddMetaData(P102TA_39_RNA, P102TA_39_weights)
+
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  mutate(B = ifelse(is.na(B), 0, B),
+         Tcell = ifelse(is.na(Tcell), 0, Tcell),
+         Fibroblast = ifelse(is.na(Fibroblast), 0, Fibroblast),
+         Endothelial = ifelse(is.na(Endothelial), 0, Endothelial),
+         Myeloid = ifelse(is.na(Myeloid), 0, Myeloid),
+         NK = ifelse(is.na(NK), 0, NK),
+         Tumor = ifelse(is.na(Tumor), 0, Tumor))
+```
+
+## Plot myeloid signature, CD4T, CD8, B cell signature for TLS and myeloid rich tumor annotations
+```{r}
+SpatialFeaturePlot(P102TA_39_RNA, features = c("B"), pt.size.factor = 2, alpha = c(0,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P102TA_39_RNA, features = c("Tcell"), pt.size.factor = 2, alpha = c(0.01,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P102TA_39_RNA, features = c("Fibroblast"), pt.size.factor = 2, alpha = c(0.01,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P102TA_39_RNA, features = c("Myeloid"), pt.size.factor = 2, alpha = c(0,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P102TA_39_RNA, features = c("Tumor"), pt.size.factor = 2, alpha = c(0,1)) & scale_fill_viridis(direction = -1)
+SpatialFeaturePlot(P102TA_39_RNA, features = c("Endothelial"), pt.size.factor = 2, alpha = c(0,1)) & scale_fill_viridis(direction = -1)
+```
+
+## Plot feature and counts for empty area annotation
+```{r}
+SpatialFeaturePlot(P102TA_39_RNA, features = c("log_nFeature_Spatial", "log_nCount_Spatial"))
+```
+
+## Areas with less than 25th percentile UMI were removed as empty areas
+```{r}
+quantile(P102TA_39_RNA$nCount_Spatial)
+beads_25th_umi <- Cells(subset(P102TA_39_RNA, nCount_Spatial <= 56))
+
+P102TA_39_RNA %>%
+  subset(cells = beads_25th_umi) %>%
+  SpatialDimPlot() +
+  ggtitle("UMI<25th percentile (56)")
+
+```
+
+## Update co-ordinates
+```{r}
+plot_coords <- P102TA_39_RNA@images$image@coordinates %>%
+  mutate(plot_x = y,
+         plot_y = -x+4800)
+
+P102TA_39_RNA <- AddMetaData(P102TA_39_RNA, plot_coords)
+```
+
+## Check that plotting co-ordinates are perfect
+```{r}
+P102TA_39_RNA %>%
+  subset(tumor_specific == TRUE) %>%
+SpatialDimPlot(group.by = "tumor_specific", alpha = 1, stroke = 0, pt.size.factor = 2)
+
+beads_ts <- P102TA_39_RNA@meta.data %>%
+  filter(tumor_specific == TRUE)
+SpatialDimPlot(P102TA_39_RNA, group.by = "tumor_specific", alpha = 1, stroke = 0, pt.size.factor = 2) +
+  geom_point(data = beads_ts, aes(x = plot_x, y = plot_y), size = 0.1)
+
+beads_tas <- P102TA_39_RNA@meta.data %>%
+  filter(tumor_antigen_specific == TRUE)
+SpatialDimPlot(P102TA_39_RNA,  group.by = "tumor_antigen_specific", alpha = 1, stroke = 0, pt.size.factor = 2) +
+  geom_point(data = beads_tas, aes(x = plot_x, y = plot_y), size = 0.1)
+```
+
+## Plot the B and myeloid signature of the beads
+```{r}
+P108TA_26_B <- P102TA_39_RNA@meta.data %>%
+  filter(B > 0.3)
+
+SpatialFeaturePlot(P102TA_39_RNA, features = c("B"), pt.size.factor = 2, alpha = c(0,1)) +
+  NoLegend() & 
+  scale_fill_viridis(direction = -1) 
+
+plot <- SpatialFeaturePlot(P102TA_39_RNA, features = c("Myeloid"), pt.size.factor = 2, alpha = c(0,1)) + scale_fill_viridis(direction = -1) +
+  geom_point(data = P108TA_26_B, 
+             aes(x = plot_x, y = plot_y, alpha = B), 
+             size = 0.5, color = "red") +
+  theme(legend.position = "None")
+
+plot
+```
+
+## Plot the location of TCRs
+```{r}
+beads_tcr <- P102TA_39_RNA@meta.data %>%
+  filter(nFeature_TCR > 0)
+SpatialFeaturePlot(P102TA_39_RNA, features = c("Myeloid"), pt.size.factor = 2, alpha = c(0,1)) + scale_fill_viridis(direction = -1) +
+  geom_point(data = beads_tcr, aes(x = plot_x, y = plot_y), size = 0.1, color = "blue", alpha = 1) + NoLegend()
+```
+
+## Save images to annotate in Imagescope
+```{r}
+# jpeg("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/area_annotation_jpgs_032824/Puck39_myeloid_B_RCTD_weights.jpeg", width = 7, height = 7, units = "in", res = 300)
+  plot +
+  theme_bw() +
+  coord_fixed(ratio = 1, xlim = c(0,5000), ylim = c(0,5000), expand = FALSE, clip = "off") +
+  scale_color_gradient(low = "darkgreen", high = "black") +
+  scale_alpha(range = c(0, 1)) +
+  theme(legend.position = "None")
+# dev.off()
+
+# jpeg("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/area_annotation_jpgs_032824/Puck39_102TA_empty.jpeg", width = 7, height = 7, units = "in", res = 300)
+  SpatialDimPlot(P102TA_39_RNA, cells.highlight = beads_25th_umi, alpha = 0.5, stroke = 0, pt.size.factor = 2) + scale_fill_manual(values = c("darkred", "white")) +
+  theme_bw() +
+  coord_fixed(ratio = 1, xlim = c(0,5000), ylim = c(0,5000), expand = FALSE, clip = "off") +
+  scale_color_gradient(low = "darkgreen", high = "black") +
+  scale_alpha(range = c(0, 1)) +
+  theme(legend.position = "None")
+# dev.off()
+```
+
+## Need anndata object to convert ImageScope XML to PNG in python, so convert seurat object to anndata and save the anndata obj
+```{r, eval = FALSE}
+save_seurat_as_anndata(P102TA_39_RNA, "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/area_annotation_anndata_032824", "01_Puck39_102TA_TCR_RNA_area")
+```
+
+## After running python script and creating mask PNGs, convert the PNGs into masks and attach to object metadata
+```{r}
+P102TA_39_RNA <- add_masks_to_obj(P102TA_39_RNA, "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/area_annotation/area_png_masks/Puck39_102TA/", adjust_x = -200, adjust_y = 0)
+```
+
+## Make sure the masks look good and are centered correctly, make sure to reference the screenshot of the annotated areas straight from ImageScope
+```{r}
+suppressMessages(SpatialFeaturePlot(P102TA_39_RNA, features = c("Myeloid"), pt.size.factor = 2, alpha = c(0,1)) + NoLegend() & scale_fill_viridis(direction = -1) )
+
+suppressMessages(P102TA_39_RNA %>%
+  subset(cells = beads_25th_umi) %>%
+  SpatialDimPlot(stroke = 0) + NoLegend())
+
+SpatialDimPlot(P102TA_39_RNA, group.by = "mask_1") + NoLegend()
+SpatialDimPlot(P102TA_39_RNA, group.by = "mask_2") + NoLegend()
+```
+
+## Merge layers into one column
+```{r}
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  mutate(mask_sum = rowSums(select(., mask_1, mask_2)))
+
+SpatialDimPlot(P102TA_39_RNA, group.by = "mask_sum")
+```
+
+## Translate numericals into names, make sure to reference the screenshot of the annotated areas taken straight from ImageScope
+```{r}
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  mutate(area = case_when(mask_sum %in% c(1,2) ~ "Empty",
+                          mask_sum %in% c(3) ~ "Tumor"))
+
+suppressMessages(SpatialFeaturePlot(P102TA_39_RNA, features = "Myeloid", pt.size.factor = 2, alpha = c(0,1)) + NoLegend() & scale_fill_viridis(direction = -1) )
+
+suppressMessages(P102TA_39_RNA %>%
+  subset(cells = beads_25th_umi) %>%
+  SpatialDimPlot(stroke = 0) +
+  NoLegend())
+
+SpatialDimPlot(P102TA_39_RNA, group.by = "area", stroke = 0.1) + scale_fill_manual(values = two_area_colors)
+```
+
+## Do we have any straggling beads
+```{r}
+unique(P102TA_39_RNA$area)
+# Plot empty beads only
+SpatialDimPlot(subset(P102TA_39_RNA, area == "Empty"), group.by = "area", alpha = 0.7, stroke = 0)
+# Plot tumor beads only
+SpatialDimPlot(subset(P102TA_39_RNA, area == "Tumor"), group.by = "area", alpha = 0.7, stroke = 0)
+```
+
+## Straggling beads have the tumor label when they should be empty
+```{r}
+# Find tumor beads, change to empty
+SpatialDimPlot(P102TA_39_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  geom_point(data = filter(P102TA_39_RNA@meta.data, plot_x > 2200 & plot_y < 250), aes(x = plot_x, y = plot_y), size = 1, alpha = 0.05) +
+  theme(legend.position = "None") +
+  scale_fill_manual(values = two_area_colors)
+# Extract straggling beads
+beads_to_empty <- P102TA_39_RNA@meta.data %>%
+  filter(plot_x > 2200 & plot_y < 250) %>%
+  pull(barcode)
+# Cast to empty
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  mutate(area = case_when(barcode %in% beads_to_empty ~ "Empty",
+                          !(barcode %in% beads_to_empty) ~ area))
+
+```
+
+## Check again for any straggling beads
+```{r}
+unique(P102TA_39_RNA$area)
+# Plot empty beads only
+SpatialDimPlot(subset(P102TA_39_RNA, area == "Empty"), group.by = "area", alpha = 0.7, stroke = 0)
+# Plot tumor beads only
+SpatialDimPlot(subset(P102TA_39_RNA, area == "Tumor"), group.by = "area", alpha = 0.7, stroke = 0)
+```
+
+## Save bead area annotations
+```{r, eval = FALSE}
+P102TA_39_RNA@meta.data %>%
+  select(barcode, area) %>%
+  write.csv("Puck39_102TA_bead_area_annot.csv")
+```
+
+## Before removing TCRs in the empty areas
+## Plot where all TCRs are
+```{r}
+beads_w_tcr <- P102TA_39_RNA@meta.data %>%
+  filter(nFeature_TCR > 0)
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P102TA_39_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = two_area_colors)))
+
+plot <- SpatialDimPlot(P102TA_39_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = two_area_colors) +
+  geom_point(data = beads_w_tcr, aes(x = plot_x, y = plot_y), size = 0.7) +
+  theme(legend.position = "None") 
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 ,3)) + ggtitle("TCR location")
+```
+
+## Plot where neoAg TCRs are
+```{r}
+beads_neoag <- P102TA_39_RNA@meta.data %>%
+  filter(tumor_antigen_specific == TRUE)
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P102TA_39_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = two_area_colors))) 
+
+plot <- SpatialDimPlot(P102TA_39_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = two_area_colors) +
+  geom_point(data = beads_neoag, aes(x = plot_x, y = plot_y), size = 1) +
+  theme(legend.position = "None")
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 , 3)) + ggtitle("NeoAg TCR location")
+```
+
+## Plot where TCRs are AFTER removing TCRs associated with the beads in the "empty" areas
+
+## Remove TCRs, also remove mask columns in metadata 
+```{r}
+P102TA_39_RNA <- remove_tcrs_in_empty_area(P102TA_39_RNA)
+
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  select(-c(mask_1, mask_2, mask_sum))
+
+```
+
+## Plot where all TCRs are
+```{r}
+beads_w_tcr <- P102TA_39_RNA@meta.data %>%
+  filter(nFeature_TCR > 0)
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P102TA_39_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = two_area_colors))) 
+
+plot <- SpatialDimPlot(P102TA_39_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = two_area_colors) +
+  geom_point(data = beads_w_tcr, aes(x = plot_x, y = plot_y), size = 1) +
+  theme(legend.position = "None") 
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 ,3)) + ggtitle("TCR location")
+```
+
+## Plot where neoAg TCRs are
+```{r}
+beads_neoag <- P102TA_39_RNA@meta.data %>%
+  filter(tumor_antigen_specific == TRUE)
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P102TA_39_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = two_area_colors))) 
+
+plot <- SpatialDimPlot(P102TA_39_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = two_area_colors) +
+  geom_point(data = beads_neoag, aes(x = plot_x, y = plot_y), size = 1) +
+  theme(legend.position = "None")
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 , 3)) + ggtitle("NeoAg TCR location")
+```
+
+## Plot where EBV reactive TCRs are
+```{r}
+beads_ebv <- P102TA_39_RNA@meta.data %>%
+  filter(virus_antigen == "EBV")
+
+legend <- as.ggplot(get_legend(SpatialDimPlot(P102TA_39_RNA, group.by = "area") + 
+                                 scale_fill_manual(values = two_area_colors))) 
+
+plot <- SpatialDimPlot(P102TA_39_RNA, group.by = "area", alpha = 0.7, stroke = 0) +
+  scale_fill_manual(values = two_area_colors) +
+  geom_point(data = beads_ebv, aes(x = plot_x, y = plot_y), size = 1) +
+  theme(legend.position = "None")
+
+plot + plot_spacer() + legend + plot_layout(widths = c(3, -1.1 , 3)) + ggtitle("EBV reactive TCR location")
+```
+
+## Save puck
+```{r, eval = FALSE}
+saveRDS(P102TA_39_RNA, "02_Puck39_102TA_TCR_RNA_area_121125.Rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```

@@ -1,0 +1,279 @@
+# Clean clusters on NeoVax + CancerCell data {#sec-rctd}
+
+### 
+# Libraries
+```{r}
+library(Seurat)
+library(paletteer)
+library(liana)
+library(tidyverse)
+library(ggpointdensity)
+library(rmarkdown)
+library(knitr)
+
+knitr::opts_chunk$set(cache = TRUE, warning = FALSE, 
+                      message = FALSE, cache.lazy = FALSE)
+
+options(tibble.print_min = Inf, tibble.width = Inf)
+```
+
+# Load subclustered object
+```{r}
+scrna <- readRDS("../objects/subclustered_RCC.NeoVax.CancerCell.rds")
+```
+
+# Update subcluster labels
+## B cell
+B_1, B_0 are good (B.Mem), B_2 contains contaminant cells (i think these are interacting cells with B cells), B_3 is good (Plasma), B_4 is probably cytotoxic T contaminant (although not catastrophic, this one is borderline), B_5 is contains too much erythroid markers,  B_6 is myeloid contaminant, B8 seems like a fine plasma cell cluster to me, and B9 may contain tumor contaminant, as ALDOB is a PT marker. 
+
+Summary: B_0, B_1 (memory), B_3, B_8 (plasma), B_2, B_4, B_5, B_6, B_7, B_9 are unideal for LIANA because they contain markers of other genes in addition to clear B cell markers (one sees clearly that they do contain B cell transcripts too so at least the clustering algo makes sense)
+```{r}
+unique(scrna$b_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(b_labels = case_when(b_subcluster %in% c("B_0", "B_1") ~ "B.MEM",
+                              b_subcluster %in% c("B_3", "B_8") ~ "B.PLASMA",
+                              T ~ NA))
+```
+
+## Myeloid
+M_4 is DCs, M_2 is non-classical monocytes, M_1 is classical monocytes, M_14 is DCs, M_11 is M2-Macs, M_8, M_3, and M13 are T cell contaminants. M_0 is TAMs, M_9 is Mast cells, M_12 is pDCs, M6 is Macs, M_7 is M2-macs, M_10 is monocytes, M_15 is monocytes, M_5 is M2-mac.
+
+Summary: M_0 and M_6 are Mac (these are likely anti-inflammatory as well, but not as much as M2s); M_5, M_7, M_11 are M2. Mac; M_1, M_10 are Classical Monocytes; M_2, M_15 are non-classical monocytes, M_4, M_14 is DCs; M_9 is Mast (don't need for LIANA); M_12 is pDCs (not needed for LIANA); M_3, M_8, and M_13 should be discarded as contaminant
+```{r}
+unique(scrna$myeloid_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(myeloid_labels = case_when(myeloid_subcluster %in% c("Myeloid_0", "Myeloid_6") ~ "MAC",
+                                    myeloid_subcluster %in% c("Myeloid_5", "Myeloid_7", "Myeloid_11") ~ "M2.MAC",
+                                    myeloid_subcluster %in% c("Myeloid_1", "Myeloid_10") ~ "MONO.CLASS",
+                                    myeloid_subcluster %in% c("Myeloid_2", "Myeloid_15") ~ "MONO.NONCLASS",
+                                    myeloid_subcluster %in% c("Myeloid_4", "Myeloid_14") ~ "DC",
+                              T ~ NA))
+```
+
+## T
+For T: T_3: NK-like TEM; T_0 is TEx; T_2 is TAp; T_1 is TMem; T_4 is TRM; T_10 is TProl; T_5 is Treg; T_6 is TEx; T_8 is myeloid contaminant; T_9 is TProl; T_7 is TProl; T_11 is TIFN; T_12 is TAp
+For LIANA: TEx is T_0, T_6, T_7, T_9, T_10, T_11; TMem is T_1, T_3, T_4; Treg is T_5; and you can ignore TAp (T_2, T_12) and the myeloid contaminant (T_8), and ignore small clusters with only 2 cells (T_13 and T_14)
+```{r}
+unique(scrna$t_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(t_labels = case_when(t_subcluster %in% c("T_0", "T_6", "T_7", "T_9", "T_10", "T_11") ~ "TEX",
+                              t_subcluster %in% c("T_1", "T_3", "T_4") ~ "TMEM",
+                              t_subcluster %in% c("T_5") ~ "TREG",
+                              T ~ NA))
+```
+
+## NK
+NK_0 are NKs, NK_3 are NKs, NK_1 are NKs, NK_2 are NKs, NK_4 may be T cells or NK cells, so we'll exclude them, NK_6 are NKs, NK_8 are T cell contaminants (tregs interestingly, maybe there is a treg-like NK state...), NK_5 are likely T cell-like contaminants - these aren't NK genes, but they're not strictly CD3 positive; NK_7 is some contaminant.
+For LIANA: NKs are NK_0, NK_1, NK_2, NK_3, NK_6; contaminants are NK_4, NK_5, NK_7, NK_8
+```{r}
+unique(scrna$nk_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(nk_labels = case_when(nk_subcluster %in% c("NK_0", "NK_1", "NK_2", "NK_3", "NK_6") ~ "NK",
+                              T ~ NA))
+```
+
+## RCC
+Tumor: RCC_1 is RCC; RCC_2,  RCC_4, RCC_6, RCC_11 and RCC_12 are contaminant T/Myeloid cells; RCC_0 is RCC; RCC_3 is RCC; RCC_9 is RCC; RCC_7 is RCC; RCC_5 is RCC, RCC_10 is RCC; RCC_8 is probably RCC
+For LIANA consider RCC_0, RCC_1, RCC_3, RCC_5, RCC_7, RCC_8, RCC_9, RCC10 as RCC, and consider RCC_2, RCC_4, RCC_6, RCC_11, and RCC_12 as contaminants
+```{r}
+unique(scrna$rcc_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(rcc_labels = case_when(rcc_subcluster %in% c("RCC_0", "RCC_1", "RCC_3", "RCC_5", "RCC_7", "RCC_8", "RCC_9", "RCC_10") ~ "RCC",
+                              T ~ NA))
+```
+
+## Endothelial
+Endothelial cells: ENDO_2 is tumor-associated endothelial cells; ENDO_6 is endothelial cells; ENDO_1 is T cell contamination; ENDO_3 is probably endothelial cells; ENDO_0 is endothelial cells; ENDO_8 is smooth muscle cells interestingly; ENDO_7 is myeloid contaminant; ENDO_4 is endothelial, ENDO_5 is endothelial. 
+For LIANA, ENDO_0, ENDO_2, ENDO_3, ENDO_4, ENDO_5, ENDO_6 are all endothelial; you can discard ENDO_1, ENDO_7, and ENDO_8 as contaminant clusters
+```{r}
+unique(scrna$endo_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(endo_labels = case_when(endo_subcluster %in% c("ENDO_0", "ENDO_2", "ENDO_3", "ENDO_4", "ENDO_5", "ENDO_6") ~ "ENDO",
+                              T ~ NA))
+```
+
+## Fibroblast
+Fibroblast cells: I think 3, 0, 1, and 4 - agreed? based on the markers seems like 2 may be renal epithelium or tumor, 5 is immune contaminant, and 6 I have no idea but doesn't seem like a fibroblast
+```{r}
+unique(scrna$fib_subcluster)
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(fib_labels = case_when(fib_subcluster %in% c("FIBRO_0", "FIBRO_1", "FIBRO_3", "FIBRO_4") ~ "FIBRO",
+                              T ~ NA))
+```
+
+# Merge subcluster labels
+```{r}
+scrna@meta.data <- scrna@meta.data %>%
+  mutate(liana_label = case_when(!is.na(b_labels) ~ b_labels,
+                                 !is.na(myeloid_labels) ~ myeloid_labels,
+                                 !is.na(t_labels) ~ t_labels,
+                                 !is.na(nk_labels) ~ nk_labels,
+                                 !is.na(rcc_labels) ~ rcc_labels,
+                                 !is.na(endo_labels) ~ endo_labels,
+                                 !is.na(fib_labels) ~ fib_labels))
+
+table(scrna$liana_label)
+table(scrna$b_labels)
+table(scrna$myeloid_labels)
+table(scrna$t_labels)
+table(scrna$nk_labels)
+table(scrna$rcc_labels)
+table(scrna$endo_labels)
+table(scrna$fib_labels)
+```
+
+# Subset for RCTD cells
+```{r}
+cells_keep <- scrna@meta.data %>%
+  filter(!is.na(liana_label)) %>%
+  rownames(.)
+
+clean_scrna <- scrna %>% subset(cells = cells_keep)
+
+rm(scrna)
+gc()
+
+clean_scrna@meta.data %>%
+  group_by(patient, liana_label) %>%
+  dplyr::count() %>%
+  pivot_wider(names_from = "patient", values_from = "n")
+```
+
+# Merge into general clusters for RCTD calling
+```{r}
+unique(clean_scrna$liana_label)
+
+clean_scrna@meta.data <- clean_scrna@meta.data %>%
+  mutate(rctd_label = case_when(liana_label %in% c("NK") ~ "NK",
+                                liana_label %in% c("TMEM", "TEX", "TREG") ~ "T",
+                                liana_label %in% c("ENDO") ~ "ENDO",
+                                liana_label %in% c("DC", "MONO.NONCLASS", "MONO.CLASS", "M2.MAC", "MAC") ~ "MYELOID",
+                                liana_label %in% c("FIBRO") ~ "FIBRO",
+                                liana_label %in% c("B.MEM", "B.PLASMA") ~ "B",
+                                liana_label %in% c("RCC") ~ "RCC"))
+
+rctd_cell_counts <- clean_scrna@meta.data %>%
+  group_by(patient, rctd_label) %>%
+  dplyr::count() %>%
+  pivot_wider(names_from = "patient", values_from = "n")
+
+rctd_cell_counts
+```
+
+# Save object for RCTD calling
+```{r, eval=FALSE}
+saveRDS(clean_scrna, "../objects/clean_NeoVax.CancerCell_RCTD.rds")
+```
+
+# Subset further for LIANA
+```{r}
+cells_keep <- clean_scrna@meta.data %>%
+  filter(liana_label != "FIBRO") %>%
+  rownames(.)
+
+clean_scrna <- clean_scrna %>% subset(cells = cells_keep)
+
+clean_scrna@meta.data %>%
+  group_by(patient, liana_label) %>%
+  dplyr::count()
+```
+
+```{r, echo = FALSE}
+liana_tls_pos <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/04_liana/clean_NeoVax.CancerCell_tls+_liana.rds")
+liana_tls_neg <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/04_liana/clean_NeoVax.CancerCell_tls-_liana.rds")
+```
+
+# Subset for TLS+ patients and run LIANA
+TLS+: 107, 102, 108, 106, 112, 104, 101, DBCC03, DBCC15, DBCC16, DBCC11, DBCC05
+```{r, eval = FALSE}
+unique(clean_scrna$patient)
+
+Idents(clean_scrna) <- clean_scrna$patient
+tls_pos <- clean_scrna %>% 
+  subset(idents = c("16097-107", "16097-102", "16097-108","16097-106", 
+                    "16097-112", "16097-104", "16097-101", "DBCC03", 
+                    "DBCC15", "DBCC16", "DBCC11", "DBCC05"))
+
+tls_pos <- JoinLayers(tls_pos)
+
+tls_pos_sce <- as.SingleCellExperiment(tls_pos, assay = "RNA")
+
+liana_tls_pos <- tls_pos_sce %>%
+  liana_wrap(idents_col = "liana_label", return_all = TRUE) %>%
+  liana_aggregate()
+```
+
+
+# Subset for TLS- patients and run LIANA
+TLS-: 105, 110, 111, 109, S1, S2, S6, S7, S8, S10, S12, S14
+```{r, eval = FALSE}
+unique(clean_scrna$patient)
+
+Idents(clean_scrna) <- clean_scrna$patient
+tls_neg <- clean_scrna %>% 
+  subset(idents = c("16097-105", "16097-110", "16097-111","16097-109", 
+                    "DBCC01", "DBCC02", "DBCC06", "DBCC07", "DBCC08", 
+                    "DBCC10", "DBCC12", "DBCC14"))
+rm(clean_scrna)
+gc()
+
+tls_neg_sce <- as.SingleCellExperiment(tls_neg, assay = "RNA")
+
+liana_tls_neg <- tls_neg_sce %>%
+  liana_wrap(idents_col = "liana_label", return_all = TRUE) %>%
+  liana_aggregate()
+```
+
+## Filter for source-target interactions of interest
+#### Alex's code from GPT
+```{r}
+liana_tls_pos$self <- ifelse(liana_tls_pos$source == liana_tls_pos$target, 1, 0)
+liana_tls_neg$self <- ifelse(liana_tls_neg$source == liana_tls_neg$target, 1, 0)
+
+#remove self-interactions (Tex-Tex, e.g.)
+liana_tls_pos <- liana_tls_pos[liana_tls_pos$self == 0,] #down to 675168
+liana_tls_neg <- liana_tls_neg[liana_tls_neg$self == 0,] #down to 666120
+
+#isolate interactions of Tex cells and Tmem cells
+liana_tls_pos <- liana_tls_pos[(liana_tls_pos$source %in% c("TEX", "TMEM", "TREG") | liana_tls_pos$target %in% c("TEX", "TMEM", "TREG")),] #285648
+liana_tls_neg <- liana_tls_neg[(liana_tls_neg$source %in% c("TEX", "TMEM", "TREG") | liana_tls_neg$target %in% c("TEX", "TMEM", "TREG")),] #281820
+
+#get rid of HLA interactions and CD3
+liana_tls_pos <- liana_tls_pos %>% 
+  filter(!str_detect(ligand.complex, 'HLA|CD8A|CD8B|^CD4$'))
+liana_tls_pos <- liana_tls_pos %>% 
+  filter(!str_detect(receptor.complex, 'CD3')) #278520
+
+liana_tls_neg <- liana_tls_neg %>% 
+  filter(!str_detect(ligand.complex, 'HLA|CD8A|CD8B|^CD4$'))
+liana_tls_neg <- liana_tls_neg %>% 
+  filter(!str_detect(receptor.complex, 'CD3')) #274758
+
+hist(liana_tls_pos$aggregate_rank, breaks = 50)
+hist(liana_tls_neg$aggregate_rank, breaks = 50)
+#0.05 seems to basically cut off all non-sig interactions
+
+liana_tls_pos <- liana_tls_pos %>% filter(aggregate_rank < 0.05) #5890 - 2%
+liana_tls_neg <- liana_tls_neg %>% filter(aggregate_rank < 0.05) #6225 - 16%
+
+```
+
+## View LIANA results
+```{r}
+head(liana_tls_pos)
+head(liana_tls_neg)
+```
+
+## Save LIANA
+```{r, eval = FALSE}
+saveRDS(liana_tls_pos, "../objects/clean_NeoVax.CancerCell_tls+_liana.rds")
+saveRDS(liana_tls_neg, "../objects/clean_NeoVax.CancerCell_tls-_liana.rds")
+```
+
+#### Note: Upon re-running LIANA from scratch on the same object, aggregate_rank, mean_rank etc have changed very slightly likely due to a change in the random seed. The results being opened in this file are from the original run of LIANA.
+
+# Get session info
+```{r}
+sessionInfo()
+```
+

@@ -1,0 +1,89 @@
+# Create mask PNGs from ImageScope XML file: Area annotation {#sec-area-annotation}
+
+# Integrating RCTD calls and area annotations
+
+# Libraries
+```{r}
+library(reticulate)
+use_virtualenv("/home/cht269/my_envs/new_envs/R_anndata_py3.13.1/")
+```
+
+# Packages
+```{python, eval = FALSE}
+import os
+from PIL import Image
+import xml.etree.ElementTree as ET
+import matplotlib.pyplot as plt
+import seaborn as sns
+import pandas as pd
+import numpy as np
+import cv2
+import scanpy as sc
+from scipy.sparse import csr_matrix
+```
+
+# Steps to create data necessary for this script:
+
+1. Save spatial plots as JPGs, ensuring the xy axis is set to 0,5000, and that coordinates are marked, by using + coord_fixed(ratio = 1, xlim = c(0,5000), ylim = c(0,5000), expand = FALSE, clip = "off")
+
+2. Crop image so that the the boundaries of the plots are removed
+
+3. Resize images to 5000 by 5000 pixels and save these images as jpgs
+
+4. Load images into Imagescope
+
+5. Draw areas
+
+6. Save areas as xml files
+
+7.Load jpgs, xml files, anndata objects into this script
+
+8. Ensure a folder is at the path given by "generated png path"
+
+# Set paths
+```{python, eval = FALSE}
+imagescope_xml_path = "../objects/area_annotation/xmls_040424"
+imagescope_xml_file = "Puck30_110TA.xml"
+
+adjusted_jpg_path = "../objects/area_annotation/adjusted_jpgs"
+adjusted_jpg_file = "Puck30_110TA_empty.jpg"
+
+generated_png_path = "../objects/area_annotation/area_png_masks"
+puck_name = "Puck30_110TA"
+```
+
+# Open object
+```{python, eval = FALSE}
+crop=[0, 5000, 0, 5000] # set x and y limits of the image, needed to register coordinates and manual annotations
+```
+
+# Open XML file from Imagescope and JPG of puck
+```{python, eval = FALSE}
+tree = ET.parse(f'{imagescope_xml_path}/{imagescope_xml_file}')
+root = tree.getroot()
+slide = Image.open(f'{adjusted_jpg_path}/{adjusted_jpg_file}')
+size = slide.size
+print(size)
+```
+
+# Save each region as its own 5k x 5k PNG file
+```{python, eval = FALSE}
+for i,r in enumerate(root.iter('Region')):
+    print(i,r)
+    pts = []
+    for p in r.iter('Vertex'):
+        x = p.get('X')
+        y = p.get('Y')
+        pts.append([x, y])
+        print(x,y)
+
+    mask = np.ones((size[1], size[0]))*255
+
+    cv2.fillPoly(mask, np.array([pts], 'int32'), 0)
+
+    im=mask.astype(np.uint8)
+    im = Image.fromarray(im)
+    im.save(f'{generated_png_path}/{puck_name}/{puck_name}_region_{i}_mask.png')
+```
+
+

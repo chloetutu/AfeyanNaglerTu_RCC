@@ -1,0 +1,212 @@
+# 108TB Puck14: TCR integration {#sec-tcr-integration}
+
+# Integrating spatial RNA and TCR data
+
+## Libraries
+```{r}
+library(SeuratObject)
+library(Seurat)
+library(anndata)
+library(reticulate)
+library(wesanderson)
+library(dplyr)
+library(stringr)
+library(clustree)
+library(readxl)
+library(reshape2)
+library(ggplotify)
+library(cowplot)
+library(comparator)
+library(ggpointdensity)
+library(ggvenn)
+library(rmarkdown)
+library(evaluate)
+library(knitr)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Load virtual environment using reticulate
+```{r}
+use_virtualenv("/home/cht269/my_envs/new_envs/R_anndata_py3.13.1/")
+```
+
+## Load RNA puck
+```{r}
+P108TB_14_RNA <- load_slideseq(gene_exp_dir = "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/raw_data/RCC_pucks/2023-08-23_Puck_230206_14_108TB/gene_expression/", coords_dir = "/n/data2/dfci/medonc/cwu/chloe/slideseq_data/raw_data/RCC_pucks/2023-08-23_Puck_230206_14_108TB/Puck_230206_14_barcode_xy.txt.gz", project_name = "P108TB_14")
+
+dim(P108TB_14_RNA)
+```
+
+## Load TCR puck
+```{r}
+P108TB_14_TCR <- anndata::read_h5ad("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/nanoranger_anndata/adata_Puck_230206_14_TCR_108TB.h5ad")
+P108TB_14_TCR
+```
+
+## Remove non-productive CDR3 sequences
+```{r}
+all_cdr3 <- P108TB_14_TCR$var_names
+all_cdr3 <- all_cdr3[!str_detect(all_cdr3, "_|\\*") & (str_detect(all_cdr3, "^C"))]
+P108TB_14_TCR <- P108TB_14_TCR[,all_cdr3]
+```
+
+## Extract helpful dataframes from TCR anndata object
+```{r}
+TCR_seq <- P108TB_14_TCR$var
+TCR_xy <- P108TB_14_TCR$obs %>%
+  mutate(barcode = paste0(barcode, "-1"),
+         x = round(x,1),
+         y = round(y,1)) %>%
+  dplyr::rename("TCR_x" = "x", 
+                "TCR_y" = "y", 
+                "TCR_barcode" = "barcode")
+
+rownames(TCR_xy) <- TCR_xy$barcode
+```
+
+## Double-check that the coordinate data matches
+```{r}
+RNA_xy <- P108TB_14_RNA@images$image@coordinates %>%
+  mutate(barcode = rownames(.)) %>%
+  dplyr::rename("RNA_x" = "x", 
+                "RNA_y" = "y", 
+                "RNA_barcode" = "barcode")
+
+rownames(RNA_xy) <- RNA_xy$barcode
+
+RNA_xy %>%
+  left_join(TCR_xy, by = c("RNA_barcode" = "TCR_barcode")) %>%
+  filter(!is.na(TCR_x)) %>%
+  mutate(x_match = case_when(RNA_x == TCR_x ~ TRUE,
+                             RNA_x != TCR_x ~ FALSE),
+         y_match = case_when(RNA_y == TCR_y ~ TRUE,
+                             RNA_y != TCR_y ~ FALSE)) %>%
+  count(x_match, y_match)
+  
+```
+
+## How many barcodes gathered from TCR exist in RNA
+```{r}
+TCR_xy %>%
+  mutate(IN_RNA = case_when((TCR_barcode %in% RNA_xy$RNA_barcode) ~ TRUE,
+                            !(TCR_barcode %in% RNA_xy$RNA_barcode) ~ FALSE)) %>%
+  ggplot(aes(x = 1, fill = IN_RNA)) + 
+  geom_bar() +
+  scale_fill_manual(values = wes_palette("Darjeeling1")) +
+  theme_classic() +
+  ggtitle("No. of beads from TCR pipeline in RNA")
+```
+
+## Assign all TCR barcodes to an RNA barcode
+```{r}
+final_xy <- map_tcr_and_rna_barcodes(TCR_xy, RNA_xy)
+```
+
+## Add the TCR data to the RNA as an additional assay
+```{r}
+P108TB_14_RNA <- update_and_add_tcr_assay(P108TB_14_TCR, final_xy, P108TB_14_RNA)
+```
+
+## Calculate Hamming distance between TCR barcodes and RNA barcodes
+```{r}
+hamming_option = Hamming()
+final_xy <- final_xy %>%
+  mutate(hamming_dist = hamming_option(TCR_barcode, RNA_barcode))
+```
+
+## Plot distribution of physical distance and Hamming distance of TCR-unique barcodes
+```{r}
+final_xy %>%
+  filter(TCR_barcode != RNA_barcode) %>%
+  ggplot(aes(x = distance, y = hamming_dist)) +
+    geom_pointdensity() + 
+  theme_classic() +
+  xlab("physical distance") +
+  ylab("hamming distance")
+```
+
+## Plot number of beads w/ clonotype data
+```{r, fig.width = 3, fig.height = 3}
+P108TB_14_RNA@meta.data %>%
+  mutate(TCR = case_when((nFeature_TCR > 0) ~ TRUE,
+                         (nFeature_TCR == 0) ~ FALSE)) %>%
+  ggplot(aes(x = 1, fill = TCR)) + 
+  geom_bar() +
+  scale_fill_manual(values = wes_palette("Darjeeling1")) +
+  theme_classic() +
+  ggtitle("No. of beads w/ TCR")
+```
+
+## Plot number of beads w/ multiple TCR chains
+```{r, fig.width = 5, fig.height = 3}
+P108TB_14_RNA@meta.data %>%
+  filter(nFeature_TCR > 0) %>%
+  ggplot(aes(x = 1, fill = as.factor(nFeature_TCR))) + 
+  geom_bar() +
+  scale_fill_manual(values = wes_palette("Darjeeling2")) +
+  theme_classic() +
+  ggtitle("No. of beads w/ multiple TCR")
+```
+
+## Open reactivity and scRNA-scTCR derived phenotypic data
+```{r}
+reactivities <- read.csv("../objects/reformatted_RCC_slideseq_parameters_052925.csv") %>%
+  filter(str_detect(sctcr_clone, "p108"))
+```
+
+## Attach scRNA derived clonotype descriptions to TCR metadata
+```{r}
+TCR_seq <- TCR_seq %>%
+  mutate(CDR3 = rownames(.)) %>%
+  left_join(reactivities, by = c("chains", "CDR3"))
+```
+
+## Create a summary of clonotypes per bead in object metadata
+```{r}
+P108TB_14_RNA <- add_CDR3s_to_RNA_md(P108TB_14_RNA)
+puck_specific_scTCR_clones <- get_puck_specific_sctcr_clones(TCR_seq, reactivities)
+P108TB_14_RNA <- attach_phenotype_specificity_to_RNA_md(puck_specific_scTCR_clones, P108TB_14_RNA)
+P108TB_14_RNA <- create_final_clone_ids(P108TB_14_RNA, reactivities)
+```
+
+## Log scale the rna and tcr features and umi
+```{r}
+P108TB_14_RNA$log_nFeature_TCR <- log(P108TB_14_RNA$nFeature_TCR)
+P108TB_14_RNA$log_nCount_TCR <- log(P108TB_14_RNA$nCount_TCR)
+P108TB_14_RNA$log_nFeature_Spatial <- log(P108TB_14_RNA$nFeature_Spatial)
+P108TB_14_RNA$log_nCount_Spatial <- log(P108TB_14_RNA$nCount_Spatial)
+```
+
+## Flip the XY coordinates to match the orientation of the H&E stain
+```{r}
+P108TB_14_xy <- P108TB_14_RNA@images$image@coordinates
+
+# flip vertically
+P108TB_14_xy <- P108TB_14_xy %>%
+  dplyr::rename("orig_x" = "x",
+                "orig_y" = "y") %>%
+  mutate(x = orig_y,
+         y = orig_x) %>%
+  select(-orig_x,-orig_y)
+
+P108TB_14_RNA@images$image@coordinates <- P108TB_14_xy
+
+SpatialFeaturePlot(P108TB_14_RNA, features = c("log_nFeature_Spatial", "log_nCount_TCR"), alpha = c(0,1))
+
+SpatialFeaturePlot(P108TB_14_RNA, features = c("log_nFeature_TCR", "log_nCount_TCR"), pt.size = 2, alpha = c(0.5,1))
+SpatialFeaturePlot(P108TB_14_RNA, features = c("log_nFeature_Spatial", "log_nCount_Spatial"), pt.size = 2, alpha = c(0.5,1))
+```
+
+## Save merged object
+```{r, eval = FALSE}
+saveRDS(P108TB_14_RNA, "01_Puck14_108TB_TCR_RNA_merged_110724.Rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+

@@ -1,0 +1,273 @@
+# scRNA References for RCTD {#sec-rctd}
+
+# Create patient specific scRNAseq references for RCTD 
+
+## Libraries
+```{r}
+library(spacexr)
+library(Seurat)
+library(dplyr)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+# Read in the single cell object and create a single cell reference from each patient
+```{r, echo = FALSE}
+# Open scRNA object from LIANA
+scrna <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/04_liana/clean_NeoVax.CancerCell_RCTD_091125.rds")
+
+# Join layers- seurat obj v5 specific code
+scrna <- JoinLayers(scrna)
+```
+```{r, eval = FALSE}
+# Open scRNA object from LIANA
+scrna <- readRDS("clean_NeoVax.CancerCell_RCTD.rds")
+
+# Join layers- seurat obj v5 specific code
+scrna <- JoinLayers(scrna)
+```
+
+# Subset cells of each patient
+```{r}
+unique(scrna@meta.data$patient)
+```
+
+## P102
+```{r}
+scrna_subset <- subset(scrna, subset = patient == "16097-102")
+scrna_subset@meta.data %>%
+  distinct(sample)
+scrna_subset@meta.data %>%
+  count(rctd_label)
+
+# Extract counts matrix
+count_matrix <- scrna_subset[["RNA"]]$counts
+
+# Now create the single cell reference for RCTD
+# Extract a (barcode) named vector of cell types
+cell_types <- as.factor(scrna_subset@meta.data$rctd_label)
+names(cell_types) <- colnames(scrna_subset)
+
+# Extract a umi counts w/ barcode as name
+nUMI <- scrna_subset@meta.data$nCount_RNA
+names(nUMI) <-  colnames(scrna_subset)
+
+# Named vectors are input into RCTD
+reference <- Reference(count_matrix, cell_types, nUMI)
+
+# Examine reference object -- see no. of genes + cells
+print(dim(reference@counts))
+
+# See no. of occurences for each cell type
+table(reference@cell_types)
+```
+
+### Save reference
+```{r, eval = FALSE}
+# Save each single cell reference
+saveRDS(reference, "P102_rctd_reference.Rds")
+```
+
+## P107
+```{r}
+scrna_subset <- subset(scrna, subset = patient == "16097-107")
+
+# Need more than 25 cells for each cell type, so remove fibroblasts
+scrna_subset <- subset(scrna_subset, subset = rctd_label == "FIBRO", invert = TRUE)
+  
+scrna_subset@meta.data %>%
+  distinct(sample)
+scrna_subset@meta.data %>%
+  count(rctd_label)
+
+# Extract counts matrix
+count_matrix <- scrna_subset[["RNA"]]$counts
+
+# Now create the single cell reference for RCTD
+# Extract a (barcode) named vector of cell types
+cell_types <- as.factor(scrna_subset@meta.data$rctd_label)
+names(cell_types) <- colnames(scrna_subset)
+
+# Extract a umi counts w/ barcode as name
+nUMI <- scrna_subset@meta.data$nCount_RNA
+names(nUMI) <-  colnames(scrna_subset)
+
+# Named vectors are input into RCTD
+reference <- Reference(count_matrix, cell_types, nUMI)
+
+# Examine reference object -- see no. of genes + cells
+print(dim(reference@counts))
+
+# See no. of occurences for each cell type
+table(reference@cell_types)
+```
+
+### Save reference
+```{r, eval = FALSE}
+# Save each single cell reference
+saveRDS(reference, "P107_rctd_reference.Rds")
+```
+
+## P108
+```{r}
+scrna_subset <- subset(scrna, subset = patient == "16097-108")
+scrna_subset@meta.data %>%
+  distinct(sample)
+scrna_subset@meta.data %>%
+  count(rctd_label)
+
+# Extract counts matrix
+count_matrix <- scrna_subset[["RNA"]]$counts
+
+# Now create the single cell reference for RCTD
+# Extract a (barcode) named vector of cell types
+cell_types <- as.factor(scrna_subset@meta.data$rctd_label)
+names(cell_types) <- colnames(scrna_subset)
+
+# Extract a umi counts w/ barcode as name
+nUMI <- scrna_subset@meta.data$nCount_RNA
+names(nUMI) <-  colnames(scrna_subset)
+
+# Named vectors are input into RCTD
+reference <- Reference(count_matrix, cell_types, nUMI)
+
+# Examine reference object -- see no. of genes + cells
+print(dim(reference@counts))
+
+# See no. of occurences for each cell type
+table(reference@cell_types)
+```
+
+### Save reference
+```{r, eval = FALSE}
+# Save each single cell reference
+saveRDS(reference, "P108_rctd_reference.Rds")
+```
+
+## P109
+```{r}
+scrna_subset <- subset(scrna, subset = patient == "16097-109")
+
+# Need more than 25 cells for each cell type, so remove fibroblasts
+scrna_subset <- subset(scrna_subset, subset = rctd_label == "FIBRO", invert = TRUE)
+
+scrna_subset@meta.data %>%
+  distinct(sample)
+scrna_subset@meta.data %>%
+  count(rctd_label)
+
+# Extract counts matrix
+count_matrix <- scrna_subset[["RNA"]]$counts
+
+# Now create the single cell reference for RCTD
+# Extract a (barcode) named vector of cell types
+cell_types <- as.factor(scrna_subset@meta.data$rctd_label)
+names(cell_types) <- colnames(scrna_subset)
+
+# Extract a umi counts w/ barcode as name
+nUMI <- scrna_subset@meta.data$nCount_RNA
+names(nUMI) <-  colnames(scrna_subset)
+
+# Named vectors are input into RCTD
+reference <- Reference(count_matrix, cell_types, nUMI)
+
+# Examine reference object -- see no. of genes + cells
+print(dim(reference@counts))
+
+# See no. of occurences for each cell type
+table(reference@cell_types)
+```
+
+### Save reference
+```{r, eval = FALSE}
+# Save each single cell reference
+saveRDS(reference, "P109_rctd_reference.Rds")
+```
+
+## P110
+```{r}
+scrna_subset <- subset(scrna, subset = patient == "16097-110")
+
+# Need more than 25 cells for each cell type, so remove fibroblasts
+scrna_subset <- subset(scrna_subset, subset = rctd_label == "FIBRO", invert = TRUE)
+
+scrna_subset@meta.data %>%
+  distinct(sample)
+scrna_subset@meta.data %>%
+  count(rctd_label)
+
+# Extract counts matrix
+count_matrix <- scrna_subset[["RNA"]]$counts
+
+# Now create the single cell reference for RCTD
+# Extract a (barcode) named vector of cell types
+cell_types <- as.factor(scrna_subset@meta.data$rctd_label)
+names(cell_types) <- colnames(scrna_subset)
+
+# Extract a umi counts w/ barcode as name
+nUMI <- scrna_subset@meta.data$nCount_RNA
+names(nUMI) <-  colnames(scrna_subset)
+
+# Named vectors are input into RCTD
+reference <- Reference(count_matrix, cell_types, nUMI)
+
+# Examine reference object -- see no. of genes + cells
+print(dim(reference@counts))
+
+# See no. of occurences for each cell type
+table(reference@cell_types)
+```
+
+### Save reference
+```{r, eval = FALSE}
+# Save each single cell reference
+saveRDS(reference, "P110_rctd_reference.Rds")
+```
+
+## P111
+```{r}
+scrna_subset <- subset(scrna, subset = patient == "16097-111")
+
+# Need more than 25 cells for each cell type, so remove fibroblasts
+scrna_subset <- subset(scrna_subset, subset = rctd_label == "FIBRO", invert = TRUE)
+
+scrna_subset@meta.data %>%
+  distinct(sample)
+scrna_subset@meta.data %>%
+  count(rctd_label)
+
+# Extract counts matrix
+count_matrix <- scrna_subset[["RNA"]]$counts
+
+# Now create the single cell reference for RCTD
+# Extract a (barcode) named vector of cell types
+cell_types <- as.factor(scrna_subset@meta.data$rctd_label)
+names(cell_types) <- colnames(scrna_subset)
+
+# Extract a umi counts w/ barcode as name
+nUMI <- scrna_subset@meta.data$nCount_RNA
+names(nUMI) <-  colnames(scrna_subset)
+
+# Named vectors are input into RCTD
+reference <- Reference(count_matrix, cell_types, nUMI)
+
+# Examine reference object -- see no. of genes + cells
+print(dim(reference@counts))
+
+# See no. of occurences for each cell type
+table(reference@cell_types)
+```
+
+### Save reference
+```{r, eval = FALSE}
+# Save each single cell reference
+saveRDS(reference, "P111_rctd_reference.Rds")
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```
+
