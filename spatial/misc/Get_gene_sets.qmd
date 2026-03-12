@@ -1,0 +1,130 @@
+# Get gene sets {#sec-misc}
+
+# Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+library(muscat)
+library(limma)
+library(purrr)
+library(SummarizedExperiment)
+library(fgsea)
+library(msigdbr)
+library(ProjecTILs)
+library(readxl)
+library(UpSetR)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+set.seed(123)
+```
+
+# Get core T cell gene set
+```{r}
+core_t <- c("CD3D","CD3E","CD3G","CD247","CD4","CD8A","CD8B","TRAC","TRBC1","TRBC2")
+```
+
+# Get gene sets from projecTILs. Downloaded from ProjecTILs' Github.
+## CD8
+```{r}
+cd8_ref <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/CD8T_human_ref_v1.rds")
+
+cd8_ref <- NormalizeData(cd8_ref, assay = "RNA")
+
+cd8_deg <- FindAllMarkers(cd8_ref, test.use = "wilcox", group.by = "functional.cluster", assay = "RNA", logfc.threshold = 0.5, min.pct = 0.3) %>%
+  filter(str_detect(gene, "^RP", negate = TRUE),
+         str_detect(gene, "^MRP", negate = TRUE),
+         str_detect(gene, "^MT-", negate = TRUE))
+
+cd8_deg <- split(cd8_deg$gene, f = cd8_deg$cluster)
+
+names(cd8_deg) <- paste0("projecTILs.", names(cd8_deg))
+```
+
+## CD4 Downloaded from ProjecTILs' Github.
+```{r}
+cd4_ref <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/CD4T_human_ref_v1.rds")
+
+cd4_ref <- NormalizeData(cd4_ref, assay = "RNA")
+
+cd4_deg <- FindAllMarkers(cd4_ref, test.use = "wilcox", group.by = "functional.cluster", assay = "RNA", logfc.threshold = 0.5, min.pct = 0.3) %>%
+  filter(str_detect(gene, "^RP", negate = TRUE),
+         str_detect(gene, "^MRP", negate = TRUE),
+         str_detect(gene, "^MT-", negate = TRUE))
+
+cd4_deg <- split(cd4_deg$gene, f = cd4_deg$cluster)
+
+names(cd4_deg) <- paste0("projecTILs.", names(cd4_deg))
+```
+
+# Get gene sets from "A single-cell tumor immune atlas for precision oncology"
+https://pmc.ncbi.nlm.nih.gov/articles/PMC8494216/#abstract1
+Supplemental table 4
+```{r}
+nieto_b <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/supp_gr.273300.120_Supplemental_Table_S4.xlsx", sheet = 1, skip = 1) %>%
+  filter(avg_logFC > 0.5, pct.1 > 0.3, 
+         str_detect(gene, "^MRP", negate = TRUE),
+         str_detect(gene, "^MT.", negate = TRUE),
+         str_detect(gene, "^RP", negate = TRUE)) %>%
+  mutate(gene = str_replace_all(gene, fixed("."), "-"))
+
+nieto_b_plasma <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/supp_gr.273300.120_Supplemental_Table_S4.xlsx", sheet = 3, skip = 1) %>%
+  filter(avg_logFC > 0.5, pct.1 > 0.3, 
+         str_detect(gene, "^MRP", negate = TRUE),
+         str_detect(gene, "^MT.", negate = TRUE),
+         str_detect(gene, "^RP", negate = TRUE)) %>%
+  mutate(gene = str_replace_all(gene, fixed("."), "-"))
+
+nieto_myeloid_prolif <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/supp_gr.273300.120_Supplemental_Table_S4.xlsx", sheet = 20, skip = 1) %>%
+  filter(avg_logFC > 0.5, pct.1 > 0.3, 
+         str_detect(gene, "^MRP", negate = TRUE),
+         str_detect(gene, "^MT.", negate = TRUE),
+         str_detect(gene, "^RP", negate = TRUE)) %>%
+  mutate(gene = str_replace_all(gene, fixed("."), "-"))
+
+nieto_gs <- list(nieto_b = nieto_b$gene, nieto_b_plasma = nieto_b_plasma$gene, nieto_myeloid_prolif = nieto_myeloid_prolif$gene)
+```
+
+# Get gene sets from "Single-cell resolution characterization of myeloid-derived cell states with implication in cancer outcome" https://pmc.ncbi.nlm.nih.gov/articles/PMC11228020/
+```{r}
+guimaraes_m1 <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/41467_2024_49916_MOESM11_ESM.xlsx", sheet = 1, skip = 2)
+guimaraes_m2 <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/41467_2024_49916_MOESM11_ESM.xlsx", sheet = 2, skip = 2)
+guimaraes <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/41467_2024_49916_MOESM8_ESM (2).xlsx", sheet = 2, skip = 2) %>%
+  filter(`Macrophages Subpopulations` %in% c("Mac_AgPres", "Mac_IFN", "RTM_LA"),
+         avg_log2FC > 0.5)
+
+guimaraes_gs <- split(guimaraes$gene, f = guimaraes$`Macrophages Subpopulations`)
+
+names(guimaraes_gs) <- paste0("Guimaraes.", c("Mac_AgPres", "Mac_IFN", "RTM_LA"))
+
+guimaraes_gs <- c(guimaraes_gs, list(guimaraes.m1 = guimaraes_m1$`Gene symbol`, guimaraes.m2 = guimaraes_m2$`Gene symbol`))
+```
+
+# Compile gene sets
+```{r}
+gene_sets <- c(cd4_deg, cd8_deg, nieto_gs, guimaraes_gs, coret = list(core_t))
+```
+
+# Save gene sets
+```{r, eval = FALSE}
+saveRDS(gene_sets, "../objects/immune_gene_sets.Rds")
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```

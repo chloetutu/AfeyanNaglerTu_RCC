@@ -1,0 +1,19 @@
+project:
+  type: book
+
+book:
+  title: "Afeyan, Nagler & Tu (2025): Spatial RCC analysis: Miscellaneous"
+  author: "Chloe R. Tu"
+  date: "02/23/2026"
+  chapters:
+    - index.qmd
+    - Assign_Colors.qmd
+    - Get_gene_sets.qmd
+
+format:
+  html:
+    embed-resources: false
+    toc: true
+    theme: cosmo
+
+editor: visual

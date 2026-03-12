@@ -1,0 +1,162 @@
+[
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Afeyan, Nagler & Tu (2025): Spatial RCC analysis: Miscellaneous",
+    "section": "",
+    "text": "Introduction\nThis is a book that contains all code to reproduce figures related to spatial analysis of TCR data associated with Afeyan, Nagler & Tu, et al (2025)\nNote that while the code is identical, this book was rendered after final manuscript figures were generated and thus minor differences may arise, particularly for steps that are non-deterministic or rely on random number generators.",
+    "crumbs": [
+      "Introduction"
+    ]
+  },
+  {
+    "objectID": "index.html#tertiary-lymphoid-structures-are-reservoirs-of-stem-like-tumor-specific-t-cells-in-renal-cell-carcinoma",
+    "href": "index.html#tertiary-lymphoid-structures-are-reservoirs-of-stem-like-tumor-specific-t-cells-in-renal-cell-carcinoma",
+    "title": "Afeyan, Nagler & Tu (2025): Spatial RCC analysis: Miscellaneous",
+    "section": "Tertiary lymphoid structures are reservoirs of stem-like tumor-specific T cells in renal cell carcinoma",
+    "text": "Tertiary lymphoid structures are reservoirs of stem-like tumor-specific T cells in renal cell carcinoma\nAlexander B. Afeyan†, Adi Nagler†, Chloe R. Tu†, Gabriel Roberti De Oliveira, Berkay Simsek, Maxwell D. Seager, Nourhan El Ahmar, Haley E. Sax, Emma Lin, Amit Sud, Mehdi Borji, Cleo Forman, Sophia Liu, Patrick A. Ott, Toni K. Choueiri, Jennifer G. Abelin, Richard Burack, Shuqiang Li, Kenneth J. Livak, Svitlana Tyekucheva, Derin B. Keskin, Fei Chen, Michael B. Atkins, Jeremy M. Simon, Sabina Signoretti, Giacomo Oliveira°, David A. Braun‡°, Catherine J. Wu‡°\n\nAbstract\nTertiary lymphoid structures (TLS) are associated with improved response to immune checkpoint blockade across solid tumors1–3, but how they impact the phenotypic properties of tumor-specific T cells remains unknown. Across 24 treatment-naïve renal cell carcinoma (RCC) tumors, TLS-containing tumors were more heavily infiltrated by exhausted CD8+ T cells with a reduced terminal exhaustion transcriptional program compared to TLS- tumors. Specificity screening of 554 T cell clonotypes expanded within the microenvironment of 6 RCC tumors revealed 82 TCRs reactive against tumor cells and/or RCC antigens. A subset of tumor-specific T cell clonotypes (12%) was enriched within TLS, and these expressed an increased program of stem-like progenitor exhaustion, associated with favorable anti-tumor immunity. However, in 60 independent RCC tumors, macrophages within tumor margins of TLS-containing tumors bore an inferred immunosuppressive phenotype, and were colocalized with exhausted putative tumor-reactive T cells in a subgroup that was further analyzed, thus supporting this mode of immune evasion as a counterbalance to T cell immune pressure. Our data reveal TLS as reservoirs of tumor-specific T cells with stem-like progenitor features that could be leveraged by T cell immunotherapies.",
+    "crumbs": [
+      "Introduction"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html",
+    "href": "Assign_Colors.html",
+    "title": "1  Get gene sets",
+    "section": "",
+    "text": "1.1 Libraries\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nlibrary(tidyverse)\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ forcats   1.0.1     ✔ readr     2.1.6\n✔ ggplot2   4.0.1     ✔ stringr   1.6.0\n✔ lubridate 1.9.4     ✔ tibble    3.3.0\n✔ purrr     1.2.0     ✔ tidyr     1.3.1\n\n\n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter() masks stats::filter()\n✖ dplyr::lag()    masks stats::lag()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#assign-primarycluster-colors",
+    "href": "Assign_Colors.html#assign-primarycluster-colors",
+    "title": "1  Get gene sets",
+    "section": "1.2 Assign PrimaryCluster colors",
+    "text": "1.2 Assign PrimaryCluster colors",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#load-all-tcrs-from-alexs-scrnasctcr-analysis",
+    "href": "Assign_Colors.html#load-all-tcrs-from-alexs-scrnasctcr-analysis",
+    "title": "1  Get gene sets",
+    "section": "1.3 Load all TCRs from Alex’s scRNA+scTCR analysis",
+    "text": "1.3 Load all TCRs from Alex’s scRNA+scTCR analysis\n\nalex_reactivities &lt;- read.csv(\"../objects/reformatted_RCC_slideseq_parameters_052925.csv\")\n\nalex_reactivities %&gt;%\n  distinct(PrimaryCluster, identity)\n\n  PrimaryCluster identity\n1       Other/NA      CD8\n2           Tmem      CD8\n3            Tex      CD8\n4            TEx      CD4\n5            TEM      CD4\n6       Other/NA      CD4\n7           Treg      CD4\n8           TNCM      CD4\n9        unknown  unknown",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#assign-colors",
+    "href": "Assign_Colors.html#assign-colors",
+    "title": "1  Get gene sets",
+    "section": "1.4 Assign colors",
+    "text": "1.4 Assign colors\n\nprimarycluster_fill &lt;- scale_fill_manual(values = c(\"Other/NA\" = \"grey60\", \"Tmem\" = \"#0330F3\", \"Tex\" = \"#931101\", \"TEx\" = \"#FF7F78\", \"TEM\" = \"#0096FE\", \"Treg\" = \"#ff4ff0\", \"TNCM\" = \"#2171B5\", \"unknown\" = \"grey30\"))\nprimarycluster_color &lt;- scale_color_manual(values = c(\"Other/NA\" = \"grey60\", \"Tmem\" = \"#0330F3\", \"Tex\" = \"#931101\", \"TEx\" = \"#FF7F78\", \"TEM\" = \"#0096FE\", \"Treg\" = \"#ff4ff0\", \"TNCM\" = \"#2171B5\", \"unknown\" = \"grey30\"))",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#save-colors",
+    "href": "Assign_Colors.html#save-colors",
+    "title": "1  Get gene sets",
+    "section": "1.5 Save colors",
+    "text": "1.5 Save colors\n\nsaveRDS(primarycluster_fill, \"../objects/PrimaryCluster_fill.rds\")\nsaveRDS(primarycluster_color, \"../objects/PrimaryCluster_color.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#assign-colors-1",
+    "href": "Assign_Colors.html#assign-colors-1",
+    "title": "1  Get gene sets",
+    "section": "2.1 Assign colors",
+    "text": "2.1 Assign colors\n\npatient_fill &lt;- scale_fill_manual(values = c(\"P102TA\" = \"#FF9300\", \"P107TA\" = \"#FF8AD8\", \"P108TA\" = \"#009193\", \"P108TAB\" = \"#009193\", \"P109TB\" = \"#531B93\", \"P110TB\" = \"#941100\", \"P111TA\" = \"#D4FB79\"))\npatient_color &lt;- scale_color_manual(values = c(\"P102TA\" = \"#FF9300\", \"P107TA\" = \"#FF8AD8\", \"P108TA\" = \"#009193\", \"P108TAB\" = \"#009193\", \"P109TB\" = \"#531B93\", \"P110TB\" = \"#941100\", \"P111TA\" = \"#D4FB79\"))",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#save-colors-1",
+    "href": "Assign_Colors.html#save-colors-1",
+    "title": "1  Get gene sets",
+    "section": "2.2 Save colors",
+    "text": "2.2 Save colors\n\nsaveRDS(patient_fill, \"../objects/Patient_fill.rds\")\nsaveRDS(patient_color, \"../objects/Patient_color.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#assign-area-colors",
+    "href": "Assign_Colors.html#assign-area-colors",
+    "title": "1  Get gene sets",
+    "section": "2.3 Assign area colors",
+    "text": "2.3 Assign area colors",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#assign-colors-2",
+    "href": "Assign_Colors.html#assign-colors-2",
+    "title": "1  Get gene sets",
+    "section": "2.4 Assign colors",
+    "text": "2.4 Assign colors\n\narea_color &lt;- scale_color_manual(values = c(\"Boundary\" = \"#ff8f1b\", \"TLS1\" = \"#8A9A5B\", \"TLS2\" = \"#8A9A5B\", \"TLS3\" = \"#8A9A5B\", \"TLS4\" = \"#8A9A5B\", \"Tumor\" = \"#8c6b2d\", \"Granuloma\" = \"#9c5c58\", \"M2\" = \"#9c5c58\", \"Empty\" = \"#eeeeee\"))\narea_fill &lt;- scale_fill_manual(values = c(\"Boundary\" = \"#ff8f1b\", \"TLS1\" = \"#8A9A5B\", \"TLS2\" = \"#8A9A5B\", \"TLS3\" = \"#8A9A5B\", \"TLS4\" = \"#8A9A5B\", \"Tumor\" = \"#8c6b2d\", \"Granuloma\" = \"#9c5c58\", \"M2\" = \"#9c5c58\", \"Empty\" = \"#eeeeee\"))",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#save-colors-2",
+    "href": "Assign_Colors.html#save-colors-2",
+    "title": "1  Get gene sets",
+    "section": "2.5 Save colors",
+    "text": "2.5 Save colors\n\nsaveRDS(area_fill, \"../objects/Area_fill.rds\")\nsaveRDS(area_color, \"../objects/Area_color.rds\")",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Assign_Colors.html#get-session-info",
+    "href": "Assign_Colors.html#get-session-info",
+    "title": "1  Get gene sets",
+    "section": "2.6 Get session info",
+    "text": "2.6 Get session info\n\nsessionInfo()\n\nR version 4.4.2 (2024-10-31)\nPlatform: x86_64-pc-linux-gnu\nRunning under: Red Hat Enterprise Linux 9.5 (Plow)\n\nMatrix products: default\nBLAS:   /n/app/R/4.4.2-gcc-14.2.0/lib64/R/lib/libRblas.so \nLAPACK: /n/app/R/4.4.2-gcc-14.2.0/lib64/R/lib/libRlapack.so;  LAPACK version 3.12.0\n\nlocale:\n [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              \n [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    \n [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   \n [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 \n [9] LC_ADDRESS=C               LC_TELEPHONE=C            \n[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       \n\ntime zone: US/Eastern\ntzcode source: system (glibc)\n\nattached base packages:\n[1] stats     graphics  grDevices utils     datasets  methods   base     \n\nother attached packages:\n [1] lubridate_1.9.4 forcats_1.0.1   stringr_1.6.0   purrr_1.2.0    \n [5] readr_2.1.6     tidyr_1.3.1     tibble_3.3.0    ggplot2_4.0.1  \n [9] tidyverse_2.0.0 dplyr_1.1.4    \n\nloaded via a namespace (and not attached):\n [1] gtable_0.3.6       jsonlite_2.0.0     compiler_4.4.2     tidyselect_1.2.1  \n [5] dichromat_2.0-0.1  scales_1.4.0       fastmap_1.2.0      R6_2.6.1          \n [9] generics_0.1.4     knitr_1.51         htmlwidgets_1.6.4  pillar_1.11.1     \n[13] RColorBrewer_1.1-3 tzdb_0.5.0         rlang_1.1.6        stringi_1.8.7     \n[17] xfun_0.54          S7_0.2.1           otel_0.2.0         timechange_0.3.0  \n[21] cli_3.6.5          withr_3.0.2        magrittr_2.0.4     digest_0.6.39     \n[25] grid_4.4.2         rstudioapi_0.17.1  hms_1.1.4          lifecycle_1.0.5   \n[29] vctrs_0.6.5        evaluate_1.0.5     glue_1.8.0         farver_2.1.2      \n[33] rmarkdown_2.30     tools_4.4.2        pkgconfig_2.0.3    htmltools_0.5.9",
+    "crumbs": [
+      "<span class='chapter-number'>1</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Get_gene_sets.html",
+    "href": "Get_gene_sets.html",
+    "title": "2  Get gene sets",
+    "section": "",
+    "text": "3 Libraries\nlibrary(Seurat)\n\nLoading required package: SeuratObject\n\n\nLoading required package: sp\n\n\n\nAttaching package: 'SeuratObject'\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, t\n\nlibrary(SeuratWrappers)\nlibrary(ggplot2)\nlibrary(patchwork)\nlibrary(dplyr)\n\n\nAttaching package: 'dplyr'\n\n\nThe following objects are masked from 'package:stats':\n\n    filter, lag\n\n\nThe following objects are masked from 'package:base':\n\n    intersect, setdiff, setequal, union\n\nlibrary(wesanderson)\nlibrary(ggplotify)\nlibrary(cowplot)\n\n\nAttaching package: 'cowplot'\n\n\nThe following object is masked from 'package:patchwork':\n\n    align_plots\n\nlibrary(stringr)\nlibrary(reshape2)\nlibrary(ggrepel)\nlibrary(tidyverse)\n\n── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──\n✔ forcats   1.0.1     ✔ readr     2.1.6\n✔ lubridate 1.9.4     ✔ tibble    3.3.0\n✔ purrr     1.2.0     ✔ tidyr     1.3.1\n\n\n── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──\n✖ dplyr::filter()    masks stats::filter()\n✖ dplyr::lag()       masks stats::lag()\n✖ lubridate::stamp() masks cowplot::stamp()\nℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors\n\nlibrary(infer)\nlibrary(RANN)\nlibrary(muscat)\nlibrary(limma)\nlibrary(purrr)\nlibrary(SummarizedExperiment)\n\nLoading required package: MatrixGenerics\nLoading required package: matrixStats\n\nAttaching package: 'matrixStats'\n\nThe following object is masked from 'package:dplyr':\n\n    count\n\n\nAttaching package: 'MatrixGenerics'\n\nThe following objects are masked from 'package:matrixStats':\n\n    colAlls, colAnyNAs, colAnys, colAvgsPerRowSet, colCollapse,\n    colCounts, colCummaxs, colCummins, colCumprods, colCumsums,\n    colDiffs, colIQRDiffs, colIQRs, colLogSumExps, colMadDiffs,\n    colMads, colMaxs, colMeans2, colMedians, colMins, colOrderStats,\n    colProds, colQuantiles, colRanges, colRanks, colSdDiffs, colSds,\n    colSums2, colTabulates, colVarDiffs, colVars, colWeightedMads,\n    colWeightedMeans, colWeightedMedians, colWeightedSds,\n    colWeightedVars, rowAlls, rowAnyNAs, rowAnys, rowAvgsPerColSet,\n    rowCollapse, rowCounts, rowCummaxs, rowCummins, rowCumprods,\n    rowCumsums, rowDiffs, rowIQRDiffs, rowIQRs, rowLogSumExps,\n    rowMadDiffs, rowMads, rowMaxs, rowMeans2, rowMedians, rowMins,\n    rowOrderStats, rowProds, rowQuantiles, rowRanges, rowRanks,\n    rowSdDiffs, rowSds, rowSums2, rowTabulates, rowVarDiffs, rowVars,\n    rowWeightedMads, rowWeightedMeans, rowWeightedMedians,\n    rowWeightedSds, rowWeightedVars\n\nLoading required package: GenomicRanges\nLoading required package: stats4\nLoading required package: BiocGenerics\n\nAttaching package: 'BiocGenerics'\n\nThe following object is masked from 'package:limma':\n\n    plotMA\n\nThe following objects are masked from 'package:lubridate':\n\n    intersect, setdiff, union\n\nThe following objects are masked from 'package:dplyr':\n\n    combine, intersect, setdiff, union\n\nThe following object is masked from 'package:SeuratObject':\n\n    intersect\n\nThe following objects are masked from 'package:stats':\n\n    IQR, mad, sd, var, xtabs\n\nThe following objects are masked from 'package:base':\n\n    anyDuplicated, aperm, append, as.data.frame, basename, cbind,\n    colnames, dirname, do.call, duplicated, eval, evalq, Filter, Find,\n    get, grep, grepl, intersect, is.unsorted, lapply, Map, mapply,\n    match, mget, order, paste, pmax, pmax.int, pmin, pmin.int,\n    Position, rank, rbind, Reduce, rownames, sapply, saveRDS, setdiff,\n    table, tapply, union, unique, unsplit, which.max, which.min\n\nLoading required package: S4Vectors\n\nAttaching package: 'S4Vectors'\n\nThe following objects are masked from 'package:lubridate':\n\n    second, second&lt;-\n\nThe following object is masked from 'package:tidyr':\n\n    expand\n\nThe following objects are masked from 'package:dplyr':\n\n    first, rename\n\nThe following object is masked from 'package:utils':\n\n    findMatches\n\nThe following objects are masked from 'package:base':\n\n    expand.grid, I, unname\n\nLoading required package: IRanges\n\nAttaching package: 'IRanges'\n\nThe following object is masked from 'package:lubridate':\n\n    %within%\n\nThe following object is masked from 'package:purrr':\n\n    reduce\n\nThe following objects are masked from 'package:dplyr':\n\n    collapse, desc, slice\n\nThe following object is masked from 'package:sp':\n\n    %over%\n\nLoading required package: GenomeInfoDb\nLoading required package: Biobase\nWelcome to Bioconductor\n\n    Vignettes contain introductory material; view with\n    'browseVignettes()'. To cite Bioconductor, see\n    'citation(\"Biobase\")', and for packages 'citation(\"pkgname\")'.\n\n\nAttaching package: 'Biobase'\n\nThe following object is masked from 'package:MatrixGenerics':\n\n    rowMedians\n\nThe following objects are masked from 'package:matrixStats':\n\n    anyMissing, rowMedians\n\n\nAttaching package: 'SummarizedExperiment'\n\nThe following object is masked from 'package:Seurat':\n\n    Assays\n\nThe following object is masked from 'package:SeuratObject':\n\n    Assays\n\nlibrary(fgsea)\nlibrary(msigdbr)\nlibrary(ProjecTILs)\nlibrary(readxl)\nlibrary(UpSetR)\n\nsource(\"../source_scripts/slideseq_functions_main.R\")\n\noptions(Seurat.object.assay.version = 'v5')\n\nset.seed(123)",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Get_gene_sets.html#cd8",
+    "href": "Get_gene_sets.html#cd8",
+    "title": "2  Get gene sets",
+    "section": "5.1 CD8",
+    "text": "5.1 CD8\n\ncd8_ref &lt;- readRDS(\"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/CD8T_human_ref_v1.rds\")\n\ncd8_ref &lt;- NormalizeData(cd8_ref, assay = \"RNA\")\n\nWarning: Key 'rna_' taken, using 'osncj_' instead\n\ncd8_deg &lt;- FindAllMarkers(cd8_ref, test.use = \"wilcox\", group.by = \"functional.cluster\", assay = \"RNA\", logfc.threshold = 0.5, min.pct = 0.3) %&gt;%\n  filter(str_detect(gene, \"^RP\", negate = TRUE),\n         str_detect(gene, \"^MRP\", negate = TRUE),\n         str_detect(gene, \"^MT-\", negate = TRUE))\n\nCalculating cluster CD8.NaiveLike\n\n\nCalculating cluster CD8.CM\n\n\nCalculating cluster CD8.EM\n\n\nCalculating cluster CD8.TEMRA\n\n\nCalculating cluster CD8.TPEX\n\n\nCalculating cluster CD8.TEX\n\n\nCalculating cluster CD8.MAIT\n\ncd8_deg &lt;- split(cd8_deg$gene, f = cd8_deg$cluster)\n\nnames(cd8_deg) &lt;- paste0(\"projecTILs.\", names(cd8_deg))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  },
+  {
+    "objectID": "Get_gene_sets.html#cd4-downloaded-from-projectils-github.",
+    "href": "Get_gene_sets.html#cd4-downloaded-from-projectils-github.",
+    "title": "2  Get gene sets",
+    "section": "5.2 CD4 Downloaded from ProjecTILs’ Github.",
+    "text": "5.2 CD4 Downloaded from ProjecTILs’ Github.\n\ncd4_ref &lt;- readRDS(\"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/CD4T_human_ref_v1.rds\")\n\ncd4_ref &lt;- NormalizeData(cd4_ref, assay = \"RNA\")\n\ncd4_deg &lt;- FindAllMarkers(cd4_ref, test.use = \"wilcox\", group.by = \"functional.cluster\", assay = \"RNA\", logfc.threshold = 0.5, min.pct = 0.3) %&gt;%\n  filter(str_detect(gene, \"^RP\", negate = TRUE),\n         str_detect(gene, \"^MRP\", negate = TRUE),\n         str_detect(gene, \"^MT-\", negate = TRUE))\n\nCalculating cluster CD4.NaiveLike\n\n\nCalculating cluster CD4.CTL_EOMES\n\n\nCalculating cluster CD4.CTL_GNLY\n\n\nCalculating cluster CD4.CTL_Exh\n\n\nCalculating cluster CD4.Tfh\n\n\nCalculating cluster CD4.Th17\n\n\nCalculating cluster CD4.Treg\n\ncd4_deg &lt;- split(cd4_deg$gene, f = cd4_deg$cluster)\n\nnames(cd4_deg) &lt;- paste0(\"projecTILs.\", names(cd4_deg))",
+    "crumbs": [
+      "<span class='chapter-number'>2</span>  <span class='chapter-title'>Get gene sets</span>"
+    ]
+  }
+]
