@@ -1,0 +1,351 @@
+# Plot ligand and receptor spatial colocalization {#sec-colocalization}
+
+# Libraries
+```{r}
+library(tidyverse)
+library(knitr)
+library(cowplot)
+library(openxlsx)
+library(stringr)
+library(aggregation)
+library(purrr)
+library(ComplexHeatmap)
+library(circlize)
+library(tibble)
+```
+
+# Import data from python code
+```{R}
+# ChatGPT created this
+# Define folder path
+folder_path <- "../objects/LR_output_10_beads"
+
+# Get all CSV files from the folder
+# Chloe's update: ".csv" --> "results.*csv"
+csv_files <- list.files(folder_path, pattern = "results.*csv", full.names = TRUE)
+
+# Initialize list to store extracted data
+result_list <- list()
+
+# Function to extract core name pattern
+extract_core_name <- function(name) {
+  matches <- regmatches(name, regexec("\\d+_(Puck\\d+_\\d+[A-Z]{2})_.*", name))
+  if (length(matches[[1]]) > 1) {
+    return(matches[[1]][2])  # Extracts "Puck10_102TA", "Puck5_90MB", etc.
+  }
+  return(NA)
+}
+
+# Loop through each CSV file
+for (file in csv_files) {
+  # Read CSV file
+  data <- read.csv(file, stringsAsFactors = FALSE)
+  
+  # Extract the file name (without full path) for naming
+  file_name <- data$LR[1]
+  
+  # Ensure the data has a column containing the relevant name
+  if (!"puck" %in% colnames(data)) {
+    stop("Ensure the CSV files contain the relevant column name!")
+  }
+  
+  # Extract core names
+  data$core_name <- sapply(data$puck, extract_core_name)
+
+  # Filter out NA values (invalid rows)
+  data <- data[!is.na(data$core_name), ]
+  
+  # Add a new column indicating the source file (to track where data came from)
+  data$source_file <- file_name
+  
+  # Group by core name and split into sub-dataframes (4-row groups)
+  grouped_data <- split(data, data$core_name)
+
+  # Merge with existing list entries if they exist
+  for (core_name in names(grouped_data)) {
+    if (!is.null(result_list[[core_name]])) {
+      # Append the named dataframe to the existing core name list
+      result_list[[core_name]][[file_name]] <- grouped_data[[core_name]]
+    } else {
+      # Create a new list for the core name with a named dataframe
+      result_list[[core_name]] <- list()
+      result_list[[core_name]][[file_name]] <- grouped_data[[core_name]]
+    }
+  }
+}
+```
+
+# Format
+```{R}
+new_result_list <- list()
+
+# Function to extract and shorten the core name (removing final A/B letter)
+extract_short_name <- function(core_name) {
+  matches <- regmatches(core_name, regexec("Puck\\d+_(\\d+[TM])", core_name))
+  if (length(matches[[1]]) > 1) {
+    return(matches[[1]][2])  # Extracts "108T", "102T", etc.
+  }
+  return(NA)
+}
+
+for (core_name in names(result_list)) {
+  short_name <- extract_short_name(core_name)  # Extract patient group name
+  
+  if (is.na(short_name)) next  # Skip if extraction fails
+
+  # Initialize list to store dataframes for this patient group
+  patient_dfs <- list()
+  
+  # Iterate over each named dataframe (corresponding to a CSV file)
+  for (file_name in names(result_list[[core_name]])) {
+    df <- result_list[[core_name]][[file_name]]
+
+    # Ensure required columns exist
+    if (!all(c("pval", "distance", "LR") %in% colnames(df))) {
+      next  # Skip if the dataframe is missing necessary columns
+    }
+    
+    # Create column names dynamically based on core_name and distance
+    df <- df %>%
+      mutate(new_column_name = paste0(core_name, "_dis", distance)) %>%
+      select(LR, new_column_name, pval) %>%
+      pivot_wider(names_from = new_column_name, values_from = pval)
+
+    # Append to patient_dfs list
+    patient_dfs <- append(patient_dfs, list(df))
+  }
+  
+  # If we collected data, merge all patient dataframes **properly**
+  if (length(patient_dfs) > 0) {
+    patient_df <- bind_rows(patient_dfs)  # Correctly stack all dataframes
+
+    # Ensure no duplicate rows by keeping first non-NA value per column
+    patient_df <- patient_df %>%
+      group_by(LR) %>%
+      summarise(across(everything(), ~ dplyr::first(na.omit(.), default = NA)), .groups = "drop")
+
+    # Store the final combined dataframe in new_result_list
+    new_result_list[[core_name]] <- patient_df
+  }
+}
+
+perpatient.list <- list()
+P102T <- new_result_list[grep("102T", names(new_result_list))]
+P107T <- new_result_list[grep("107T", names(new_result_list))]
+P108T <- new_result_list[grep("108T", names(new_result_list))]
+P109T <- new_result_list[grep("109T", names(new_result_list))]
+P110T <- new_result_list[grep("110T", names(new_result_list))]
+P111T <- new_result_list[grep("111T", names(new_result_list))]
+
+perpatient.list[["102T"]] <- purrr::reduce(P102T, full_join, by = "LR")
+perpatient.list[["107T"]] <- purrr::reduce(P107T, full_join, by = "LR")
+perpatient.list[["108T"]] <- purrr::reduce(P108T, full_join, by = "LR")
+perpatient.list[["109T"]] <- purrr::reduce(P109T, full_join, by = "LR")
+perpatient.list[["110T"]] <- purrr::reduce(P110T, full_join, by = "LR")
+perpatient.list[["111T"]] <- purrr::reduce(P111T, full_join, by = "LR")
+```
+
+# Browns method
+```{r}
+library(ActivePathways)
+
+patients <- c("102T", "107T", "108T", "109T", "110T", "111T")
+distances <- c("dis15", "dis30", "dis100", "dis300")
+
+# Browns method of combining dependent p-vals
+pval_list <- list()
+for(pt in patients){
+  dist_list <- list()
+  for(dist in distances){
+    pval_mat <- perpatient.list[[pt]] %>%
+      select(LR, ends_with(dist)) %>%
+      column_to_rownames("LR") %>%
+      replace(is.na(.), 1) %>%
+      as.matrix()
+  
+    adj_pval <- merge_p_values(scores = pval_mat, method = "Brown")
+    
+    dist_list <- append(dist_list, list(adj_pval))
+  }
+  names(dist_list) <- distances
+  pval_list <- append(pval_list, list(dist_list))
+}
+
+names(pval_list) <- patients
+
+```
+
+# FDR correction
+```{r}
+# Perform a Benjamini-Hochberg correction to understand which meet significance in the context of a dataset
+padj_bh <- function(df){
+  corrected <- p.adjust(df, method = "BH", n = length(df)) %>%
+    as.data.frame() %>%
+    rownames_to_column("LR") %>%
+    dplyr::rename("BH" = ".") 
+  return(corrected)
+  }
+
+corrected_list <- lapply(pval_list, function(inner) {
+  lapply(inner, padj_bh)
+})
+
+```
+
+# Merge lists per patient
+```{r}
+corrected_df_list <- list()
+for(pt in patients){
+  df <- corrected_list[[pt]][["dis15"]] %>%
+    dplyr::rename("BH_dis15" = "BH") %>%
+    full_join(corrected_list[[pt]][["dis30"]], by = "LR") %>%
+    dplyr::rename("BH_dis30" = "BH") %>%
+    full_join(corrected_list[[pt]][["dis100"]], by = "LR") %>%
+    dplyr::rename("BH_dis100" = "BH") %>%
+    full_join(corrected_list[[pt]][["dis300"]], by = "LR") %>%
+    dplyr::rename("BH_dis300" = "BH") 
+  
+  corrected_df_list <- append(corrected_df_list, list(df))
+}
+names(corrected_df_list) <- patients
+```
+
+
+# Filter for the most important interactions to plot
+```{r}
+interactions.list <- openxlsx::read.xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/scripts/05_LR_analysis/LIANAinteractions.TLSvnonTLS.xlsx", sheet = 3)
+
+# Chloe's edit: gsub("(?<!HLA)-", "--", "TNFSF9-HLA-DPA1", perl = TRUE) to keep "HLA-DPA1" 
+interactions.list$TLS.interactions <- gsub(pattern = "(?<!HLA)-", replacement = "--", interactions.list$TLS.interactions, perl = TRUE)
+colnames(interactions.list)[1] <- "LR"
+interactions.list.formerge <- interactions.list[,c(1,2,3,6)]
+
+# Chloe's edit: merge source-target cell type pairs that correspond to the same LR into one row 
+interactions.list.collapsed <- interactions.list.formerge %>%
+  group_by(LR) %>%
+  summarise(source = paste(source, collapse = "; "),
+            target = paste(target, collapse = "; "),
+            aggregate_rank = paste(aggregate_rank, collapse = "; "))
+
+corrected_list.with.interaction <- lapply(corrected_df_list, function(x){
+  left_join(x = x, y = interactions.list.collapsed, by = "LR")
+}
+)
+```
+
+# Create a df with all data
+```{r}
+slim.list <- list()
+
+for(i in c(1:length(corrected_list.with.interaction))){
+  df_i <- corrected_list.with.interaction[[i]] %>%
+    select(LR, BH_dis15, BH_dis30, BH_dis100, BH_dis300, source, target, aggregate_rank) %>%
+    mutate(Patient = names(corrected_list.with.interaction[i]))
+  
+  slim.list <- append(slim.list, list(df_i))
+}
+
+names(slim.list) <- names(corrected_list.with.interaction)
+  
+# Remove 108M
+slim.list <- slim.list[names(slim.list) != "108M"]
+merged_df <- do.call(rbind, slim.list)
+
+```
+
+# Chloe's edits to create a matrix
+```{r}
+slim.list <- list()
+
+for(i in c(1:length(corrected_list.with.interaction))){
+  df_i <- corrected_list.with.interaction[[i]] %>%
+    select(LR, BH_dis30, source, target, aggregate_rank) %>%
+    mutate(Patient = names(corrected_list.with.interaction[i]))
+  
+  slim.list <- append(slim.list, list(df_i))
+}
+
+names(slim.list) <- names(corrected_list.with.interaction)
+  
+# Remove 108M
+slim.list <- slim.list[names(slim.list) != "108M"]
+merged30_df <- do.call(rbind, slim.list)
+```
+
+# Take a subset of most interesting interactions for figure
+```{r}
+subset_merged_df <- merged30_df %>%
+  mutate(L = str_split_i(LR, "--", 1),
+         R = str_split_i(LR, "--", 2)) %>%
+  filter((LR %in% c("CXCL13--CXCR5", "GNAI2--CNR1", "CCL5--CXCR3", "CCL5--CCR5", "TNFSF9--HLA-DPA1", "SIRPG--CD47", "VCAM1--ITGA4_ITGB1", "CALM3--ESR1", "CD200R1--CD200", "IFNG--IFNGR1_IFNGR2", "CD70--TNFRSF13B", "ADAM28--ITGA4", "MDK--NCL", "LGALS3--LAG3", "CD48--CD2", "CD47--SIRPG", "CD38--PECAM1", "FAM3C--CLEC2D", "CD70--CD27", "FAM3C--PDCD1", "CD200--CD200R1", "FAM3C--LAMP1", "MDK--ITGA4_ITGB1", "TNFSF9--TNFRSF9", "CALR--ITGAV", "CCL5--CCRL2", "CCL5--CCR1", "ENTPD1--ADORA3", "CCL4--CCR1", "HSP90B1--TLR7", "B2M--LILRB1", "GNAI2--FPR1", "CSF1--CSF3R", "PMCH--MERTK", "LRPAP1--LRP1", "GNAI2--C5AR1", "CSF1--CSF2RA", "CSF1--SIRPA", "TIGIT--NECTIN2", "FADD--ABCA1", "LTA_LTB--LTBR", "PTPN6--CLEC12A", "FAM3C--LAMP1", "VCAN--ITGA4", "CCL4--CCR5", "TNFSF13B--HLA-DPB1", "CD86--CTLA4", "F13A1--ITGA4", "GNAI2--CXCR3", "ICAM1--ITGAL_ITGB2", "GNAI2--CCR5", "F13A1--ITGB1", "CXCL10--CXCR3", "HMGB1--HAVCR2", "GNAI2--F2R", "LGALS9--HAVCR2", "ICAM1--IL2RG", "ICAM1--SPN", "GRN--TNFRSF1B", "NECTIN2--TIGIT", "HBEGF--CD82", "LGALS3BP--ITGB1", "ADAM17--ITGB1", "CCL3--CCR5", "HGF--ITGB1", "SPP1--ITGA4_ITGB1", "SECTM1--CD7", "CD58--CD2", "SNCA--LAG3", "CALM3--EGFR", "CALM3--INSR", "CALR--ITGA3", "CALM3--AR", "ARF1--INSR", "ARPC5--LRP2", "GZMA--PARD3", "PTPN6--EGFR", "CCL5--DPP4", "APP--LRP10", "AGRN--ITGB1", "CCL2--CCR5", "MIF--CD74_CXCR4", "LGALS9-HAVCR2", "CD86-CTLA4", "CXCL13-CXCR5", "LTA_LTB-LTBR", "CD40LG-CD40", "FASLG-FAS", "CCL5-CCR5", "TNFSF14-TNFRSF14")) |
+           # any interaction with a member starting with "CC", "CX", or "IL"
+         str_detect(L, "^(CC|CX|IL)") |
+           str_detect(R, "^(CC|CX|IL)")) %>%
+  select(-c(L,R), -aggregate_rank)
+
+subset_merged_df <- merged_df %>%
+  mutate(L = str_split_i(LR, "--", 1),
+         R = str_split_i(LR, "--", 2)) %>%
+  filter((LR %in% c("CD86--CTLA4", "LGALS3--LAG3", "LGALS9--HAVCR2", "TNFSF9--HLA-DPA1", "CD47--SIRPG", "CXCL13--CXCR5", "SELPLG--SELL", "F13A1--ITGB1", "CD38--PECAM1", "CALR--ITGA3", "ICAM1--SPN", "ICAM1--ITGAL_ITGB2")) 
+         # |
+         #   # any interaction with a member starting with "CC", "CX", or "IL"
+         # str_detect(L, "^(CC|CX|IL)") |
+         #   str_detect(R, "^(CC|CX|IL)")
+         ) %>%
+  mutate(celltypes = case_when(LR %in% c("CD86--CTLA4", "LGALS3--LAG3", "LGALS9--HAVCR2") ~ "Immunosupp.\nmac-T",
+                               LR %in% c("TNFSF9--HLA-DPA1", "CD47--SIRPG", "CXCL13--CXCR5", "SELPLG--SELL") ~ "B-T interactions",
+                               LR %in% c("F13A1--ITGB1", "CD38--PECAM1", "CALR--ITGA3", "ICAM1--SPN", "ICAM1--ITGAL_ITGB2") ~ "Integrin/lymphocyte\ntrafficking")) %>%
+  select(-c(L,R), -aggregate_rank)
+
+```
+
+# Reformat for ComplexHeatmap
+```{r}
+column_split <- subset_merged_df %>%
+  distinct(LR, celltypes) %>%
+  mutate(celltypes = factor(celltypes, levels = c("Immunosupp.\nmac-T", "B-T interactions", "Integrin/lymphocyte\ntrafficking")))
+
+subset_merged_mat <- subset_merged_df %>% 
+  select(LR, BH_dis30, Patient) %>%
+  pivot_wider(values_from = "BH_dis30", names_from = "Patient") %>%
+  column_to_rownames("LR") %>%
+  as.matrix() %>%
+  t()
+
+subset_split <- subset_merged_df %>%
+  select(LR, BH_dis30, Patient) %>%
+  pivot_wider(values_from = "BH_dis30", names_from = "Patient") %>%
+  column_to_rownames("LR") %>%
+  t() %>%
+  as.data.frame() %>%
+  mutate(TLS = case_when(rownames(.) %in% c("107T", "102T", "108T") ~ "TLS+",
+                         rownames(.) %in% c("109T", "110T", "111T") ~ "TLS-"),
+         TLS = factor(TLS, levels = c("TLS+", "TLS-"))) %>%
+  select(TLS)
+```
+
+# Heatmap
+```{r}
+col_fun = colorRamp2(c(0, 0.02, 0.11, 1), c("red", "red", "white", "blue"))
+
+Heatmap(subset_merged_mat,
+        cluster_rows = FALSE,
+        row_split = subset_split$TLS,
+        col = col_fun,
+        column_split = column_split$celltypes,
+        na_col = "grey70",
+        cluster_columns = TRUE,
+        cluster_column_slices = FALSE,
+        heatmap_legend_param = list(
+        title = "adj. P value of\n L-R colocalization", 
+        at = c(0, 0.1, 1), 
+        labels = c(0, 0.1, 1),
+        direction = "horizontal"),
+        border_gp = gpar(col = "black", lty = 1),
+        show_row_dend = FALSE,
+        show_column_dend = FALSE,
+        row_names_side = "left",
+        column_names_rot = 45)
+
+```
+

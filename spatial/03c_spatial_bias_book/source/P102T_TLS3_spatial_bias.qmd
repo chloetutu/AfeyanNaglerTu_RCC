@@ -1,0 +1,191 @@
+# 102T: Spatial bias to TLS3 {#sec-spatial-bias}
+
+# Calculating spatial bias of clonotypes toward particular TLS regions
+
+## Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+
+area_fill <- readRDS("../objects/Area_fill.rds")
+source("../source_scripts/slideseq_functions_main.R")
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Following Yaniv Brandvain's book, chapter 17.
+https://bookdown.org/ybrandvain/Applied-Biostats/perm1.html#permute-to-generate-a-null-distribution
+
+## Importance of sample sizes
+https://www.tandfonline.com/doi/abs/10.1080/00031305.2021.1902856
+
+## Set number of permutations
+```{r}
+n_perm <- 5000
+set.seed(123)
+```
+
+## Load object from script 02
+```{r}
+P102TA_17_RNA <- readRDS("../objects/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+
+P102TA_17_RNA@meta.data <- P102TA_17_RNA@meta.data %>%
+  select(-c(largest_clone_id, puck17_count, log_puck17_count))
+```
+
+## Get TCRs seen near TLS3 at a count of 5 or more
+```{r}
+P102TA_md <- do.call(rbind, list(
+  P102TA_17_RNA@meta.data,
+  P102TA_33_RNA@meta.data
+  ))
+
+P102TA_clones <- get_unique_productive_clones(P102TA_md$clone_id)
+
+P102TA_filtered_clones <- count_clones_by_annotated_area(P102TA_md, P102TA_clones) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+
+plot_clones_spatially(P102TA_17_RNA, P102TA_filtered_clones, area_fill)
+plot_clones_spatially(P102TA_33_RNA, P102TA_filtered_clones, area_fill)
+```
+
+## Permutation test logic:
+Hypothesis:
+Our null hypothesis claims that TCR_X is not closer to TLS3 compared to other TCRs
+The alternative hypothesis claims that TCR_Xs is closer to TLS3 than any other TCR
+
+Take into account the non-independent variable of puck identity by permuting sample label within the puck. e.g. say Puck30 has 10 TCR_X beads, and Puck32 has 20 TCR_X beads. After permutation, Puck30 will still have 10 TCR_X beads, and Puck32 20 beads.
+
+Test statistic:
+Median distance from centroid of TLS3 of TCR_X minus Median distance from centroid of TLS3 of all other TCRs
+Notes: Median seems superior to mean in this case
+If alternative hypothesis is true: small number - bigger number = negative number
+
+Treatment assignment:
+The treatment group are beads or TCR-containing beads assigned TCR_X
+The control group are beads or TCR-containing beads not assigned TCR_X
+
+## Get centroid of TLS3
+```{r}
+tls3_centroid_17 <- P102TA_17_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(x),
+            y = mean(y))
+tls3_centroid_33 <- P102TA_33_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(x),
+            y = mean(y))
+```
+
+## Save TLS centroids for plotting purposes
+```{r}
+tls3_centroid_17_PLOT <- P102TA_17_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(plot_x),
+            y = mean(plot_y))
+tls3_centroid_33_PLOT <- P102TA_33_RNA@meta.data %>%
+  filter(area == "TLS3") %>%
+  summarize(x = mean(plot_x),
+            y = mean(plot_y))
+
+write.csv(tls3_centroid_17_PLOT, "../objects/P102TA_puck17_tls3_centroid.csv")
+write.csv(tls3_centroid_33_PLOT, "../objects/P102TA_puck33_tls3_centroid.csv")
+```
+
+## Calculate the distance of all TCRs to the centroid of TLS3 and add label denoting whether the TCR is of interest or not
+```{r}
+# Calculate the distance of all beads to TLS3
+tls3_distances_17 <- calculate_distance_of_beads_to_a_point(P102TA_17_RNA@meta.data, tls3_centroid_17, "TLS3") %>%
+  dplyr::rename("distance_to" = "distance_to_TLS3") %>%
+  mutate(Puck = "P102TA_Puck17")
+tls3_distances_33 <- calculate_distance_of_beads_to_a_point(P102TA_33_RNA@meta.data, tls3_centroid_33, "TLS3") %>%
+  dplyr::rename("distance_to" = "distance_to_TLS3") %>%
+  mutate(Puck = "P102TA_Puck33")
+```
+
+## Run permutation test
+```{r}
+# Save data
+tls3.list <- list()
+for(clone in P102TA_filtered_clones){
+  # Merge distance distributions
+  tls3_X_distances <- tls3_distances_17 %>%
+    rbind(tls3_distances_33) %>%
+    filter(!is.na(clone_id)) %>%
+    # Label TCR_X containing beads
+    mutate(label = case_when(str_detect(clone_id, paste0(clone, "($|,)")) ~ "TCR_of_interest",
+                                    T ~ "Other"))
+  
+  # Find pucks in which TCR_X is observed
+  pucks <- tls3_X_distances %>%
+    filter(label == "TCR_of_interest") %>%
+    distinct(Puck) %>%
+    pull(Puck)
+  
+  # Filter for pucks where TCR_X is observed
+  tls3_X_distances <- tls3_X_distances %>%
+    filter(Puck %in% pucks)
+  
+  # Plot the median distance of TCR_X vs all other TCRs for each puck
+  # Plot descriptive stats of the bead distance to TLS3
+  plot <- ggplot(data = tls3_X_distances, aes(x = label, y = distance_to, fill = label)) +
+    geom_boxplot() +
+    facet_wrap(~Puck) +
+    ggtitle(paste0("TCR of interest, ", clone))
+  
+  print(plot)
+  
+  # Test TCR_Xs proximity to TLS3
+  tls3_X <- distance_permutation_test(tls3_X_distances, n_perm = n_perm, tcr_name = clone)
+  tls3_X$pval
+  
+  # KEEP THIS ORDER, or the names of the list will be in the wrong order later
+  tls3.list <- append(tls3.list, list(tls3_X))
+}
+
+names(tls3.list) <- P102TA_filtered_clones
+```
+
+## Print pvals
+```{r}
+get_pval <- function(lis)(
+  return(lis[["pval"]])
+)
+
+tls3.df <- lapply(tls3.list, get_pval) %>%
+  as.data.frame() %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::rename("pval" = "V1")
+```
+
+## Print significant clones
+```{r}
+tls3.df %>%
+  filter(pval <= 0.05)
+```
+
+## Save object
+```{r}
+saveRDS(tls3.list, "../objects/P102TA_puck17_33_tls3_list.rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```

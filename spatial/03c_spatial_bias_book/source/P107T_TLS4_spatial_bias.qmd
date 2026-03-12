@@ -1,0 +1,68 @@
+# 107T: Spatial bias to TLS4 {#sec-spatial-bias}
+
+# Calculating spatial bias of clonotypes toward particular TLS regions
+
+## Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+
+area_fill <- readRDS("../objects/Area_fill.rds")
+source("../source_scripts/slideseq_functions_main.R")
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Following Yaniv Brandvain's book, chapter 17.
+https://bookdown.org/ybrandvain/Applied-Biostats/perm1.html#permute-to-generate-a-null-distribution
+
+## Importance of sample sizes
+https://www.tandfonline.com/doi/abs/10.1080/00031305.2021.1902856
+
+## Set number of permutations
+```{r}
+n_perm <- 5000
+set.seed(123)
+```
+
+## Load object from script 02
+```{r}
+P107TA_15_RNA <- readRDS("../objects/02_Puck15_107TA_TCR_RNA_area_121125.Rds")
+
+```
+
+## Get TCRs seen near TLS4 at a count of 5 or more
+```{r}
+P107TA_md <- do.call(rbind, list(
+  P107TA_15_RNA@meta.data
+  ))
+
+P107TA_clones <- get_unique_productive_clones(P107TA_md$clone_id)
+
+P107TA_filtered_clones <- count_clones_by_annotated_area(P107TA_md, P107TA_clones) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+
+length(P107TA_filtered_clones)
+```
+
+## There are no TCRs seen at a count >= 5 near TLS4
+
+## Get session info
+```{r}
+sessionInfo()
+```
+

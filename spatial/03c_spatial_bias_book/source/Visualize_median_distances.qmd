@@ -1,0 +1,310 @@
+# Plot median distances {#sec-spatial-bias}
+
+# Plot spatial bias of clonotypes toward particular TLS regions
+
+## Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(ggforce)
+library(RANN)
+
+area_fill <- readRDS("../objects/Area_fill.rds")
+source("../source_scripts/slideseq_functions_main.R")
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Load object from script 02
+```{r}
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+P102TA_17_RNA <- readRDS("../objects/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+```
+
+## Remove empty
+```{r}
+Idents(P102TA_33_RNA) <- P102TA_33_RNA$area
+P102TA_33_RNA <- subset(P102TA_33_RNA, idents = "Empty", invert = TRUE)
+Idents(P108TA_32_RNA) <- P108TA_32_RNA$area
+P108TA_32_RNA <- subset(P108TA_32_RNA, idents = "Empty", invert = TRUE)
+```
+
+## Reorient pucks
+```{r}
+reorient_pucks <- function(obj){
+  obj@images$image@coordinates$x <- obj$plot_x
+  obj@images$image@coordinates$y <- -obj$plot_y
+
+  return(obj)
+}
+
+P102TA_17_RNA <- reorient_pucks(P102TA_17_RNA)
+P102TA_33_RNA <- reorient_pucks(P102TA_33_RNA)
+P108TA_32_RNA <- reorient_pucks(P108TA_32_RNA)
+
+```
+
+## Load median distances of clones analyzed
+```{r}
+p108_tls1 <- readRDS("../objects/P108TA_puck30_32_tls1_list.rds")
+p108_tls2 <- readRDS("../objects/P108TA_puck26_29_32_tls2_list.rds")
+p108_tls3 <- readRDS("../objects/P108TA_puck26_29_32_tls3_list.rds")
+
+p102_tls3 <- readRDS("../objects/P102TA_puck17_33_tls3_list.rds")
+```
+
+## Format median distances
+```{r}
+p108_tls1_meds <- get_dist_df(p108_tls1) %>%
+  mutate(clone = rownames(.),
+         TLS = "TLS1") %>%
+  column_to_rownames("clone")
+p108_tls2_meds <- get_dist_df(p108_tls2) %>%
+  mutate(clone = rownames(.),
+         TLS = "TLS2") %>%
+  column_to_rownames("clone")
+p108_tls3_meds <- get_dist_df(p108_tls3) %>%
+  mutate(clone = rownames(.),
+         TLS = "TLS3") %>%
+  column_to_rownames("clone")
+
+p102_tls3_meds <- get_dist_df(p102_tls3) %>%
+  mutate(clone = rownames(.),
+         TLS = "TLS3") %>%
+  column_to_rownames("clone")
+```
+
+## Load TLS centroids
+```{r}
+tls1_centroid_32 <- read.csv("../objects/P108TA_puck32_tls1_centroid.csv", row.names = 1) %>%
+  mutate(TLS = "TLS1")
+tls2_centroid_32 <- read.csv("../objects/P108TA_puck32_tls2_centroid.csv", row.names = 1) %>%
+  mutate(TLS = "TLS2")
+tls3_centroid_32 <- read.csv("../objects/P108TA_puck32_tls3_centroid.csv", row.names = 1) %>%
+  mutate(TLS = "TLS3")
+
+tls3_centroid_33 <- read.csv("../objects/P102TA_puck33_tls3_centroid.csv", row.names = 1) %>%
+  mutate(TLS = "TLS3")
+tls3_centroid_17 <- read.csv("../objects/P102TA_puck17_tls3_centroid.csv", row.names = 1) %>%
+  mutate(TLS = "TLS3")
+```
+
+# P108 plot
+## Format TLS centroids
+```{r}
+p108_centroid <- do.call(rbind, list(tls1_centroid_32, tls2_centroid_32, tls3_centroid_32))
+```
+
+## Set clone to investigate
+```{r}
+clone_of_int <- "p108_206"
+```
+
+## Merge data for plot
+```{r}
+p108_distance_data <- 
+  p108_tls1_meds[clone_of_int,] %>%
+  rbind(p108_tls2_meds[clone_of_int,]) %>%
+  rbind(p108_tls3_meds[clone_of_int,]) %>%
+  pivot_longer(cols = c("Other", "TCR_of_interest"), values_to = "radii", names_to = "type") %>%
+  left_join(p108_centroid, by = "TLS") %>%
+  mutate(radii = round(radii, 3), 
+         x = round(x, 3), 
+         y = round(y, 3))
+```
+
+## Reorient beads
+```{r}
+# Reorient beads to match the change in SpatialDimPlot
+# Pick out the beads with the clone
+beads_to_highlight <- P108TA_32_RNA@meta.data %>%
+      filter(str_detect(clone_id, paste0(paste0(clone_of_int, "($|,)"), collapse = "|"))) %>%
+      mutate(trim = str_extract(clone_id, paste0(clone_of_int, collapse = "|")),
+             plot_x = plot_x,
+             plot_y = -plot_y)
+
+p108_distance_data <- p108_distance_data %>%
+  mutate(x = x,
+         y = -y)
+
+tls1_centroid_32 <- tls1_centroid_32 %>%
+  mutate(x = x,
+         y = -y)
+tls2_centroid_32 <- tls2_centroid_32 %>%
+  mutate(x = x,
+         y = -y)
+tls3_centroid_32 <- tls3_centroid_32 %>%
+  mutate(x = x,
+         y = -y)
+```
+
+## Plot clones spatially
+```{r}
+SpatialDimPlot(P108TA_32_RNA, group.by = "area", alpha = 0.3, stroke = 0) +
+  # Add beads of interest
+  geom_point(data = beads_to_highlight, aes(x = plot_x, y = plot_y), color = "pink", 
+             size = 1) +
+    coord_fixed(xlim = c(0, 5000), ylim = c(-5000, 0), ratio = 1) +
+  # Add outline to beads of interest
+  geom_point(data = beads_to_highlight, aes(x = plot_x, y = plot_y), 
+             shape = 1, size = 1.5, alpha = 0.8, stroke = 0.5) +
+  # Draw median distances
+  geom_circle(data = p108_distance_data, 
+              aes(x0 = x, y0 = y, r = radii, fill = NA, color = type, linetype = type), 
+              alpha = 0) +
+  # Draw centroids
+  geom_circle(data = tls1_centroid_32,
+  aes(x0 = x, y0 = y, r = 50, fill = "darkgreen"), alpha = 1) +
+  geom_circle(data = tls2_centroid_32,
+  aes(x0 = x, y0 = y, r = 50, fill = "forestgreen"), alpha = 1) +
+  geom_circle(data = tls3_centroid_32, 
+              aes(x0 = x, y0 = y, r = 50, fill = "green3"), alpha = 1) +
+  # Formatting and color options
+  scale_color_manual(values = c("darkgreen", "darkgreen")) +
+  scale_linetype_manual(values = c("dashed", "solid")) +
+  area_fill +
+  ggtitle(clone_of_int) +
+  guides(color = "none", fill = "none")
+```
+
+# P102 33 plot
+## Format TLS centroids
+```{r}
+p102_centroid <- do.call(rbind, list(tls3_centroid_33))
+```
+
+## Set clone to investigate
+```{r}
+clone_of_int <- "p102_264"
+```
+
+## Merge data for plot
+```{r}
+p102_distance_data <- p102_tls3_meds[clone_of_int,] %>%
+  pivot_longer(cols = c("Other", "TCR_of_interest"), values_to = "radii", names_to = "type") %>%
+  left_join(p102_centroid, by = "TLS") %>%
+  mutate(radii = round(radii, 3), 
+         x = round(x, 3), 
+         y = round(y, 3))
+```
+
+## Reorient beads
+```{r}
+# Reorient beads to match the change in SpatialDimPlot
+# Pick out the beads with the clone
+beads_to_highlight <- P102TA_33_RNA@meta.data %>%
+      filter(str_detect(clone_id, paste0(paste0(clone_of_int, "($|,)"), collapse = "|"))) %>%
+      mutate(trim = str_extract(clone_id, paste0(clone_of_int, collapse = "|")),
+             plot_x = plot_x,
+             plot_y = -plot_y)
+
+p102_distance_data <- p102_distance_data %>%
+  mutate(x = x,
+         y = -y)
+
+tls3_centroid_33 <- tls3_centroid_33 %>%
+  mutate(x = x,
+         y = -y)
+```
+
+## Plot clones spatially
+```{r}
+SpatialDimPlot(P102TA_33_RNA, group.by = "area", alpha = 0.3, stroke = 0) +
+  # Add beads of interest
+  geom_point(data = beads_to_highlight, aes(x = plot_x, y = plot_y), color = "pink", 
+             size = 1) +
+    coord_fixed(xlim = c(0, 5000), ylim = c(-5000, 0), ratio = 1) +
+  # Add outline to beads of interest
+  geom_point(data = beads_to_highlight, aes(x = plot_x, y = plot_y), 
+             shape = 1, size = 1.5, alpha = 0.8, stroke = 0.5) +
+  # Draw median distances
+  geom_circle(data = p102_distance_data, 
+              aes(x0 = x, y0 = y, r = radii, fill = NA, color = type, linetype = type), 
+              alpha = 0) +
+  # Draw centroids
+  geom_circle(data = tls3_centroid_33, 
+              aes(x0 = x, y0 = y, r = 50, fill = "green3"), alpha = 1) +
+  # Formatting and color options
+  scale_color_manual(values = c("darkgreen", "darkgreen")) +
+  scale_linetype_manual(values = c("dashed", "solid")) +
+  area_fill +
+  ggtitle(clone_of_int) +
+  guides(color = "none", fill = "none")
+```
+
+
+# P102 17 plot
+## Format TLS centroids
+```{r}
+p102_centroid <- do.call(rbind, list(tls3_centroid_17))
+```
+
+## Set clone to investigate
+```{r}
+clone_of_int <- "p102_264"
+```
+
+## Merge data for plot
+```{r}
+p102_distance_data <- p102_tls3_meds[clone_of_int,] %>%
+  pivot_longer(cols = c("Other", "TCR_of_interest"), values_to = "radii", names_to = "type") %>%
+  left_join(p102_centroid, by = "TLS") %>%
+  mutate(radii = round(radii, 3), 
+         x = round(x, 3), 
+         y = round(y, 3))
+```
+
+## Reorient beads
+```{r}
+# Reorient beads to match the change in SpatialDimPlot
+# Pick out the beads with the clone
+beads_to_highlight <- P102TA_17_RNA@meta.data %>%
+      filter(str_detect(clone_id, paste0(paste0(clone_of_int, "($|,)"), collapse = "|"))) %>%
+      mutate(trim = str_extract(clone_id, paste0(clone_of_int, collapse = "|")),
+             plot_x = plot_x,
+             plot_y = -plot_y)
+
+p102_distance_data <- p102_distance_data %>%
+  mutate(x = x,
+         y = -y)
+
+tls3_centroid_17 <- tls3_centroid_17 %>%
+  mutate(x = x,
+         y = -y)
+```
+
+## Plot clones spatially
+```{r}
+SpatialDimPlot(P102TA_17_RNA, group.by = "area", alpha = 0.3, stroke = 0) +
+  # Add beads of interest
+  geom_point(data = beads_to_highlight, aes(x = plot_x, y = plot_y), color = "pink", 
+             size = 1) +
+    coord_fixed(xlim = c(0, 5000), ylim = c(-5000, 0), ratio = 1) +
+  # Add outline to beads of interest
+  geom_point(data = beads_to_highlight, aes(x = plot_x, y = plot_y), 
+             shape = 1, size = 1.5, alpha = 0.8, stroke = 0.5) +
+  # Draw median distances
+  geom_circle(data = p102_distance_data, 
+              aes(x0 = x, y0 = y, r = radii, fill = NA, color = type, linetype = type), 
+              alpha = 0) +
+  # Draw centroids
+  geom_circle(data = tls3_centroid_17, 
+              aes(x0 = x, y0 = y, r = 50, fill = "green3"), alpha = 1) +
+  # Formatting and color options
+  scale_color_manual(values = c("darkgreen", "darkgreen")) +
+  scale_linetype_manual(values = c("dashed", "solid")) +
+  area_fill +
+  ggtitle(clone_of_int) +
+  guides(color = "none", fill = "none")
+```

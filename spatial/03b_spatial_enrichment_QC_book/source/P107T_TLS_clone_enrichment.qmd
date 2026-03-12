@@ -1,0 +1,199 @@
+# 107T TLS: Clone enrichment {#sec-clone-enrichment-qc}
+
+# Calculating enrichment of clonotypes or T cell phenotypes in spatial compartments 
+
+## Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(infer)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(RANN)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Set number of permutations and the area to describe clonotype enrichment in
+```{r}
+n_perm <- 2000
+set.seed(123)
+
+given_area = "TLS"
+```
+
+## Load object from script 02
+```{r}
+P107TA_15_RNA <- readRDS("../objects/02_Puck15_107TA_TCR_RNA_area_121125.Rds")
+P107TA_18_RNA <- readRDS("../objects/02_Puck18_107TA_TCR_RNA_area_121125.Rds")
+P107TA_20_RNA <- readRDS("../objects/02_Puck20_107TA_TCR_RNA_area_121125.Rds")
+
+unique(P107TA_15_RNA$orig.ident)
+unique(P107TA_18_RNA$orig.ident)
+unique(P107TA_20_RNA$orig.ident)
+
+unique(P107TA_15_RNA$area)
+unique(P107TA_18_RNA$area)
+unique(P107TA_20_RNA$area)
+```
+
+## Permutation test logic:
+Hypothesis:
+Our null hypothesis claims that TCR_X is not more enriched in the TLS than any other TCR
+The alternative hypothesis claims that TCR_Xs is more enriched in the TLS than any other TCR
+
+Take into account the non-independent variable of puck identity by permuting sample label within the puck. e.g. say Puck30 has 10 TCR_X beads, and Puck32 has 20 TCR_X beads. After permutation, Puck30 will still have 10 TCR_X beads, and Puck32 20 TCR_X beads.
+
+Test statistic:
+
+Enrichment = (number of beads for TCR_X in the structure/total number of beads for TCR_X across all structures)/(number of beads for all other clonotypes in the structure/ total number of beads for all other clonotypes across all structures) - 1
+
+In other words, enrichment = (fraction of TCR_X in the TLS) / (fraction of all other clones in the TLS) - 1
+
+## Remove a layer of beads at the perimeter of the TLS in both directions
+```{r}
+# Cast all versions of TLSx to TLS
+P107TA_15_RNA@meta.data <- P107TA_15_RNA@meta.data %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4") ~ "TLS",
+                          T ~ area))
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4") ~ "TLS",
+                          T ~ area))
+P107TA_20_RNA@meta.data <- P107TA_20_RNA@meta.data %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4") ~ "TLS",
+                          T ~ area))
+
+# Remove empty area
+P107TA_15_RNA <- subset(P107TA_15_RNA, subset = area == "Empty", invert = TRUE)
+P107TA_18_RNA <- subset(P107TA_18_RNA, subset = area == "Empty", invert = TRUE)
+P107TA_20_RNA <- subset(P107TA_20_RNA, subset = area == "Empty", invert = TRUE)
+
+
+P107TA_15_RNA <- remove_perimeter_beads_completely(P107TA_15_RNA, "TLS")
+P107TA_18_RNA <- remove_perimeter_beads_completely(P107TA_18_RNA, "TLS")
+P107TA_20_RNA <- remove_perimeter_beads_completely(P107TA_20_RNA, "TLS")
+```
+
+## Get phenotypes seen at a count of 5 or more across all pucks
+```{r}
+# Remove metadata columns that other pucks don't have
+P107TA_15_RNA@meta.data <- P107TA_15_RNA@meta.data %>%
+  select(-largest_clone_id, -puck15_count, -log_puck15_count)
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  select(-largest_clone_id, -puck18_count, -log_puck18_count)
+P107TA_20_RNA@meta.data <- P107TA_20_RNA@meta.data %>%
+  select(-largest_clone_id, -puck20_count, -log_puck20_count)
+
+P107TA_md <- do.call(rbind, list(P107TA_15_RNA@meta.data, P107TA_18_RNA@meta.data, P107TA_20_RNA@meta.data))
+
+unique_clones <- get_unique_productive_clones(P107TA_md$clone_id)
+
+P107TA_filtered_clones <- count_clones_by_annotated_area(P107TA_md, unique_clones) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  filter(sum_count >= 5) %>%
+  pull(clone_id)
+
+length(P107TA_filtered_clones)
+```
+
+## Rename individual TLS and filter for beads containing TCRs
+```{r}
+# Rename individual TLS to "TLS"
+P107TA_md <- P107TA_md %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4") ~ "TLS",
+                                  T ~ area)) %>%
+  # Filter for beads with TCRs
+  filter(!is.na(clone_id))
+```
+
+## Run the permutation test
+```{r}
+# Save results in a list
+tls_clone_results.list <- list()
+
+for(clone in P107TA_filtered_clones){
+  P107TA_TCRX_md <- P107TA_md %>%
+    # Select columns of interest
+    select(orig.ident, clone_id, barcode, area) %>%
+    # Label TCR_X containing beads as "interesting" and label all other beads as "other".
+    mutate(tcr_label = case_when(str_detect(clone_id, paste0(clone, "($|,)")) ~ "TCR_of_interest",
+                                 T ~ "other_tcr"),
+           # Label the TLS as "interesting" and other areas as "other"
+           area_label = case_when(area == given_area ~ "area_of_interest",
+                                  T ~ "other_area"))
+  
+  # Find pucks in which TCR_X is not observed
+  P107TA_TCRX_pucks <- P107TA_TCRX_md %>%
+    filter(tcr_label == "TCR_of_interest") %>%
+    distinct(orig.ident) %>%
+    pull(orig.ident)
+  
+  # Remove pucks where TCR_X is not observed
+  P107TA_TCRX_md <- P107TA_TCRX_md %>%
+    filter(orig.ident %in% P107TA_TCRX_pucks)
+  
+  # Plot the fraction of TCR_X in TLS vs all other TCRs in TLS for each puck.
+  # In other words, plot Cc/Call and Ac/Aall
+  plot <- P107TA_TCRX_md %>%
+    group_by(tcr_label, area_label, orig.ident) %>%
+    dplyr::count() %>%
+    pivot_wider(names_from = area_label, values_from = "n") %>%
+    # Some values are supposed to be 0 but are NA due to dplyr::count
+    replace(is.na(.), 0) %>%
+    # Calculate Call and Aall
+    mutate(all_areas = sum(area_of_interest, other_area),
+    # Calculate Cc/Call and Ac/All
+           fraction = area_of_interest/all_areas) %>%
+    select(tcr_label, fraction, orig.ident) %>%
+    ggplot() +
+    geom_boxplot(aes(x = tcr_label, y = fraction, fill = tcr_label)) +
+    geom_point(aes(x = tcr_label, y = fraction, color = orig.ident)) +
+    ggtitle(paste0("TCR of interest: ", clone)) +
+    ylab("Fraction in the TLS")
+  
+  print(plot)
+  
+  # Test enrichment of TCR_X in the TLS
+  tls_results <- enrichment_permutation_test(P107TA_TCRX_md, n_perm = n_perm, clonotype = clone)
+  tls_results$pval
+  
+  # KEEP THIS ORDER, or the names of the list will be in the wrong order later
+  tls_clone_results.list <- append(tls_clone_results.list, list(tls_results))
+}
+
+
+names(tls_clone_results.list) <- P107TA_filtered_clones
+```
+
+## Print pvals
+```{r}
+tls_clone_pvals.df <- lapply(tls_clone_results.list, get_pval) %>%
+  as.data.frame() %>%
+  t() %>%
+  as.data.frame() %>%
+  dplyr::rename("pval" = "V1")
+```
+
+## Print significant clones (unadjusted)
+```{r}
+tls_clone_pvals.df %>%
+  filter(pval <= 0.05)
+```
+
+## Save object
+```{r}
+saveRDS(tls_clone_results.list, "../objects/P107TA_TLS_clone_list_perimeter_removed.rds")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```

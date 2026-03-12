@@ -1,0 +1,110 @@
+# 107T: Plot spatial bias to TLS {#sec-spatial-bias}
+
+# Plot spatial bias of clonotypes toward particular TLS regions
+
+## Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+library(ComplexHeatmap)
+library(circlize)
+library(dplyr)
+
+area_fill <- readRDS("../objects/Area_fill.rds")
+source("../source_scripts/slideseq_functions_main.R")
+options(Seurat.object.assay.version = 'v5')
+
+```
+
+# Open pvals from permutation tests for TLS1, TLS2, TLS3 and TLS4
+No results for TLS3 and TLS4- no clones reached n>=5
+```{r}
+tls1.list <- readRDS("../objects/P107TA_puck20_tls1_list.rds")
+tls2.list <- readRDS("../objects/P107TA_puck20_18_tls2_list.rds")
+```
+
+# Get pvals from the list
+```{r}
+get_pval <- function(lis)(
+  return(lis[["pval"]])
+)
+
+tls1.df <- lapply(tls1.list, get_pval) %>%
+  as.data.frame() %>%
+  t() 
+
+tls2.df <- lapply(tls2.list, get_pval) %>%
+  as.data.frame() %>%
+  t() 
+
+```
+
+## Append dataframes together and correct for FDR
+```{r}
+tls1.df <- tls1.df %>% 
+  as.data.frame() %>% 
+  rownames_to_column("clone_id") %>% 
+  dplyr::rename("TLS1_pval" = "V1") %>%
+  mutate(TLS1_pval = case_when(TLS1_pval == 0 ~ 1/5000,
+                               T ~ TLS1_pval),
+         TLS1_qval = p.adjust(TLS1_pval, method="BH"))
+  
+tls2.df <- tls2.df %>% as.data.frame() %>% 
+  rownames_to_column("clone_id") %>% 
+  dplyr::rename("TLS2_pval" = "V1") %>% 
+  mutate(TLS2_pval = case_when(TLS2_pval == 0 ~ 1/5000,
+                               T ~ TLS2_pval),
+         TLS2_qval = p.adjust(TLS2_pval, method="BH"))
+
+tls.df <- tls1.df %>%
+  full_join(tls2.df)
+
+```
+
+## Reorder data based on minimum significance
+```{r}
+reorder.df <- tls.df %>%
+  rowwise() %>%
+  mutate(min_qval = min(TLS1_qval, TLS2_qval, na.rm = TRUE)) %>%
+  arrange(min_qval) %>%
+  ungroup()
+```
+
+## Plot heatmap without enrichment
+```{r, fig.width = 5, fig.height = 3}
+reorder.mat <- reorder.df %>%
+  arrange(min_qval) %>%
+  select(clone_id, TLS1_qval, TLS2_qval) %>%
+  column_to_rownames("clone_id") %>%
+  as.matrix()
+
+col_fun = colorRamp2(c(0, 0.05, 0.06, 1), c("yellow", "white", "purple", "purple4"))
+
+Heatmap(reorder.mat,
+        cluster_columns = FALSE,
+        cluster_rows = FALSE,
+        row_names_gp = gpar(fontsize = 9),
+        col = col_fun,
+        na_col = "grey50",
+        heatmap_width = unit(6, "cm"),
+        column_title = "P107",
+        name = "q val in a\nsingle TLS")
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+

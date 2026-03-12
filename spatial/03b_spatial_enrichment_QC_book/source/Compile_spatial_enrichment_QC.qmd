@@ -1,0 +1,416 @@
+# Plot enrichment {#sec-clone-enrichment-qc}
+
+# Compile and plot enrichment of clonotypes or T cell phenotypes in spatial compartments 
+
+# Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(ggbreak)
+library(tibble)
+library(UpSetR)
+library(ggvenn)
+library(eulerr)
+
+source("../source_scripts/slideseq_functions_main.R")
+```
+
+## Pick significance level
+```{r}
+sig_level <- 0.05
+```
+
+## Open original data
+```{r}
+orig_tls <- read.csv("../objects/P102TA_P107TA_P108TA_TLS_aggregated.csv")
+
+orig_boundary <- read.csv("../objects/P102TA_P108TA_boundary_aggregated.csv")
+```
+
+## Open objects with perimeters removed
+```{r}
+P102TA_TLS_perimeter_removed_clones <- readRDS("../objects/P102TA_TLS_clone_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P107TA_TLS_perimeter_removed_clones <- readRDS("../objects/P107TA_TLS_clone_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P107TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_TLS_perimeter_removed_clones <- readRDS("../objects/P108TA_TLS_clone_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+
+P102TA_TLS_perimeter_removed_phenotype <- readRDS("../objects/P102TA_TLS_phenotype_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P107TA_TLS_perimeter_removed_phenotype <- readRDS("../objects/P107TA_TLS_phenotype_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P107TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_TLS_perimeter_removed_phenotype <- readRDS("../objects/P108TA_TLS_phenotype_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+
+## Boundary
+
+P102TA_boundary_perimeter_removed_clones <- readRDS("../objects/P102TA_boundary_clone_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_boundary_perimeter_removed_clones <- readRDS("../objects/P108TA_boundary_clone_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "clone",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+
+P102TA_boundary_perimeter_removed_phenotype <- readRDS("../objects/P102TA_boundary_phenotype_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P102TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+P108TA_boundary_perimeter_removed_phenotype <- readRDS("../objects/P108TA_boundary_phenotype_list_perimeter_removed.rds") %>%
+  get_vals_df(.) %>%
+  mutate(Patient = "P108TA",
+         type = "phenotype",
+         pval = case_when(pval == 0 ~ 1/5000,
+                          T ~ pval),
+         qval = p.adjust(pval, method = "BH"))
+```
+
+## Merge across patients for each area
+```{r}
+tls_perimeter_removed <- rbind(P102TA_TLS_perimeter_removed_clones, P107TA_TLS_perimeter_removed_clones, P108TA_TLS_perimeter_removed_clones, P102TA_TLS_perimeter_removed_phenotype, P107TA_TLS_perimeter_removed_phenotype, P108TA_TLS_perimeter_removed_phenotype) %>%
+  dplyr::rename("pval_perimeter_remove" = "pval",
+                "qval_perimeter_remove" = "qval",
+                "enrichment_perimeter_remove" = "enrichment",
+                "count_in_area_perimeter_remove" = "count_in_area")
+
+boundary_perimeter_removed <- rbind(P102TA_boundary_perimeter_removed_clones, P108TA_boundary_perimeter_removed_clones, P102TA_boundary_perimeter_removed_phenotype, P108TA_boundary_perimeter_removed_phenotype) %>%
+  dplyr::rename("pval_perimeter_remove" = "pval",
+                "qval_perimeter_remove" = "qval",
+                "enrichment_perimeter_remove" = "enrichment",
+                "count_in_area_perimeter_remove" = "count_in_area")
+
+```
+
+## Compare to original tls results
+```{r}
+compare_tls <- orig_tls %>%
+  full_join(tls_perimeter_removed) %>%
+  select(clone, Patient, type, qval, enrichment, enrichment_perimeter_remove, qval_perimeter_remove)
+```
+
+## Compare to original boundary results 
+```{r}
+compare_boundary <- orig_boundary %>%
+  full_join(boundary_perimeter_removed) %>%
+  select(clone, Patient, type, qval, enrichment_perimeter_remove, qval_perimeter_remove)
+```
+
+## Format data for venn diagram
+```{r}
+orig_tls_clones_sig <- orig_tls %>%
+  filter(type == "clone",
+         qval < sig_level)
+orig_tls_phenotype_sig <- orig_tls %>%
+  filter(type == "phenotype",
+         pval < sig_level) %>%
+  mutate(clone = paste0(Patient, "_", clone))
+remove_perimeter_tls_clones_sig <- tls_perimeter_removed %>%
+  filter(type == "clone",
+         qval_perimeter_remove < sig_level)
+remove_perimeter_tls_phenotype_sig <- tls_perimeter_removed %>%
+  filter(type == "phenotype",
+         pval_perimeter_remove < sig_level) %>%
+  mutate(clone = paste0(Patient, "_", clone))
+
+orig_boundary_clones_sig <- orig_boundary %>%
+  filter(type == "clone",
+         qval < sig_level)
+orig_boundary_phenotype_sig <- orig_boundary %>%
+  filter(type == "phenotype",
+         pval < sig_level) %>%
+  mutate(clone = paste0(Patient, "_", clone))
+remove_perimeter_boundary_clones_sig <- boundary_perimeter_removed %>%
+  filter(type == "clone",
+         qval_perimeter_remove < sig_level)
+remove_perimeter_boundary_phenotype_sig <- boundary_perimeter_removed %>%
+  filter(type == "phenotype",
+         pval_perimeter_remove < sig_level) %>%
+  mutate(clone = paste0(Patient, "_", clone))
+
+sig_tls_clones <- list(Original = orig_tls_clones_sig$clone, Reanalysed = remove_perimeter_tls_clones_sig$clone)
+
+sig_tls_phenotypes <- list(Original = orig_tls_phenotype_sig$clone, Reanalysed = remove_perimeter_tls_phenotype_sig$clone)
+
+sig_boundary_clones <- list(Original = orig_boundary_clones_sig$clone, Reanalysed = remove_perimeter_boundary_clones_sig$clone)
+
+sig_boundary_phenotypes <- list(Original = orig_boundary_phenotype_sig$clone, Reanalysed = remove_perimeter_boundary_phenotype_sig$clone)
+```
+
+
+### Plot venn diagram
+```{r}
+plot(euler(sig_tls_clones), quantities = TRUE, fills = c("#FEF7C7FF", "#B0CBE7FF", "#EBA07EFF"), main = "Significant TLS clones")
+plot(euler(sig_tls_phenotypes), quantities = TRUE, fills = c("#FEF7C7FF", "#B0CBE7FF", "#EBA07EFF"), main = "Significant TLS phenotypes")
+
+plot(euler(sig_boundary_clones), quantities = TRUE, fills = c("#B0CBE7FF", "#EBA07EFF", "#FEF7C7FF"), main = "Significant boundary clones")
+plot(euler(sig_boundary_phenotypes), quantities = TRUE, fills = c("#FEF7C7FF", "#B0CBE7FF", "#EBA07EFF"), main = "Significant boundary phenotypes")
+
+```
+
+## Plot as enrichment plot
+```{r}
+TLS_clone_remove <- do.call(rbind, list(P102TA_TLS_perimeter_removed_clones, P107TA_TLS_perimeter_removed_clones, P108TA_TLS_perimeter_removed_clones)) %>%
+  mutate(text_size = count_in_area/(2+10),
+         sig_qval = case_when(qval <= sig_level ~ "Significant",
+                         qval > sig_level ~ "Non-significant"))
+      
+TLS_phenotype_remove <- do.call(rbind, list(P102TA_TLS_perimeter_removed_phenotype, P107TA_TLS_perimeter_removed_phenotype, P108TA_TLS_perimeter_removed_phenotype)) %>%
+  mutate(text_size = count_in_area/(2+10),
+         sig_pval = case_when(pval <= sig_level ~ "Significant",
+                         pval > sig_level ~ "Non-significant"))
+
+boundary_clone_remove <- do.call(rbind, list(P102TA_boundary_perimeter_removed_clones, P108TA_boundary_perimeter_removed_clones)) %>%
+  mutate(text_size = count_in_area/(2+10),
+         sig_qval = case_when(qval <= sig_level ~ "Significant",
+                         qval > sig_level ~ "Non-significant"))
+      
+boundary_phenotype_remove <- do.call(rbind, list(P102TA_boundary_perimeter_removed_phenotype, P108TA_boundary_perimeter_removed_phenotype)) %>%
+  mutate(text_size = count_in_area/(2+10),
+         sig_pval = case_when(pval <= sig_level ~ "Significant",
+                         pval > sig_level ~ "Non-significant"))
+
+```
+
+### TLS clones
+```{r, fig.width = 8, fig.height = 5}
+TLS_clone_original <- orig_tls %>%
+  select(-Region) %>%
+  mutate(Analysis = "Original",
+         text_size = count_in_area/(2+10),
+         sig_qval = case_when(qval <= sig_level ~ "Significant",
+                         qval > sig_level ~ "Non-significant")) %>%
+  filter(type == "clone")
+
+TLS_clone_remove <- TLS_clone_remove %>%
+  mutate(Analysis = "remove") %>%
+  filter(type == "clone")
+
+compare_tls_clone <- TLS_clone_original %>%
+  rbind(TLS_clone_remove) %>%
+  mutate(phenotype = case_when(str_detect(clone,"p10") ~ "CD8TEx",
+                               T ~ "Spatial"))
+  
+sig_clones <- compare_tls_clone %>%
+  filter(qval < sig_level) %>%
+  pull(clone)
+
+sig_compare_tls_clone <- compare_tls_clone %>%
+  filter(clone %in% sig_clones)
+
+compare_tls_clone %>%
+  ggplot(aes(x = enrichment, y = -log10(qval), label = ifelse(qval <= sig_level & phenotype == "CD8TEx" & Analysis == "Original", clone, NA), shape = sig_qval)) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(qval <= sig_level, phenotype, ""), color = ifelse(qval <= sig_level, Patient, ""), size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 500)) +
+  geom_line(data = sig_compare_tls_clone, aes(group = clone), linewidth = 1, linetype = "dotted") +
+  theme_classic() + 
+  xlab("Enrichment in TLS") +
+  ylab("-log10(adjusted pval)") +
+  scale_fill_manual(values = c("white","red", "black")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Phenotype", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 3), xlim = c(-2, 6)) +
+  scale_size(breaks=c(1, 31.62, 1000), limits = c(1, 1000))
+
+```
+
+### TLS phenotype
+```{r, fig.width = 8, fig.height = 5}
+TLS_phenotype_original <- orig_tls %>%
+  select(-Region) %>%
+  mutate(Analysis = "Original",
+         text_size = count_in_area/(2+10),
+         sig_pval = case_when(pval <= sig_level ~ "Significant",
+                         pval > sig_level ~ "Non-significant")) %>%
+  filter(type == "phenotype")
+
+TLS_phenotype_remove <- TLS_phenotype_remove %>%
+  mutate(Analysis = "remove") %>%
+  filter(type == "phenotype")
+
+compare_tls_phenotype <- TLS_phenotype_original %>%
+  rbind(TLS_phenotype_remove) %>%
+  mutate(phenotype = clone)
+  
+sig_phenotypes <- compare_tls_phenotype %>%
+  filter(pval < sig_level) %>%
+  pull(clone)
+
+sig_compare_tls_phenotype <- compare_tls_phenotype %>%
+  filter(clone %in% sig_phenotypes)
+  
+compare_tls_phenotype %>%
+  ggplot(aes(x = enrichment, y = -log10(pval), label = ifelse(pval <= sig_level & Analysis == "Original", clone, NA))) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(pval <= sig_level, phenotype, ""), color = ifelse(pval <= sig_level, Patient, ""), size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 1000)) +
+  geom_line(data = sig_compare_tls_phenotype, aes(group = Patient), linewidth = 1, linetype = "dotted") +
+  theme_classic() + 
+  xlab("Enrichment in TLS") +
+  ylab("-log10(pval)") +
+  scale_shape_manual(guide=FALSE, values=c(21, 19)) +
+  scale_fill_manual(values = c("white","red")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Phenotype", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 4), xlim = c(-1, 2)) +
+  scale_size(breaks=c(1, 44.72, 2000), limits = c(1, 2000))
+```
+
+### Boundary clones
+```{r, fig.width = 8, fig.height = 5}
+boundary_clone_original <- orig_boundary %>%
+  select(-Region) %>%
+  mutate(Analysis = "Original",
+         text_size = count_in_area/(2+10),
+         sig_qval = case_when(qval <= sig_level ~ "Significant",
+                         qval > sig_level ~ "Non-significant")) %>%
+  filter(type == "clone")
+
+boundary_clone_remove <- boundary_clone_remove %>%
+  mutate(Analysis = "remove") %>%
+  filter(type == "clone")
+
+compare_boundary_clone <- boundary_clone_original %>%
+  rbind(boundary_clone_remove) %>%
+  mutate(phenotype = case_when(str_detect(clone,"p10") ~ "CD8TEx",
+                               T ~ "Spatial"),
+         Analysis = case_when(clone == "p102_286" ~ "Original",
+                              T ~ Analysis))
+  
+sig_clones <- compare_boundary_clone %>%
+  filter(qval < sig_level) %>%
+  pull(clone)
+
+sig_compare_boundary_clone <- compare_boundary_clone %>%
+  filter(clone %in% sig_clones)
+
+compare_boundary_clone %>%
+  ggplot(aes(x = enrichment, y = -log10(qval), label = ifelse(qval <= sig_level & phenotype == "CD8TEx" & Analysis == "Original", clone, NA), size = enrichment, shape = sig_qval)) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(qval <= sig_level, phenotype, ""), color = ifelse(clone %in% sig_clones, Patient, ""), size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 300)) +
+  geom_line(data = sig_compare_boundary_clone, aes(group = clone), linewidth = 1, linetype = "dotted") +
+  theme_classic() + 
+  xlab("Enrichment in boundary") +
+  ylab("-log10(adjusted pval)") +
+  scale_fill_manual(values = c("white","red", "black")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Phenotype", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 3), xlim = c(-2, 6)) +
+  scale_size(breaks=c(1, 31.62, 1000), limits = c(1, 1000))
+```
+
+### Boundary phenotype
+```{r, fig.width = 8, fig.height = 5}
+boundary_phenotype_original <- orig_boundary %>%
+  select(-Region) %>%
+  mutate(Analysis = "Original",
+         text_size = count_in_area/(2+10),
+         sig_pval = case_when(pval <= sig_level ~ "Significant",
+                         pval > sig_level ~ "Non-significant")) %>%
+  filter(type == "phenotype")
+
+boundary_phenotype_remove <- boundary_phenotype_remove %>%
+  mutate(Analysis = "remove") %>%
+  filter(type == "phenotype")
+
+compare_boundary_phenotype <- boundary_phenotype_original %>%
+  rbind(boundary_phenotype_remove) %>%
+  mutate(phenotype = clone,
+         line_group = paste0(phenotype, Patient))
+  
+sig_phenotypes <- compare_boundary_phenotype %>%
+  filter(pval < sig_level) %>%
+  pull(clone)
+
+sig_compare_boundary_phenotype <- compare_boundary_phenotype %>%
+  filter(clone %in% sig_phenotypes)
+  
+compare_boundary_phenotype %>%
+  ggplot(aes(x = enrichment, y = -log10(pval), label = ifelse(pval <= sig_level & Analysis == "Original", clone, NA))) +
+  geom_hline(color = "grey50", yintercept = -log10(sig_level), linetype = "longdash") +
+  geom_vline(color = "black", xintercept = 0) +
+  geom_hline(color = "black", yintercept = 0) +
+  geom_point(aes(fill = ifelse(pval <= sig_level, phenotype, ""), color = ifelse(pval <= sig_level, Patient, ""), size = count_in_area), shape = 21, stroke = 2) +
+  geom_text_repel(alpha = 1, aes(size = 1000)) +
+  geom_line(data = sig_compare_boundary_phenotype, aes(group = line_group), linewidth = 1, linetype = "dotted") +
+  theme_classic() + 
+  xlab("Enrichment in boundary") +
+  ylab("-log10(pval)") +
+  scale_shape_manual(guide=FALSE, values=c(21, 19)) +
+  scale_fill_manual(values = c("white","red", "hotpink")) +
+  scale_color_manual(values = c("grey70", "#FF9300","#009193")) +
+  guides(color=guide_legend(title="Patient", override.aes = aes(label = "")),
+         fill = guide_legend(title = "TCR Phenotype", override.aes = aes(label = "")),
+         size = guide_legend(title = "TCR Beads in Region", override.aes = aes(label = ""))) +
+  coord_cartesian(ylim = c(-0.3, 4), xlim = c(-1, 2)) +
+  scale_size(breaks=c(1, 44.72, 2000), limits = c(1, 2000))
+
+```
+
+## Get session info
+```{r}
+sessionInfo()
+```
+
