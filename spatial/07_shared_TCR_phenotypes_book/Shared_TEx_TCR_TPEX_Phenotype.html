@@ -248,8 +248,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#get-permuted-test-statistic" id="toc-get-permuted-test-statistic" class="nav-link" data-scroll-target="#get-permuted-test-statistic"><span class="header-section-number">18.1</span> Get permuted test statistic</a></li>
   <li><a href="#format-permuted-results" id="toc-format-permuted-results" class="nav-link" data-scroll-target="#format-permuted-results"><span class="header-section-number">18.2</span> Format permuted results</a></li>
   <li><a href="#plot-permuted-test-statistic-distribution-and-observed-test-statistic" id="toc-plot-permuted-test-statistic-distribution-and-observed-test-statistic" class="nav-link" data-scroll-target="#plot-permuted-test-statistic-distribution-and-observed-test-statistic"><span class="header-section-number">18.3</span> Plot permuted test statistic distribution and observed test statistic</a></li>
-  <li><a href="#get-one-sided-pval" id="toc-get-one-sided-pval" class="nav-link" data-scroll-target="#get-one-sided-pval"><span class="header-section-number">18.4</span> Get one sided pval</a></li>
-  <li><a href="#plot-observed-mean-for-each-puck" id="toc-plot-observed-mean-for-each-puck" class="nav-link" data-scroll-target="#plot-observed-mean-for-each-puck"><span class="header-section-number">18.5</span> Plot observed mean for each puck</a></li>
+  <li><a href="#get-one-sided-pval-for-tpex" id="toc-get-one-sided-pval-for-tpex" class="nav-link" data-scroll-target="#get-one-sided-pval-for-tpex"><span class="header-section-number">18.4</span> Get one sided pval for TPEX</a></li>
+  <li><a href="#get-two-sided-pval-for-core-t" id="toc-get-two-sided-pval-for-core-t" class="nav-link" data-scroll-target="#get-two-sided-pval-for-core-t"><span class="header-section-number">18.5</span> Get two sided pval for core-T</a></li>
+  <li><a href="#plot-observed-mean-for-each-puck" id="toc-plot-observed-mean-for-each-puck" class="nav-link" data-scroll-target="#plot-observed-mean-for-each-puck"><span class="header-section-number">18.6</span> Plot observed mean for each puck</a></li>
   </ul></li>
   <li><a href="#get-session-info" id="toc-get-session-info" class="nav-link" data-scroll-target="#get-session-info"><span class="header-section-number">19</span> Get session info</a></li>
   </ul>
@@ -1721,69 +1722,81 @@ override using the `.groups` argument.</code></pre>
 </div>
 </div>
 </section>
-<section id="get-one-sided-pval" class="level2" data-number="18.4">
-<h2 data-number="18.4" class="anchored" data-anchor-id="get-one-sided-pval"><span class="header-section-number">18.4</span> Get one sided pval</h2>
+<section id="get-one-sided-pval-for-tpex" class="level2" data-number="18.4">
+<h2 data-number="18.4" class="anchored" data-anchor-id="get-one-sided-pval-for-tpex"><span class="header-section-number">18.4</span> Get one sided pval for TPEX</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb163"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb163-1"><a href="#cb163-1" aria-hidden="true" tabindex="-1"></a>os_pval.vec <span class="ot">&lt;-</span> <span class="fu">c</span>()</span>
-<span id="cb163-2"><a href="#cb163-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb163-3"><a href="#cb163-3" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span>(gs <span class="cf">in</span> <span class="fu">unique</span>(df_obs<span class="sc">$</span>gene_sets)){</span>
-<span id="cb163-4"><a href="#cb163-4" aria-hidden="true" tabindex="-1"></a>  obs_val <span class="ot">&lt;-</span> df_obs <span class="sc">%&gt;%</span></span>
-<span id="cb163-5"><a href="#cb163-5" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(gene_sets <span class="sc">==</span> gs) <span class="sc">%&gt;%</span></span>
-<span id="cb163-6"><a href="#cb163-6" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(obs_ts)</span>
-<span id="cb163-7"><a href="#cb163-7" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb163-8"><a href="#cb163-8" aria-hidden="true" tabindex="-1"></a>  perm_val <span class="ot">&lt;-</span> df_perm <span class="sc">%&gt;%</span></span>
-<span id="cb163-9"><a href="#cb163-9" aria-hidden="true" tabindex="-1"></a>    <span class="fu">filter</span>(gene_sets <span class="sc">==</span> gs) <span class="sc">%&gt;%</span></span>
-<span id="cb163-10"><a href="#cb163-10" aria-hidden="true" tabindex="-1"></a>    <span class="fu">pull</span>(perm_ts)</span>
-<span id="cb163-11"><a href="#cb163-11" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb163-12"><a href="#cb163-12" aria-hidden="true" tabindex="-1"></a>  <span class="co"># One sided</span></span>
-<span id="cb163-13"><a href="#cb163-13" aria-hidden="true" tabindex="-1"></a>  n_extreme <span class="ot">&lt;-</span> <span class="fu">length</span>(perm_val[perm_val <span class="sc">&gt;=</span> obs_val])</span>
-<span id="cb163-14"><a href="#cb163-14" aria-hidden="true" tabindex="-1"></a>  pval <span class="ot">&lt;-</span> n_extreme<span class="sc">/</span>n_perm</span>
-<span id="cb163-15"><a href="#cb163-15" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb163-16"><a href="#cb163-16" aria-hidden="true" tabindex="-1"></a>  os_pval.vec <span class="ot">&lt;-</span> <span class="fu">c</span>(os_pval.vec, pval)</span>
-<span id="cb163-17"><a href="#cb163-17" aria-hidden="true" tabindex="-1"></a>}</span>
-<span id="cb163-18"><a href="#cb163-18" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb163-19"><a href="#cb163-19" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(os_pval.vec) <span class="ot">&lt;-</span> <span class="fu">unique</span>(df_obs<span class="sc">$</span>gene_sets)</span>
-<span id="cb163-20"><a href="#cb163-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb163-21"><a href="#cb163-21" aria-hidden="true" tabindex="-1"></a><span class="co"># Replace 0 with small number</span></span>
-<span id="cb163-22"><a href="#cb163-22" aria-hidden="true" tabindex="-1"></a>os_pval.vec[os_pval.vec <span class="sc">==</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(n_perm)</span>
-<span id="cb163-23"><a href="#cb163-23" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb163-24"><a href="#cb163-24" aria-hidden="true" tabindex="-1"></a>os_pval.vec</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb163"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb163-1"><a href="#cb163-1" aria-hidden="true" tabindex="-1"></a>tpex_obs_val <span class="ot">&lt;-</span> df_obs <span class="sc">%&gt;%</span></span>
+<span id="cb163-2"><a href="#cb163-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(gene_sets <span class="sc">==</span> <span class="st">"projecTILs.CD8.TPEX"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb163-3"><a href="#cb163-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(obs_ts)</span>
+<span id="cb163-4"><a href="#cb163-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb163-5"><a href="#cb163-5" aria-hidden="true" tabindex="-1"></a>tpex_perm_val <span class="ot">&lt;-</span> df_perm <span class="sc">%&gt;%</span></span>
+<span id="cb163-6"><a href="#cb163-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(gene_sets <span class="sc">==</span> <span class="st">"projecTILs.CD8.TPEX"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb163-7"><a href="#cb163-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(perm_ts)</span>
+<span id="cb163-8"><a href="#cb163-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb163-9"><a href="#cb163-9" aria-hidden="true" tabindex="-1"></a><span class="co"># One sided</span></span>
+<span id="cb163-10"><a href="#cb163-10" aria-hidden="true" tabindex="-1"></a>n_extreme <span class="ot">&lt;-</span> <span class="fu">length</span>(tpex_perm_val[tpex_perm_val <span class="sc">&gt;=</span> tpex_obs_val])</span>
+<span id="cb163-11"><a href="#cb163-11" aria-hidden="true" tabindex="-1"></a>tpex_pval <span class="ot">&lt;-</span> n_extreme<span class="sc">/</span>n_perm</span>
+<span id="cb163-12"><a href="#cb163-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb163-13"><a href="#cb163-13" aria-hidden="true" tabindex="-1"></a><span class="co"># Replace 0 with small number</span></span>
+<span id="cb163-14"><a href="#cb163-14" aria-hidden="true" tabindex="-1"></a>tpex_pval[tpex_pval <span class="sc">==</span> <span class="dv">0</span>] <span class="ot">&lt;-</span> <span class="dv">1</span><span class="sc">/</span>(n_perm)</span>
+<span id="cb163-15"><a href="#cb163-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb163-16"><a href="#cb163-16" aria-hidden="true" tabindex="-1"></a>tpex_pval</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
-<pre><code>projecTILs.CD8.TPEX               coret 
-              0.074               0.110 </code></pre>
+<pre><code>[1] 0.074</code></pre>
 </div>
 </div>
 </section>
-<section id="plot-observed-mean-for-each-puck" class="level2" data-number="18.5">
-<h2 data-number="18.5" class="anchored" data-anchor-id="plot-observed-mean-for-each-puck"><span class="header-section-number">18.5</span> Plot observed mean for each puck</h2>
+<section id="get-two-sided-pval-for-core-t" class="level2" data-number="18.5">
+<h2 data-number="18.5" class="anchored" data-anchor-id="get-two-sided-pval-for-core-t"><span class="header-section-number">18.5</span> Get two sided pval for core-T</h2>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb165"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a>mean.df <span class="ot">&lt;-</span> md <span class="sc">%&gt;%</span></span>
-<span id="cb165-2"><a href="#cb165-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># aggregate by puck</span></span>
-<span id="cb165-3"><a href="#cb165-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(tls_status, orig.ident, Patient) <span class="sc">%&gt;%</span> </span>
-<span id="cb165-4"><a href="#cb165-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(<span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">mean</span>(.x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
-<span id="cb165-5"><a href="#cb165-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb165-6"><a href="#cb165-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
-<span id="cb165-7"><a href="#cb165-7" aria-hidden="true" tabindex="-1"></a>  </span>
-<span id="cb165-8"><a href="#cb165-8" aria-hidden="true" tabindex="-1"></a>mean.df <span class="sc">%&gt;%</span></span>
-<span id="cb165-9"><a href="#cb165-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tls_status =</span> <span class="fu">factor</span>(tls_status, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"inTLS"</span>, <span class="st">"outTLS"</span>))) <span class="sc">%&gt;%</span></span>
-<span id="cb165-10"><a href="#cb165-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">!</span><span class="fu">c</span>(<span class="st">"tls_status"</span>, <span class="st">"orig.ident"</span>, <span class="st">"Patient"</span>), <span class="at">values_to =</span> <span class="st">"score"</span>, <span class="at">names_to =</span> <span class="st">"signature"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb165-11"><a href="#cb165-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> tls_status, <span class="at">y =</span> score)) <span class="sc">+</span></span>
-<span id="cb165-12"><a href="#cb165-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="at">fill =</span> tls_status)) <span class="sc">+</span></span>
-<span id="cb165-13"><a href="#cb165-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">group =</span> orig.ident)) <span class="sc">+</span></span>
-<span id="cb165-14"><a href="#cb165-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">group =</span> orig.ident, <span class="at">color =</span> Patient), <span class="at">size =</span> <span class="dv">3</span>, <span class="at">shape =</span> <span class="dv">15</span>) <span class="sc">+</span></span>
-<span id="cb165-15"><a href="#cb165-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">group =</span> orig.ident), <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">shape =</span> <span class="dv">22</span>) <span class="sc">+</span></span>
-<span id="cb165-16"><a href="#cb165-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
-<span id="cb165-17"><a href="#cb165-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">90</span>, <span class="at">vjust =</span> <span class="fl">0.5</span>, <span class="at">hjust=</span><span class="dv">1</span>)) <span class="sc">+</span></span>
-<span id="cb165-18"><a href="#cb165-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#b2c4b9"</span>, <span class="st">"#d0b39e"</span>)) <span class="sc">+</span></span>
-<span id="cb165-19"><a href="#cb165-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#FF9300"</span>, <span class="st">"#009193"</span>)) <span class="sc">+</span></span>
-<span id="cb165-20"><a href="#cb165-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Normalized enrichment (GSVA)"</span>) <span class="sc">+</span></span>
-<span id="cb165-21"><a href="#cb165-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
-<span id="cb165-22"><a href="#cb165-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>signature, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
-<span id="cb165-23"><a href="#cb165-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">fill=</span><span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb165"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb165-1"><a href="#cb165-1" aria-hidden="true" tabindex="-1"></a>core_obs_val <span class="ot">&lt;-</span> df_obs <span class="sc">%&gt;%</span></span>
+<span id="cb165-2"><a href="#cb165-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(gene_sets <span class="sc">==</span> <span class="st">"coret"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb165-3"><a href="#cb165-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(obs_ts)</span>
+<span id="cb165-4"><a href="#cb165-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb165-5"><a href="#cb165-5" aria-hidden="true" tabindex="-1"></a>core_perm_val <span class="ot">&lt;-</span> df_perm <span class="sc">%&gt;%</span></span>
+<span id="cb165-6"><a href="#cb165-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(gene_sets <span class="sc">==</span> <span class="st">"coret"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb165-7"><a href="#cb165-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(perm_ts)</span>
+<span id="cb165-8"><a href="#cb165-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb165-9"><a href="#cb165-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Two sided</span></span>
+<span id="cb165-10"><a href="#cb165-10" aria-hidden="true" tabindex="-1"></a>n_extreme <span class="ot">&lt;-</span> <span class="fu">length</span>(core_perm_val[core_perm_val <span class="sc">&gt;=</span> core_obs_val])</span>
+<span id="cb165-11"><a href="#cb165-11" aria-hidden="true" tabindex="-1"></a>core_pval <span class="ot">&lt;-</span> n_extreme<span class="sc">/</span>n_perm<span class="sc">*</span><span class="dv">2</span></span>
+<span id="cb165-12"><a href="#cb165-12" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb165-13"><a href="#cb165-13" aria-hidden="true" tabindex="-1"></a>core_pval</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] 0.22</code></pre>
+</div>
+</div>
+</section>
+<section id="plot-observed-mean-for-each-puck" class="level2" data-number="18.6">
+<h2 data-number="18.6" class="anchored" data-anchor-id="plot-observed-mean-for-each-puck"><span class="header-section-number">18.6</span> Plot observed mean for each puck</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb167"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb167-1"><a href="#cb167-1" aria-hidden="true" tabindex="-1"></a>mean.df <span class="ot">&lt;-</span> md <span class="sc">%&gt;%</span></span>
+<span id="cb167-2"><a href="#cb167-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># aggregate by puck</span></span>
+<span id="cb167-3"><a href="#cb167-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(tls_status, orig.ident, Patient) <span class="sc">%&gt;%</span> </span>
+<span id="cb167-4"><a href="#cb167-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="fu">across</span>(<span class="fu">where</span>(is.numeric), <span class="sc">~</span> <span class="fu">mean</span>(.x, <span class="at">na.rm =</span> <span class="cn">TRUE</span>)),</span>
+<span id="cb167-5"><a href="#cb167-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">.groups =</span> <span class="st">"drop"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb167-6"><a href="#cb167-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ungroup</span>()</span>
+<span id="cb167-7"><a href="#cb167-7" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb167-8"><a href="#cb167-8" aria-hidden="true" tabindex="-1"></a>mean.df <span class="sc">%&gt;%</span></span>
+<span id="cb167-9"><a href="#cb167-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">tls_status =</span> <span class="fu">factor</span>(tls_status, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"inTLS"</span>, <span class="st">"outTLS"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb167-10"><a href="#cb167-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">!</span><span class="fu">c</span>(<span class="st">"tls_status"</span>, <span class="st">"orig.ident"</span>, <span class="st">"Patient"</span>), <span class="at">values_to =</span> <span class="st">"score"</span>, <span class="at">names_to =</span> <span class="st">"signature"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb167-11"><a href="#cb167-11" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> tls_status, <span class="at">y =</span> score)) <span class="sc">+</span></span>
+<span id="cb167-12"><a href="#cb167-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="at">fill =</span> tls_status)) <span class="sc">+</span></span>
+<span id="cb167-13"><a href="#cb167-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_line</span>(<span class="fu">aes</span>(<span class="at">group =</span> orig.ident)) <span class="sc">+</span></span>
+<span id="cb167-14"><a href="#cb167-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">group =</span> orig.ident, <span class="at">color =</span> Patient), <span class="at">size =</span> <span class="dv">3</span>, <span class="at">shape =</span> <span class="dv">15</span>) <span class="sc">+</span></span>
+<span id="cb167-15"><a href="#cb167-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="fu">aes</span>(<span class="at">group =</span> orig.ident), <span class="at">color =</span> <span class="st">"black"</span>, <span class="at">size =</span> <span class="dv">3</span>, <span class="at">shape =</span> <span class="dv">22</span>) <span class="sc">+</span></span>
+<span id="cb167-16"><a href="#cb167-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb167-17"><a href="#cb167-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">90</span>, <span class="at">vjust =</span> <span class="fl">0.5</span>, <span class="at">hjust=</span><span class="dv">1</span>)) <span class="sc">+</span></span>
+<span id="cb167-18"><a href="#cb167-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#b2c4b9"</span>, <span class="st">"#d0b39e"</span>)) <span class="sc">+</span></span>
+<span id="cb167-19"><a href="#cb167-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_color_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"#FF9300"</span>, <span class="st">"#009193"</span>)) <span class="sc">+</span></span>
+<span id="cb167-20"><a href="#cb167-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Normalized enrichment (GSVA)"</span>) <span class="sc">+</span></span>
+<span id="cb167-21"><a href="#cb167-21" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb167-22"><a href="#cb167-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">facet_wrap</span>(<span class="sc">~</span>signature, <span class="at">scales =</span> <span class="st">"free_y"</span>) <span class="sc">+</span></span>
+<span id="cb167-23"><a href="#cb167-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">guides</span>(<span class="at">fill=</span><span class="st">"none"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output-display">
 <div>
 <figure class="figure">
-<p><img src="Shared_TEx_TCR_TPEX_Phenotype_files/figure-html/unnamed-chunk-41-1.png" class="img-fluid figure-img" width="672"></p>
+<p><img src="Shared_TEx_TCR_TPEX_Phenotype_files/figure-html/unnamed-chunk-42-1.png" class="img-fluid figure-img" width="672"></p>
 </figure>
 </div>
 </div>
@@ -1793,7 +1806,7 @@ override using the `.groups` argument.</code></pre>
 <section id="get-session-info" class="level1" data-number="19">
 <h1 data-number="19"><span class="header-section-number">19</span> Get session info</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb166"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb166-1"><a href="#cb166-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb168"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb168-1"><a href="#cb168-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>R version 4.4.2 (2024-10-31)
 Platform: x86_64-pc-linux-gnu
