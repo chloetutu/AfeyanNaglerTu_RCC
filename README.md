@@ -7,3 +7,26 @@ Tertiary lymphoid structures (TLS) are associated with improved response to immu
 
 ## Contents
 This repository contains all code used in the analyses of single-cell, bulk-RNA and spatial data associated with Afeyan Nagler Tu _et al_ (2025)
+
+Single-cell analysis as RMDs:
+* Analysis of single-cell RNAseq data from Cohort 1 [available here](https://github.com/chloetutu/AfeyanNaglerTu_RCC/blob/main/single-cell/Afeyan%20Nagler%20Tu%20et%20al.%2C%202026%20single-cell%20processing%20Braun%202021.Rmd)
+* Analysis of single-cell RNAseq data from Cohort 2 [available here](https://github.com/chloetutu/AfeyanNaglerTu_RCC/blob/main/single-cell/Afeyan%20Nagler%20Tu%20et%20al.%2C%202026%20single-cell%20processing%20Braun%202025.Rmd)
+
+Bulk-RNAseq analysis as RMD:
+* Analysis of the bulk-RNAseq data [available here](https://github.com/chloetutu/AfeyanNaglerTu_RCC/blob/main/bulk-RNA/Afeyan%20Nagler%20Tu%20et%20al.%2C%202026%20bulk%20RNA%20processing.Rmd)
+
+Spatial analysis books rendered via Quarto:
+* Integration of TCR and RNA data [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/00_TCR_RNA_integration_book/)
+* RCTD and LIANA analysis [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/01_RCTD_LIANA_book/)
+* Per puck annotation of spatial areas [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/02_area_annotation_book/)
+* Clone and phenotype enrichment in spatial compartments [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/03a_spatial_enrichment_book/)
+* QC of clone and phenotype enrichment in spatial compartments [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/03b_spatial_enrichment_QC_book/)
+* Spatial bias of clones to specific TLS [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/03c_spatial_bias_book/)
+* Ligand receptor colocalization analysis [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/04_ligand_receptor_colocalization_book/)
+* Visualizations of spatial cell type features [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/05_plot_spatial_features_book/index.html)
+* Visualizations of gene expression [available here](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/06_gene_expression_book/)
+* Phenotype enrichment of clones in the TLS vs outside the TLS [available here
+](https://chloetutu.github.io/AfeyanNaglerTu_RCC/spatial/07_shared_TCR_phenotypes_book)
+
+Additionally, source quarto markdown documents (*.qmd) are supplied here under each book's subdirectory, e.g.:
+https://github.com/chloetutu/AfeyanNaglerTu_RCC/tree/main/spatial/00_TCR_RNA_integration_book/source 
