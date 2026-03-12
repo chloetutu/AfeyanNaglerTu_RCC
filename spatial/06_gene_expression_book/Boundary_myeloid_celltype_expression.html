@@ -1,0 +1,1444 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en" xml:lang="en"><head>
+
+<meta charset="utf-8">
+<meta name="generator" content="quarto-1.5.57">
+
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+
+
+<title>1&nbsp; Gene expression in myeloid boundary – Afeyan, Nagler &amp; Tu (2025): Spatial RCC analysis: Gene expression visualizations</title>
+<style>
+code{white-space: pre-wrap;}
+span.smallcaps{font-variant: small-caps;}
+div.columns{display: flex; gap: min(4vw, 1.5em);}
+div.column{flex: auto; overflow-x: auto;}
+div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+ul.task-list{list-style: none;}
+ul.task-list li input[type="checkbox"] {
+  width: 0.8em;
+  margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
+  vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { display: inline-block; text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
+</style>
+
+
+<script src="site_libs/quarto-nav/quarto-nav.js"></script>
+<script src="site_libs/quarto-nav/headroom.min.js"></script>
+<script src="site_libs/clipboard/clipboard.min.js"></script>
+<script src="site_libs/quarto-search/autocomplete.umd.js"></script>
+<script src="site_libs/quarto-search/fuse.min.js"></script>
+<script src="site_libs/quarto-search/quarto-search.js"></script>
+<meta name="quarto:offset" content="./">
+<link href="./TS_and_VR_TCR_gene_expression.html" rel="next">
+<link href="./index.html" rel="prev">
+<script src="site_libs/quarto-html/quarto.js"></script>
+<script src="site_libs/quarto-html/popper.min.js"></script>
+<script src="site_libs/quarto-html/tippy.umd.min.js"></script>
+<script src="site_libs/quarto-html/anchor.min.js"></script>
+<link href="site_libs/quarto-html/tippy.css" rel="stylesheet">
+<link href="site_libs/quarto-html/quarto-syntax-highlighting.css" rel="stylesheet" id="quarto-text-highlighting-styles">
+<script src="site_libs/bootstrap/bootstrap.min.js"></script>
+<link href="site_libs/bootstrap/bootstrap-icons.css" rel="stylesheet">
+<link href="site_libs/bootstrap/bootstrap.min.css" rel="stylesheet" id="quarto-bootstrap" data-mode="light">
+<script id="quarto-search-options" type="application/json">{
+  "location": "sidebar",
+  "copy-button": false,
+  "collapse-after": 3,
+  "panel-placement": "start",
+  "type": "textbox",
+  "limit": 50,
+  "keyboard-shortcut": [
+    "f",
+    "/",
+    "s"
+  ],
+  "show-item-context": false,
+  "language": {
+    "search-no-results-text": "No results",
+    "search-matching-documents-text": "matching documents",
+    "search-copy-link-title": "Copy link to search",
+    "search-hide-matches-text": "Hide additional matches",
+    "search-more-match-text": "more match in this document",
+    "search-more-matches-text": "more matches in this document",
+    "search-clear-button-title": "Clear",
+    "search-text-placeholder": "",
+    "search-detached-cancel-button-title": "Cancel",
+    "search-submit-button-title": "Submit",
+    "search-label": "Search"
+  }
+}</script>
+
+
+</head>
+
+<body class="nav-sidebar floating">
+
+<div id="quarto-search-results"></div>
+  <header id="quarto-header" class="headroom fixed-top">
+  <nav class="quarto-secondary-nav">
+    <div class="container-fluid d-flex">
+      <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
+        <i class="bi bi-layout-text-sidebar-reverse"></i>
+      </button>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./Boundary_myeloid_celltype_expression.html"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Gene expression in myeloid boundary</span></a></li></ol></nav>
+        <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
+        </a>
+      <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+  </nav>
+</header>
+<!-- content -->
+<div id="quarto-content" class="quarto-container page-columns page-rows-contents page-layout-article">
+<!-- sidebar -->
+  <nav id="quarto-sidebar" class="sidebar collapse collapse-horizontal quarto-sidebar-collapse-item sidebar-navigation floating overflow-auto">
+    <div class="pt-lg-2 mt-2 text-left sidebar-header">
+    <div class="sidebar-title mb-0 py-0">
+      <a href="./">Afeyan, Nagler &amp; Tu (2025): Spatial RCC analysis: Gene expression visualizations</a> 
+    </div>
+      </div>
+        <div class="mt-2 flex-shrink-0 align-items-center">
+        <div class="sidebar-search">
+        <div id="quarto-search" class="" title="Search"></div>
+        </div>
+        </div>
+    <div class="sidebar-menu-container"> 
+    <ul class="list-unstyled mt-1">
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Introduction</span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Boundary_myeloid_celltype_expression.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Gene expression in myeloid boundary</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./TS_and_VR_TCR_gene_expression.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Gene expression in TS and VR specific TCRs</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Shared_CD8_TEx_TCR_gene_expression.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">3</span>&nbsp; <span class="chapter-title">Gene expression in shared CD8 Tex TCRs</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Shared_NeoAg_TCR_gene_expr.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">4</span>&nbsp; <span class="chapter-title">Gene expression in shared neoantigen-specific TCRs</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Region_by_region_scores.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">5</span>&nbsp; <span class="chapter-title">Region by region gene expression scores</span></span></a>
+  </div>
+</li>
+        <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./Variable_constant_TCR_genes.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text"><span class="chapter-number">6</span>&nbsp; <span class="chapter-title">Variable and constant TCR gene plots</span></span></a>
+  </div>
+</li>
+    </ul>
+    </div>
+</nav>
+<div id="quarto-sidebar-glass" class="quarto-sidebar-collapse-item" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item"></div>
+<!-- margin-sidebar -->
+    <div id="quarto-margin-sidebar" class="sidebar margin-sidebar">
+        <nav id="TOC" role="doc-toc" class="toc-active">
+    <h2 id="toc-title">Table of contents</h2>
+   
+  <ul>
+  <li><a href="#boxplot-of-myeloid-cell-type-signatures-in-the-boundary" id="toc-boxplot-of-myeloid-cell-type-signatures-in-the-boundary" class="nav-link active" data-scroll-target="#boxplot-of-myeloid-cell-type-signatures-in-the-boundary"><span class="header-section-number">2</span> Boxplot of myeloid cell type signatures in the boundary</a></li>
+  <li><a href="#libraries" id="toc-libraries" class="nav-link" data-scroll-target="#libraries"><span class="header-section-number">3</span> Libraries</a></li>
+  <li><a href="#process-spatial-data" id="toc-process-spatial-data" class="nav-link" data-scroll-target="#process-spatial-data"><span class="header-section-number">4</span> Process spatial data</a>
+  <ul class="collapse">
+  <li><a href="#open-objects-with-annotated-areas" id="toc-open-objects-with-annotated-areas" class="nav-link" data-scroll-target="#open-objects-with-annotated-areas"><span class="header-section-number">4.1</span> Open objects with annotated areas</a></li>
+  <li><a href="#remove-empty-areas" id="toc-remove-empty-areas" class="nav-link" data-scroll-target="#remove-empty-areas"><span class="header-section-number">4.2</span> Remove empty areas</a></li>
+  <li><a href="#normalize-data" id="toc-normalize-data" class="nav-link" data-scroll-target="#normalize-data"><span class="header-section-number">4.3</span> Normalize data</a></li>
+  </ul></li>
+  <li><a href="#get-markers-for-each-myeloid-cell-type" id="toc-get-markers-for-each-myeloid-cell-type" class="nav-link" data-scroll-target="#get-markers-for-each-myeloid-cell-type"><span class="header-section-number">5</span> Get markers for each myeloid cell type</a>
+  <ul class="collapse">
+  <li><a href="#read-in-the-single-cell-object-and-create-a-single-cell-reference-from-each-patient" id="toc-read-in-the-single-cell-object-and-create-a-single-cell-reference-from-each-patient" class="nav-link" data-scroll-target="#read-in-the-single-cell-object-and-create-a-single-cell-reference-from-each-patient"><span class="header-section-number">5.1</span> Read in the single cell object and create a single cell reference from each patient</a></li>
+  <li><a href="#print-clusters" id="toc-print-clusters" class="nav-link" data-scroll-target="#print-clusters"><span class="header-section-number">5.2</span> Print clusters</a></li>
+  <li><a href="#subset-for-myeloid-clusters" id="toc-subset-for-myeloid-clusters" class="nav-link" data-scroll-target="#subset-for-myeloid-clusters"><span class="header-section-number">5.3</span> Subset for myeloid clusters</a></li>
+  <li><a href="#get-markers-for-each-myeloid-cluster" id="toc-get-markers-for-each-myeloid-cluster" class="nav-link" data-scroll-target="#get-markers-for-each-myeloid-cluster"><span class="header-section-number">5.4</span> Get markers for each myeloid cluster</a></li>
+  </ul></li>
+  <li><a href="#add-signature-score-to-seurat-object" id="toc-add-signature-score-to-seurat-object" class="nav-link" data-scroll-target="#add-signature-score-to-seurat-object"><span class="header-section-number">6</span> Add signature score to seurat object</a></li>
+  <li><a href="#check-that-the-gene-sets-are-specific-to-the-cluster" id="toc-check-that-the-gene-sets-are-specific-to-the-cluster" class="nav-link" data-scroll-target="#check-that-the-gene-sets-are-specific-to-the-cluster"><span class="header-section-number">7</span> Check that the gene sets are specific to the cluster</a></li>
+  <li><a href="#add-signature-score-to-spatial-objects" id="toc-add-signature-score-to-spatial-objects" class="nav-link" data-scroll-target="#add-signature-score-to-spatial-objects"><span class="header-section-number">8</span> Add signature score to spatial objects</a></li>
+  <li><a href="#spatially-plot-myeloid-cluster-scores" id="toc-spatially-plot-myeloid-cluster-scores" class="nav-link" data-scroll-target="#spatially-plot-myeloid-cluster-scores"><span class="header-section-number">9</span> Spatially plot myeloid cluster scores</a></li>
+  <li><a href="#create-big-dataframe" id="toc-create-big-dataframe" class="nav-link" data-scroll-target="#create-big-dataframe"><span class="header-section-number">10</span> Create big dataframe</a></li>
+  <li><a href="#save-as-supplementary-table" id="toc-save-as-supplementary-table" class="nav-link" data-scroll-target="#save-as-supplementary-table"><span class="header-section-number">11</span> Save as supplementary table</a></li>
+  <li><a href="#subset-for-the-signature-of-myeloid-cells" id="toc-subset-for-the-signature-of-myeloid-cells" class="nav-link" data-scroll-target="#subset-for-the-signature-of-myeloid-cells"><span class="header-section-number">12</span> Subset for the signature of myeloid cells</a></li>
+  <li><a href="#plot-boxplot" id="toc-plot-boxplot" class="nav-link" data-scroll-target="#plot-boxplot"><span class="header-section-number">13</span> Plot boxplot</a></li>
+  <li><a href="#session-info" id="toc-session-info" class="nav-link" data-scroll-target="#session-info"><span class="header-section-number">14</span> Session info</a></li>
+  </ul>
+</nav>
+    </div>
+<!-- main -->
+<main class="content" id="quarto-document-content">
+
+<header id="title-block-header" class="quarto-title-block default">
+<div class="quarto-title">
+<h1 class="title"><span id="sec-gene-exp-plots" class="quarto-section-identifier"><span class="chapter-number">1</span>&nbsp; <span class="chapter-title">Gene expression in myeloid boundary</span></span></h1>
+</div>
+
+
+
+<div class="quarto-title-meta">
+
+    
+  
+    
+  </div>
+  
+
+
+</header>
+
+
+<section id="boxplot-of-myeloid-cell-type-signatures-in-the-boundary" class="level1" data-number="2">
+<h1 data-number="2"><span class="header-section-number">2</span> Boxplot of myeloid cell type signatures in the boundary</h1>
+</section>
+<section id="libraries" class="level1" data-number="3">
+<h1 data-number="3"><span class="header-section-number">3</span> Libraries</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb1"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(Seurat)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: SeuratObject</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: sp</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'SeuratObject'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, t</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb6"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(dplyr)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>
+Attaching package: 'dplyr'</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:stats':
+
+    filter, lag</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>The following objects are masked from 'package:base':
+
+    intersect, setdiff, setequal, union</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb10"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpointdensity)</span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(tidyverse)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Attaching core tidyverse packages ──────────────────────── tidyverse 2.0.0 ──
+✔ forcats   1.0.1     ✔ readr     2.1.6
+✔ ggplot2   4.0.1     ✔ stringr   1.6.0
+✔ lubridate 1.9.4     ✔ tibble    3.3.0
+✔ purrr     1.2.0     ✔ tidyr     1.3.1</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>── Conflicts ────────────────────────────────────────── tidyverse_conflicts() ──
+✖ dplyr::filter() masks stats::filter()
+✖ dplyr::lag()    masks stats::lag()
+ℹ Use the conflicted package (&lt;http://conflicted.r-lib.org/&gt;) to force all conflicts to become errors</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb13"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ComplexHeatmap)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Loading required package: grid
+========================================
+ComplexHeatmap version 2.22.0
+Bioconductor page: http://bioconductor.org/packages/ComplexHeatmap/
+Github page: https://github.com/jokergoo/ComplexHeatmap
+Documentation: http://jokergoo.github.io/ComplexHeatmap-reference
+
+If you use it in published research, please cite either one:
+- Gu, Z. Complex Heatmap Visualization. iMeta 2022.
+- Gu, Z. Complex heatmaps reveal patterns and correlations in multidimensional 
+    genomic data. Bioinformatics 2016.
+
+
+The new InteractiveComplexHeatmap package can directly export static 
+complex heatmaps into an interactive Shiny app with zero effort. Have a try!
+
+This message can be suppressed by:
+  suppressPackageStartupMessages(library(ComplexHeatmap))
+========================================</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb15"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(stringr)</span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(readxl)</span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(circlize)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>========================================
+circlize version 0.4.17
+CRAN page: https://cran.r-project.org/package=circlize
+Github page: https://github.com/jokergoo/circlize
+Documentation: https://jokergoo.github.io/circlize_book/book/
+
+If you use it in published research, please cite:
+Gu, Z. circlize implements and enhances circular visualization
+  in R. Bioinformatics 2014.
+
+This message can be suppressed by:
+  suppressPackageStartupMessages(library(circlize))
+========================================</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb17"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb17-1"><a href="#cb17-1" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggpubr)</span>
+<span id="cb17-2"><a href="#cb17-2" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(rcompanion)</span>
+<span id="cb17-3"><a href="#cb17-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-4"><a href="#cb17-4" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span>(<span class="st">"../source_scripts/slideseq_functions_main.R"</span>)</span>
+<span id="cb17-5"><a href="#cb17-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb17-6"><a href="#cb17-6" aria-hidden="true" tabindex="-1"></a><span class="fu">options</span>(<span class="at">Seurat.object.assay.version =</span> <span class="st">'v5'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="process-spatial-data" class="level1" data-number="4">
+<h1 data-number="4"><span class="header-section-number">4</span> Process spatial data</h1>
+<section id="open-objects-with-annotated-areas" class="level2" data-number="4.1">
+<h2 data-number="4.1" class="anchored" data-anchor-id="open-objects-with-annotated-areas"><span class="header-section-number">4.1</span> Open objects with annotated areas</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb18"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb18-1"><a href="#cb18-1" aria-hidden="true" tabindex="-1"></a>P102TA_10_RNA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck10_102TA_TCR_RNA_area_121125.Rds"</span>)</span>
+<span id="cb18-2"><a href="#cb18-2" aria-hidden="true" tabindex="-1"></a>P102TA_17_RNA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck17_102TA_TCR_RNA_area_121125.Rds"</span>)</span>
+<span id="cb18-3"><a href="#cb18-3" aria-hidden="true" tabindex="-1"></a>P102TA_33_RNA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck33_102TA_TCR_RNA_area_121125.Rds"</span>)</span>
+<span id="cb18-4"><a href="#cb18-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb18-5"><a href="#cb18-5" aria-hidden="true" tabindex="-1"></a>P108TA_26_RNA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck26_108TA_TCR_RNA_area_121125.Rds"</span>)</span>
+<span id="cb18-6"><a href="#cb18-6" aria-hidden="true" tabindex="-1"></a>P108TA_29_RNA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck29_108TA_TCR_RNA_area_121125.Rds"</span>)</span>
+<span id="cb18-7"><a href="#cb18-7" aria-hidden="true" tabindex="-1"></a>P108TA_30_RNA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck30_108TA_TCR_RNA_area_121125.Rds"</span>)</span>
+<span id="cb18-8"><a href="#cb18-8" aria-hidden="true" tabindex="-1"></a>P108TA_32_RNA <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck32_108TA_TCR_RNA_area_121125.Rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="remove-empty-areas" class="level2" data-number="4.2">
+<h2 data-number="4.2" class="anchored" data-anchor-id="remove-empty-areas"><span class="header-section-number">4.2</span> Remove empty areas</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb19"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb19-1"><a href="#cb19-1" aria-hidden="true" tabindex="-1"></a>P102TA_10_RNA <span class="ot">&lt;-</span> <span class="fu">subset</span>(P102TA_10_RNA, area <span class="sc">==</span> <span class="st">"Empty"</span>, <span class="at">invert =</span> <span class="cn">TRUE</span>)</span>
+<span id="cb19-2"><a href="#cb19-2" aria-hidden="true" tabindex="-1"></a>P102TA_17_RNA <span class="ot">&lt;-</span> <span class="fu">subset</span>(P102TA_17_RNA, area <span class="sc">==</span> <span class="st">"Empty"</span>, <span class="at">invert =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Not validating Seurat objects</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb21"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb21-1"><a href="#cb21-1" aria-hidden="true" tabindex="-1"></a>P102TA_33_RNA <span class="ot">&lt;-</span> <span class="fu">subset</span>(P102TA_33_RNA, area <span class="sc">==</span> <span class="st">"Empty"</span>, <span class="at">invert =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Not validating Seurat objects</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb23"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb23-1"><a href="#cb23-1" aria-hidden="true" tabindex="-1"></a>P108TA_26_RNA <span class="ot">&lt;-</span> <span class="fu">subset</span>(P108TA_26_RNA, area <span class="sc">==</span> <span class="st">"Empty"</span>, <span class="at">invert =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Not validating Seurat objects</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb25"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb25-1"><a href="#cb25-1" aria-hidden="true" tabindex="-1"></a>P108TA_29_RNA <span class="ot">&lt;-</span> <span class="fu">subset</span>(P108TA_29_RNA, area <span class="sc">==</span> <span class="st">"Empty"</span>, <span class="at">invert =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Not validating Seurat objects</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb27"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb27-1"><a href="#cb27-1" aria-hidden="true" tabindex="-1"></a>P108TA_30_RNA <span class="ot">&lt;-</span> <span class="fu">subset</span>(P108TA_30_RNA, area <span class="sc">==</span> <span class="st">"Empty"</span>, <span class="at">invert =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Not validating Seurat objects</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb29"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb29-1"><a href="#cb29-1" aria-hidden="true" tabindex="-1"></a>P108TA_32_RNA <span class="ot">&lt;-</span> <span class="fu">subset</span>(P108TA_32_RNA, area <span class="sc">==</span> <span class="st">"Empty"</span>, <span class="at">invert =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: Not validating Seurat objects</code></pre>
+</div>
+</div>
+</section>
+<section id="normalize-data" class="level2" data-number="4.3">
+<h2 data-number="4.3" class="anchored" data-anchor-id="normalize-data"><span class="header-section-number">4.3</span> Normalize data</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb31"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb31-1"><a href="#cb31-1" aria-hidden="true" tabindex="-1"></a>P102TA_10_RNA <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(P102TA_10_RNA, <span class="at">assay =</span> <span class="st">"Spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb33"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb33-1"><a href="#cb33-1" aria-hidden="true" tabindex="-1"></a>P102TA_17_RNA <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(P102TA_17_RNA, <span class="at">assay =</span> <span class="st">"Spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb35"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb35-1"><a href="#cb35-1" aria-hidden="true" tabindex="-1"></a>P102TA_33_RNA <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(P102TA_33_RNA, <span class="at">assay =</span> <span class="st">"Spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb37"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb37-1"><a href="#cb37-1" aria-hidden="true" tabindex="-1"></a>P108TA_26_RNA <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(P108TA_26_RNA, <span class="at">assay =</span> <span class="st">"Spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb39"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb39-1"><a href="#cb39-1" aria-hidden="true" tabindex="-1"></a>P108TA_29_RNA <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(P108TA_29_RNA, <span class="at">assay =</span> <span class="st">"Spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb41"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb41-1"><a href="#cb41-1" aria-hidden="true" tabindex="-1"></a>P108TA_30_RNA <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(P108TA_30_RNA, <span class="at">assay =</span> <span class="st">"Spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>P108TA_32_RNA <span class="ot">&lt;-</span> <span class="fu">NormalizeData</span>(P108TA_32_RNA, <span class="at">assay =</span> <span class="st">"Spatial"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Normalizing layer: counts</code></pre>
+</div>
+</div>
+</section>
+</section>
+<section id="get-markers-for-each-myeloid-cell-type" class="level1" data-number="5">
+<h1 data-number="5"><span class="header-section-number">5</span> Get markers for each myeloid cell type</h1>
+<section id="read-in-the-single-cell-object-and-create-a-single-cell-reference-from-each-patient" class="level2" data-number="5.1">
+<h2 data-number="5.1" class="anchored" data-anchor-id="read-in-the-single-cell-object-and-create-a-single-cell-reference-from-each-patient"><span class="header-section-number">5.1</span> Read in the single cell object and create a single cell reference from each patient</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>scrna <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"/n/data2/dfci/medonc/cwu/alex/objects/merged_RCC.NeoVax.CancerCell.rds"</span>)</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Join layers- seurat obj v5 specific code</span></span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a>scrna <span class="ot">&lt;-</span> <span class="fu">JoinLayers</span>(scrna)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="print-clusters" class="level2" data-number="5.2">
+<h2 data-number="5.2" class="anchored" data-anchor-id="print-clusters"><span class="header-section-number">5.2</span> Print clusters</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(scrna, <span class="at">group.by =</span> <span class="st">"unified_cluster"</span>) <span class="sc">+</span> paletteer<span class="sc">::</span><span class="fu">scale_colour_paletteer_d</span>(<span class="st">"ggsci::default_igv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Rasterizing points since number of points exceeds 100,000.
+To disable this behavior set `raster=FALSE`</code></pre>
+</div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-6-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb48"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb48-1"><a href="#cb48-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(scrna<span class="sc">$</span>unified_cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code> [1] "NK1"           "CD8.TRM"       "NORM.EPI"      "CD8.TEX"      
+ [5] "ENDO"          "cDC"           "MONO.NONCLASS" "B.MEM"        
+ [9] "NK2"           "MONO.CLASS"    "TAP"           "FIBRO"        
+[13] "CD4.TMEM"      "ERYTH"         "NORM.PT"       "NORM.INTERCAL"
+[17] "TPROL"         "CD4.TREG"      "M2.MAC"        "MAC"          
+[21] "MAST"          "pDC"           "RCC1"          "CD8.IFN"      
+[25] "B.PLASMA"      "RCC2"          "RCC3"         </code></pre>
+</div>
+</div>
+</section>
+<section id="subset-for-myeloid-clusters" class="level2" data-number="5.3">
+<h2 data-number="5.3" class="anchored" data-anchor-id="subset-for-myeloid-clusters"><span class="header-section-number">5.3</span> Subset for myeloid clusters</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb50"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb50-1"><a href="#cb50-1" aria-hidden="true" tabindex="-1"></a>myeloid_clusters <span class="ot">&lt;-</span> <span class="fu">subset</span>(scrna, <span class="at">subset =</span> unified_cluster <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"cDC"</span>, <span class="st">"MONO.NONCLASS"</span>, <span class="st">"MONO.CLASS"</span>, <span class="st">"M2.MAC"</span>, <span class="st">"MAC"</span>, <span class="st">"pDC"</span>))</span>
+<span id="cb50-2"><a href="#cb50-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-3"><a href="#cb50-3" aria-hidden="true" tabindex="-1"></a>p102_108_myeloid_clusters <span class="ot">&lt;-</span> <span class="fu">subset</span>(myeloid_clusters, <span class="at">subset =</span> patient <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"16097-102"</span>, <span class="st">"16097-108"</span>))</span>
+<span id="cb50-4"><a href="#cb50-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb50-5"><a href="#cb50-5" aria-hidden="true" tabindex="-1"></a>p102_108_myeloid_deg <span class="ot">&lt;-</span> <span class="fu">FindAllMarkers</span>(p102_108_myeloid_clusters, <span class="at">group.by =</span> <span class="st">"unified_cluster"</span>, <span class="at">logfc.threshold =</span> <span class="fl">1.5</span>, <span class="at">min.pct =</span> <span class="fl">0.3</span>, <span class="at">only.pos =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster M2.MAC</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster MONO.CLASS</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster MONO.NONCLASS</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster cDC</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster pDC</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Calculating cluster MAC</code></pre>
+</div>
+</div>
+</section>
+<section id="get-markers-for-each-myeloid-cluster" class="level2" data-number="5.4">
+<h2 data-number="5.4" class="anchored" data-anchor-id="get-markers-for-each-myeloid-cluster"><span class="header-section-number">5.4</span> Get markers for each myeloid cluster</h2>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb57"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb57-1"><a href="#cb57-1" aria-hidden="true" tabindex="-1"></a><span class="fu">unique</span>(p102_108_myeloid_deg<span class="sc">$</span>cluster)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>[1] M2.MAC        MONO.CLASS    MONO.NONCLASS cDC           pDC          
+[6] MAC          
+Levels: M2.MAC MONO.CLASS MONO.NONCLASS cDC pDC MAC</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb59"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb59-1"><a href="#cb59-1" aria-hidden="true" tabindex="-1"></a>tam_cd163 <span class="ot">&lt;-</span> p102_108_myeloid_deg <span class="sc">%&gt;%</span> </span>
+<span id="cb59-2"><a href="#cb59-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(cluster <span class="sc">==</span> <span class="st">"M2.MAC"</span>,</span>
+<span id="cb59-3"><a href="#cb59-3" aria-hidden="true" tabindex="-1"></a>         p_val_adj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb59-4"><a href="#cb59-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene)</span>
+<span id="cb59-5"><a href="#cb59-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-6"><a href="#cb59-6" aria-hidden="true" tabindex="-1"></a>mono <span class="ot">&lt;-</span> p102_108_myeloid_deg <span class="sc">%&gt;%</span> </span>
+<span id="cb59-7"><a href="#cb59-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(cluster <span class="sc">==</span> <span class="st">"MONO.CLASS"</span>,</span>
+<span id="cb59-8"><a href="#cb59-8" aria-hidden="true" tabindex="-1"></a>         p_val_adj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb59-9"><a href="#cb59-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene)</span>
+<span id="cb59-10"><a href="#cb59-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-11"><a href="#cb59-11" aria-hidden="true" tabindex="-1"></a>nc_mono <span class="ot">&lt;-</span> p102_108_myeloid_deg <span class="sc">%&gt;%</span> </span>
+<span id="cb59-12"><a href="#cb59-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(cluster <span class="sc">==</span> <span class="st">"MONO.NONCLASS"</span>,</span>
+<span id="cb59-13"><a href="#cb59-13" aria-hidden="true" tabindex="-1"></a>         p_val_adj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb59-14"><a href="#cb59-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene)</span>
+<span id="cb59-15"><a href="#cb59-15" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-16"><a href="#cb59-16" aria-hidden="true" tabindex="-1"></a>cdc <span class="ot">&lt;-</span> p102_108_myeloid_deg <span class="sc">%&gt;%</span> </span>
+<span id="cb59-17"><a href="#cb59-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(cluster <span class="sc">==</span> <span class="st">"cDC"</span>,</span>
+<span id="cb59-18"><a href="#cb59-18" aria-hidden="true" tabindex="-1"></a>         p_val_adj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb59-19"><a href="#cb59-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene)</span>
+<span id="cb59-20"><a href="#cb59-20" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-21"><a href="#cb59-21" aria-hidden="true" tabindex="-1"></a>pdc <span class="ot">&lt;-</span> p102_108_myeloid_deg <span class="sc">%&gt;%</span> </span>
+<span id="cb59-22"><a href="#cb59-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(cluster <span class="sc">==</span> <span class="st">"pDC"</span>,</span>
+<span id="cb59-23"><a href="#cb59-23" aria-hidden="true" tabindex="-1"></a>         p_val_adj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb59-24"><a href="#cb59-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene)</span>
+<span id="cb59-25"><a href="#cb59-25" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb59-26"><a href="#cb59-26" aria-hidden="true" tabindex="-1"></a>tam2 <span class="ot">&lt;-</span> p102_108_myeloid_deg <span class="sc">%&gt;%</span> </span>
+<span id="cb59-27"><a href="#cb59-27" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(cluster <span class="sc">==</span> <span class="st">"MAC"</span>,</span>
+<span id="cb59-28"><a href="#cb59-28" aria-hidden="true" tabindex="-1"></a>         p_val_adj <span class="sc">&lt;</span> <span class="fl">0.05</span>) <span class="sc">%&gt;%</span> </span>
+<span id="cb59-29"><a href="#cb59-29" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pull</span>(gene)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+</section>
+<section id="add-signature-score-to-seurat-object" class="level1" data-number="6">
+<h1 data-number="6"><span class="header-section-number">6</span> Add signature score to seurat object</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb60"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb60-1"><a href="#cb60-1" aria-hidden="true" tabindex="-1"></a>myeloid_clusters <span class="ot">&lt;-</span> myeloid_clusters <span class="sc">%&gt;%</span></span>
+<span id="cb60-2"><a href="#cb60-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb60-3"><a href="#cb60-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb60-4"><a href="#cb60-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb60-5"><a href="#cb60-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb60-6"><a href="#cb60-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb60-7"><a href="#cb60-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="check-that-the-gene-sets-are-specific-to-the-cluster" class="level1" data-number="7">
+<h1 data-number="7"><span class="header-section-number">7</span> Check that the gene sets are specific to the cluster</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb61"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb61-1"><a href="#cb61-1" aria-hidden="true" tabindex="-1"></a><span class="fu">DimPlot</span>(myeloid_clusters, <span class="at">group.by =</span> <span class="st">"unified_cluster"</span>) <span class="sc">+</span> paletteer<span class="sc">::</span><span class="fu">scale_colour_paletteer_d</span>(<span class="st">"ggsci::default_igv"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-10-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb62"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb62-1"><a href="#cb62-1" aria-hidden="true" tabindex="-1"></a><span class="fu">FeaturePlot</span>(myeloid_clusters, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>, <span class="st">"pdc1"</span>, <span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>), <span class="at">max.cutoff =</span> <span class="st">"q95"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-10-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="add-signature-score-to-spatial-objects" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Add signature score to spatial objects</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb63"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb63-1"><a href="#cb63-1" aria-hidden="true" tabindex="-1"></a>P102TA_10_RNA <span class="ot">&lt;-</span> P102TA_10_RNA <span class="sc">%&gt;%</span></span>
+<span id="cb63-2"><a href="#cb63-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-3"><a href="#cb63-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-4"><a href="#cb63-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-5"><a href="#cb63-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-6"><a href="#cb63-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb63-7"><a href="#cb63-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: APOC2, CCL3L1,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: LRRC26, TLR9,
+KRT5, HIST1H2AC, GRASP, HIST1H1C, Z93241.1, HIST1H1D, not searching for symbol
+synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: PALM2-AKAP2, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: S100A12, EREG,
+AC015912.3, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: SMIM25, WARS,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb69"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb69-1"><a href="#cb69-1" aria-hidden="true" tabindex="-1"></a>P102TA_17_RNA <span class="ot">&lt;-</span> P102TA_17_RNA <span class="sc">%&gt;%</span></span>
+<span id="cb69-2"><a href="#cb69-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb69-3"><a href="#cb69-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb69-4"><a href="#cb69-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb69-5"><a href="#cb69-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb69-6"><a href="#cb69-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb69-7"><a href="#cb69-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: APOC2, CCL3L1,
+DBNDD2, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: LRRC26, SCT,
+PTCRA, SHD, TLR9, KRT5, LIME1, HIST1H2AC, GRASP, HIST1H1C, Z93241.1, HIST1H1D,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: PALM2-AKAP2, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: S100A12, EREG,
+TREM1, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: SMIM25, WARS,
+GPBAR1, not searching for symbol synonyms</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb75"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb75-1"><a href="#cb75-1" aria-hidden="true" tabindex="-1"></a>P102TA_33_RNA <span class="ot">&lt;-</span> P102TA_33_RNA <span class="sc">%&gt;%</span></span>
+<span id="cb75-2"><a href="#cb75-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb75-3"><a href="#cb75-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb75-4"><a href="#cb75-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb75-5"><a href="#cb75-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb75-6"><a href="#cb75-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb75-7"><a href="#cb75-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: APOC2, CCL3L1,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: LRRC26, SCT,
+SHD, TLR9, LIME1, HIST1H2AC, GRASP, HIST1H1C, A1BG, HIST1H1D, not searching for
+symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: PALM2-AKAP2, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: AC015912.3, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: SMIM25, WARS,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb81"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb81-1"><a href="#cb81-1" aria-hidden="true" tabindex="-1"></a>P108TA_26_RNA <span class="ot">&lt;-</span> P108TA_26_RNA <span class="sc">%&gt;%</span></span>
+<span id="cb81-2"><a href="#cb81-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-3"><a href="#cb81-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-4"><a href="#cb81-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-5"><a href="#cb81-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-6"><a href="#cb81-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb81-7"><a href="#cb81-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: APOC2, CCL3L1,
+DBNDD2, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: LRRC26, SCT,
+TLR9, HIST1H2AC, GRASP, HIST1H1C, HIST1H1D, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: PALM2-AKAP2, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: SMIM25, WARS,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb86"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb86-1"><a href="#cb86-1" aria-hidden="true" tabindex="-1"></a>P108TA_29_RNA <span class="ot">&lt;-</span> P108TA_29_RNA <span class="sc">%&gt;%</span></span>
+<span id="cb86-2"><a href="#cb86-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb86-3"><a href="#cb86-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb86-4"><a href="#cb86-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb86-5"><a href="#cb86-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb86-6"><a href="#cb86-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb86-7"><a href="#cb86-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: APOC2, CCL3L1,
+DBNDD2, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: LRRC26, SCT,
+HIST1H2AC, GRASP, HIST1H1C, Z93241.1, HIST1H1D, not searching for symbol
+synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: PALM2-AKAP2, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: SMIM25, WARS,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb91"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb91-1"><a href="#cb91-1" aria-hidden="true" tabindex="-1"></a>P108TA_30_RNA <span class="ot">&lt;-</span> P108TA_30_RNA <span class="sc">%&gt;%</span></span>
+<span id="cb91-2"><a href="#cb91-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb91-3"><a href="#cb91-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb91-4"><a href="#cb91-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb91-5"><a href="#cb91-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb91-6"><a href="#cb91-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb91-7"><a href="#cb91-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: CCL3L1, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: LRRC26, TLR9,
+HIST1H2AC, GRASP, HIST1H1C, Z93241.1, HIST1H1D, not searching for symbol
+synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: PALM2-AKAP2, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: SMIM25, WARS,
+not searching for symbol synonyms</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb96"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb96-1"><a href="#cb96-1" aria-hidden="true" tabindex="-1"></a>P108TA_32_RNA <span class="ot">&lt;-</span> P108TA_32_RNA <span class="sc">%&gt;%</span></span>
+<span id="cb96-2"><a href="#cb96-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam_cd163), <span class="at">name =</span> <span class="st">"tam_cd163"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb96-3"><a href="#cb96-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(tam2), <span class="at">name =</span> <span class="st">"tam2"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb96-4"><a href="#cb96-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(pdc), <span class="at">name =</span> <span class="st">"pdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb96-5"><a href="#cb96-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(cdc), <span class="at">name =</span> <span class="st">"cdc"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb96-6"><a href="#cb96-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(mono), <span class="at">name =</span> <span class="st">"mono"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb96-7"><a href="#cb96-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">AddModuleScore</span>(<span class="at">features =</span> <span class="fu">list</span>(nc_mono), <span class="at">name =</span> <span class="st">"nc_mono"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: CCL3L1, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: TLR9, HIST1H2AC,
+GRASP, HIST1H1C, Z93241.1, HIST1H1D, not searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: PALM2-AKAP2, not
+searching for symbol synonyms</code></pre>
+</div>
+<div class="cell-output cell-output-stderr">
+<pre><code>Warning: The following features are not present in the object: SMIM25, WARS,
+not searching for symbol synonyms</code></pre>
+</div>
+</div>
+</section>
+<section id="spatially-plot-myeloid-cluster-scores" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Spatially plot myeloid cluster scores</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb101"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb101-1"><a href="#cb101-1" aria-hidden="true" tabindex="-1"></a><span class="fu">SpatialFeaturePlot</span>(P102TA_10_RNA, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>, <span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="dv">1</span>)) <span class="sc">&amp;</span></span>
+<span id="cb101-2"><a href="#cb101-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"inferno"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-12-1.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb102"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb102-1"><a href="#cb102-1" aria-hidden="true" tabindex="-1"></a><span class="fu">SpatialFeaturePlot</span>(P102TA_17_RNA, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>, <span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="dv">1</span>)) <span class="sc">&amp;</span></span>
+<span id="cb102-2"><a href="#cb102-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"inferno"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-12-2.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb103"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb103-1"><a href="#cb103-1" aria-hidden="true" tabindex="-1"></a><span class="fu">SpatialFeaturePlot</span>(P102TA_33_RNA, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>, <span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="dv">1</span>)) <span class="sc">&amp;</span></span>
+<span id="cb103-2"><a href="#cb103-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"inferno"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-12-3.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb104"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb104-1"><a href="#cb104-1" aria-hidden="true" tabindex="-1"></a><span class="fu">SpatialFeaturePlot</span>(P108TA_26_RNA, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>, <span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="dv">1</span>)) <span class="sc">&amp;</span></span>
+<span id="cb104-2"><a href="#cb104-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"inferno"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-12-4.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb105"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb105-1"><a href="#cb105-1" aria-hidden="true" tabindex="-1"></a><span class="fu">SpatialFeaturePlot</span>(P108TA_29_RNA, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>, <span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="dv">1</span>)) <span class="sc">&amp;</span></span>
+<span id="cb105-2"><a href="#cb105-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"inferno"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-12-5.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb106"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb106-1"><a href="#cb106-1" aria-hidden="true" tabindex="-1"></a><span class="fu">SpatialFeaturePlot</span>(P108TA_30_RNA, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>, <span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="dv">1</span>)) <span class="sc">&amp;</span></span>
+<span id="cb106-2"><a href="#cb106-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"inferno"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-12-6.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+<div class="sourceCode cell-code" id="cb107"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb107-1"><a href="#cb107-1" aria-hidden="true" tabindex="-1"></a><span class="fu">SpatialFeaturePlot</span>(P108TA_32_RNA, <span class="at">features =</span> <span class="fu">c</span>(<span class="st">"cdc1"</span>, <span class="st">"mono1"</span>, <span class="st">"nc_mono1"</span>, <span class="st">"tam_cd1631"</span>, <span class="st">"tam21"</span>), <span class="at">alpha =</span> <span class="fu">c</span>(<span class="fl">0.01</span>, <span class="dv">1</span>)) <span class="sc">&amp;</span></span>
+<span id="cb107-2"><a href="#cb107-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_viridis_c</span>(<span class="at">option =</span> <span class="st">"inferno"</span>, <span class="at">direction =</span> <span class="sc">-</span><span class="dv">1</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-12-7.png" class="img-fluid figure-img" width="672"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="create-big-dataframe" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> Create big dataframe</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb108"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb108-1"><a href="#cb108-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Remove metadata columns that other pucks don't have</span></span>
+<span id="cb108-2"><a href="#cb108-2" aria-hidden="true" tabindex="-1"></a>P102TA_17_RNA<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> P102TA_17_RNA<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb108-3"><a href="#cb108-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>largest_clone_id, <span class="sc">-</span>puck17_count, <span class="sc">-</span>log_puck17_count, <span class="sc">-</span>Fibroblast)</span>
+<span id="cb108-4"><a href="#cb108-4" aria-hidden="true" tabindex="-1"></a>P102TA_10_RNA<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> P102TA_10_RNA<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb108-5"><a href="#cb108-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>largest_clone_id, <span class="sc">-</span>puck10_count, <span class="sc">-</span>log_puck10_count, <span class="sc">-</span>Fibroblast)</span>
+<span id="cb108-6"><a href="#cb108-6" aria-hidden="true" tabindex="-1"></a>P102TA_33_RNA<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> P102TA_33_RNA<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb108-7"><a href="#cb108-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>Fibroblast)</span>
+<span id="cb108-8"><a href="#cb108-8" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb108-9"><a href="#cb108-9" aria-hidden="true" tabindex="-1"></a>P108TA_26_RNA<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> P108TA_26_RNA<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb108-10"><a href="#cb108-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>Fibroblast)</span>
+<span id="cb108-11"><a href="#cb108-11" aria-hidden="true" tabindex="-1"></a>P108TA_29_RNA<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> P108TA_29_RNA<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb108-12"><a href="#cb108-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>Fibroblast)</span>
+<span id="cb108-13"><a href="#cb108-13" aria-hidden="true" tabindex="-1"></a>P108TA_30_RNA<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> P108TA_30_RNA<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb108-14"><a href="#cb108-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>Fibroblast)</span>
+<span id="cb108-15"><a href="#cb108-15" aria-hidden="true" tabindex="-1"></a>P108TA_32_RNA<span class="sc">@</span>meta.data <span class="ot">&lt;-</span> P108TA_32_RNA<span class="sc">@</span>meta.data <span class="sc">%&gt;%</span></span>
+<span id="cb108-16"><a href="#cb108-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(<span class="sc">-</span>Fibroblast)</span>
+<span id="cb108-17"><a href="#cb108-17" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb108-18"><a href="#cb108-18" aria-hidden="true" tabindex="-1"></a>md <span class="ot">&lt;-</span> <span class="fu">do.call</span>(rbind, <span class="fu">list</span>(P102TA_10_RNA<span class="sc">@</span>meta.data, P102TA_17_RNA<span class="sc">@</span>meta.data, P102TA_33_RNA<span class="sc">@</span>meta.data,</span>
+<span id="cb108-19"><a href="#cb108-19" aria-hidden="true" tabindex="-1"></a>                                 P108TA_26_RNA<span class="sc">@</span>meta.data, P108TA_29_RNA<span class="sc">@</span>meta.data, P108TA_30_RNA<span class="sc">@</span>meta.data, P108TA_32_RNA<span class="sc">@</span>meta.data))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="save-as-supplementary-table" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> Save as supplementary table</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb109"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb109-1"><a href="#cb109-1" aria-hidden="true" tabindex="-1"></a>saved_md <span class="ot">&lt;-</span> md <span class="sc">%&gt;%</span></span>
+<span id="cb109-2"><a href="#cb109-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">assign_celltypes</span>() <span class="sc">%&gt;%</span></span>
+<span id="cb109-3"><a href="#cb109-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(assignment1 <span class="sc">==</span> <span class="st">"Myeloid"</span>,</span>
+<span id="cb109-4"><a href="#cb109-4" aria-hidden="true" tabindex="-1"></a>         area <span class="sc">==</span> <span class="st">"Boundary"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb109-5"><a href="#cb109-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(orig.ident, tam_cd1631, tam21, cdc1, mono1, nc_mono1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="subset-for-the-signature-of-myeloid-cells" class="level1" data-number="12">
+<h1 data-number="12"><span class="header-section-number">12</span> Subset for the signature of myeloid cells</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb110"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb110-1"><a href="#cb110-1" aria-hidden="true" tabindex="-1"></a>myeloid_signature_md <span class="ot">&lt;-</span> md <span class="sc">%&gt;%</span></span>
+<span id="cb110-2"><a href="#cb110-2" aria-hidden="true" tabindex="-1"></a>  assign_celltypes <span class="sc">%&gt;%</span></span>
+<span id="cb110-3"><a href="#cb110-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(assignment1 <span class="sc">==</span> <span class="st">"Myeloid"</span>,</span>
+<span id="cb110-4"><a href="#cb110-4" aria-hidden="true" tabindex="-1"></a>         area <span class="sc">==</span> <span class="st">"Boundary"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb110-5"><a href="#cb110-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">Patient =</span> <span class="fu">str_split_i</span>(orig.ident, <span class="st">"_"</span>, <span class="dv">1</span>),</span>
+<span id="cb110-6"><a href="#cb110-6" aria-hidden="true" tabindex="-1"></a>         <span class="at">area =</span> <span class="fu">case_when</span>(area <span class="sc">%in%</span> <span class="fu">c</span>(<span class="st">"TLS1"</span>, <span class="st">"TLS2"</span>, <span class="st">"TLS3"</span>, <span class="st">"M2"</span>) <span class="sc">~</span> <span class="st">"TLS"</span>,</span>
+<span id="cb110-7"><a href="#cb110-7" aria-hidden="true" tabindex="-1"></a>                          T <span class="sc">~</span> area)) <span class="sc">%&gt;%</span></span>
+<span id="cb110-8"><a href="#cb110-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(orig.ident, Patient, area, assignment1, tam_cd1631, tam21, pdc1, cdc1, mono1, nc_mono1)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="plot-boxplot" class="level1" data-number="13">
+<h1 data-number="13"><span class="header-section-number">13</span> Plot boxplot</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb111"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb111-1"><a href="#cb111-1" aria-hidden="true" tabindex="-1"></a>means <span class="ot">&lt;-</span> myeloid_signature_md <span class="sc">%&gt;%</span></span>
+<span id="cb111-2"><a href="#cb111-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">group_by</span>(orig.ident, Patient, area) <span class="sc">%&gt;%</span></span>
+<span id="cb111-3"><a href="#cb111-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">summarize</span>(<span class="at">tam_cd1631 =</span> <span class="fu">mean</span>(tam_cd1631),</span>
+<span id="cb111-4"><a href="#cb111-4" aria-hidden="true" tabindex="-1"></a>            <span class="at">tam21 =</span> <span class="fu">mean</span>(tam21),</span>
+<span id="cb111-5"><a href="#cb111-5" aria-hidden="true" tabindex="-1"></a>            <span class="at">cdc1 =</span> <span class="fu">mean</span>(cdc1),</span>
+<span id="cb111-6"><a href="#cb111-6" aria-hidden="true" tabindex="-1"></a>            <span class="at">pdc1 =</span> <span class="fu">mean</span>(pdc1),</span>
+<span id="cb111-7"><a href="#cb111-7" aria-hidden="true" tabindex="-1"></a>            <span class="at">mono1 =</span> <span class="fu">mean</span>(mono1),</span>
+<span id="cb111-8"><a href="#cb111-8" aria-hidden="true" tabindex="-1"></a>            <span class="at">nc_mono1 =</span> <span class="fu">mean</span>(nc_mono1)) <span class="sc">%&gt;%</span> </span>
+<span id="cb111-9"><a href="#cb111-9" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"TAM-CD163+"</span> <span class="ot">=</span> <span class="st">"tam_cd1631"</span>,</span>
+<span id="cb111-10"><a href="#cb111-10" aria-hidden="true" tabindex="-1"></a>                <span class="st">"CLASS. MONO"</span> <span class="ot">=</span> <span class="st">"mono1"</span>,</span>
+<span id="cb111-11"><a href="#cb111-11" aria-hidden="true" tabindex="-1"></a>                <span class="st">"NONCLASS. MONO"</span> <span class="ot">=</span> <span class="st">"nc_mono1"</span>,</span>
+<span id="cb111-12"><a href="#cb111-12" aria-hidden="true" tabindex="-1"></a>                <span class="st">"cDC"</span> <span class="ot">=</span> <span class="st">"cdc1"</span>,</span>
+<span id="cb111-13"><a href="#cb111-13" aria-hidden="true" tabindex="-1"></a>                <span class="st">"pDC"</span> <span class="ot">=</span> <span class="st">"pdc1"</span>,</span>
+<span id="cb111-14"><a href="#cb111-14" aria-hidden="true" tabindex="-1"></a>                <span class="st">"TAM2"</span> <span class="ot">=</span> <span class="st">"tam21"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb111-15"><a href="#cb111-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">!</span><span class="fu">c</span>(<span class="st">"area"</span>, <span class="st">"orig.ident"</span>, <span class="st">"Patient"</span>), <span class="at">names_to =</span> <span class="st">"signature"</span>, <span class="at">values_to =</span> <span class="st">"score"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stderr">
+<pre><code>`summarise()` has grouped output by 'orig.ident', 'Patient'. You can override
+using the `.groups` argument.</code></pre>
+</div>
+<div class="sourceCode cell-code" id="cb113"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb113-1"><a href="#cb113-1" aria-hidden="true" tabindex="-1"></a>myeloid_signature_md <span class="sc">%&gt;%</span></span>
+<span id="cb113-2"><a href="#cb113-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(tam_cd1631, tam21, cdc1, pdc1, mono1, nc_mono1, area, orig.ident) <span class="sc">%&gt;%</span></span>
+<span id="cb113-3"><a href="#cb113-3" aria-hidden="true" tabindex="-1"></a>  dplyr<span class="sc">::</span><span class="fu">rename</span>(<span class="st">"TAM-CD163+"</span> <span class="ot">=</span> <span class="st">"tam_cd1631"</span>,</span>
+<span id="cb113-4"><a href="#cb113-4" aria-hidden="true" tabindex="-1"></a>                <span class="st">"CLASS. MONO"</span> <span class="ot">=</span> <span class="st">"mono1"</span>,</span>
+<span id="cb113-5"><a href="#cb113-5" aria-hidden="true" tabindex="-1"></a>                <span class="st">"NONCLASS. MONO"</span> <span class="ot">=</span> <span class="st">"nc_mono1"</span>,</span>
+<span id="cb113-6"><a href="#cb113-6" aria-hidden="true" tabindex="-1"></a>                <span class="st">"cDC"</span> <span class="ot">=</span> <span class="st">"cdc1"</span>,</span>
+<span id="cb113-7"><a href="#cb113-7" aria-hidden="true" tabindex="-1"></a>                <span class="st">"pDC"</span> <span class="ot">=</span> <span class="st">"pdc1"</span>,</span>
+<span id="cb113-8"><a href="#cb113-8" aria-hidden="true" tabindex="-1"></a>                <span class="st">"TAM2"</span> <span class="ot">=</span> <span class="st">"tam21"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb113-9"><a href="#cb113-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">pivot_longer</span>(<span class="at">cols =</span> <span class="sc">!</span><span class="fu">c</span>(<span class="st">"area"</span>, <span class="st">"orig.ident"</span>), <span class="at">names_to =</span> <span class="st">"signature"</span>, <span class="at">values_to =</span> <span class="st">"score"</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb113-10"><a href="#cb113-10" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(<span class="at">signature =</span> <span class="fu">factor</span>(signature, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"TAM-CD163+"</span>, <span class="st">"NONCLASS. MONO"</span>, <span class="st">"CLASS. MONO"</span>, <span class="st">"cDC"</span>, <span class="st">"pDC"</span>, <span class="st">"TAM2"</span>))) <span class="sc">%&gt;%</span></span>
+<span id="cb113-11"><a href="#cb113-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ggplot</span>() <span class="sc">+</span></span>
+<span id="cb113-12"><a href="#cb113-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_boxplot</span>(<span class="fu">aes</span>(<span class="at">x =</span> signature, <span class="at">y =</span> score, <span class="at">fill =</span> area)) <span class="sc">+</span></span>
+<span id="cb113-13"><a href="#cb113-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_jitter</span>(<span class="at">data =</span> means, <span class="fu">aes</span>(<span class="at">y =</span> score, <span class="at">x =</span> signature, <span class="at">fill =</span> Patient), <span class="at">height =</span> <span class="dv">0</span>, <span class="at">width =</span> <span class="fl">0.15</span>, <span class="at">shape =</span> <span class="dv">22</span>) <span class="sc">+</span></span>
+<span id="cb113-14"><a href="#cb113-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_fill_manual</span>(<span class="at">values =</span> <span class="fu">c</span>(<span class="st">"Boundary"</span> <span class="ot">=</span> <span class="st">"white"</span>, <span class="st">"P102TA"</span> <span class="ot">=</span> <span class="st">"#FF9300"</span>, <span class="st">"P108TA"</span> <span class="ot">=</span> <span class="st">"#009193"</span>)) <span class="sc">+</span></span>
+<span id="cb113-15"><a href="#cb113-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_classic</span>() <span class="sc">+</span></span>
+<span id="cb113-16"><a href="#cb113-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">ylab</span>(<span class="st">"Signature score (myeloid cells)"</span>) <span class="sc">+</span></span>
+<span id="cb113-17"><a href="#cb113-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">xlab</span>(<span class="st">""</span>) <span class="sc">+</span></span>
+<span id="cb113-18"><a href="#cb113-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(<span class="at">axis.text.x =</span> <span class="fu">element_text</span>(<span class="at">angle =</span> <span class="dv">90</span>, <span class="at">vjust =</span> <span class="fl">0.5</span>, <span class="at">hjust=</span><span class="dv">1</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output-display">
+<div>
+<figure class="figure">
+<p><img src="Boundary_myeloid_celltype_expression_files/figure-html/unnamed-chunk-16-1.png" class="img-fluid figure-img" width="384"></p>
+</figure>
+</div>
+</div>
+</div>
+</section>
+<section id="session-info" class="level1" data-number="14">
+<h1 data-number="14"><span class="header-section-number">14</span> Session info</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb114"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb114-1"><a href="#cb114-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell-output cell-output-stdout">
+<pre><code>R version 4.4.2 (2024-10-31)
+Platform: x86_64-pc-linux-gnu
+Running under: Red Hat Enterprise Linux 9.5 (Plow)
+
+Matrix products: default
+BLAS:   /n/app/R/4.4.2-gcc-14.2.0/lib64/R/lib/libRblas.so 
+LAPACK: /n/app/R/4.4.2-gcc-14.2.0/lib64/R/lib/libRlapack.so;  LAPACK version 3.12.0
+
+locale:
+ [1] LC_CTYPE=en_US.UTF-8       LC_NUMERIC=C              
+ [3] LC_TIME=en_US.UTF-8        LC_COLLATE=en_US.UTF-8    
+ [5] LC_MONETARY=en_US.UTF-8    LC_MESSAGES=en_US.UTF-8   
+ [7] LC_PAPER=en_US.UTF-8       LC_NAME=C                 
+ [9] LC_ADDRESS=C               LC_TELEPHONE=C            
+[11] LC_MEASUREMENT=en_US.UTF-8 LC_IDENTIFICATION=C       
+
+time zone: US/Eastern
+tzcode source: system (glibc)
+
+attached base packages:
+[1] grid      stats     graphics  grDevices utils     datasets  methods  
+[8] base     
+
+other attached packages:
+ [1] rcompanion_2.5.1      ggpubr_0.6.2          circlize_0.4.17      
+ [4] readxl_1.4.5          ComplexHeatmap_2.22.0 lubridate_1.9.4      
+ [7] forcats_1.0.1         stringr_1.6.0         purrr_1.2.0          
+[10] readr_2.1.6           tidyr_1.3.1           tibble_3.3.0         
+[13] ggplot2_4.0.1         tidyverse_2.0.0       ggpointdensity_0.2.1 
+[16] dplyr_1.1.4           Seurat_5.4.0          SeuratObject_5.3.0   
+[19] sp_2.2-0             
+
+loaded via a namespace (and not attached):
+  [1] RcppAnnoy_0.0.22       splines_4.4.2          later_1.4.4           
+  [4] prismatic_1.1.2        cellranger_1.1.0       polyclip_1.10-7       
+  [7] fastDummies_1.7.5      lifecycle_1.0.5        rstatix_0.7.3         
+ [10] doParallel_1.0.17      globals_0.18.0         lattice_0.22-7        
+ [13] MASS_7.3-65            backports_1.5.0        magrittr_2.0.4        
+ [16] limma_3.62.2           plotly_4.11.0          rmarkdown_2.30        
+ [19] httpuv_1.6.16          otel_0.2.0             sctransform_0.4.2     
+ [22] spam_2.11-3            spatstat.sparse_3.1-0  reticulate_1.44.1     
+ [25] gld_2.6.8              cowplot_1.2.0          pbapply_1.7-4         
+ [28] RColorBrewer_1.1-3     multcomp_1.4-29        abind_1.4-8           
+ [31] expm_1.0-0             Rtsne_0.17             presto_1.0.0          
+ [34] BiocGenerics_0.52.0    TH.data_1.1-5          sandwich_3.1-1        
+ [37] IRanges_2.40.1         S4Vectors_0.44.0       ggrepel_0.9.6         
+ [40] irlba_2.3.5.1          listenv_0.10.0         spatstat.utils_3.2-0  
+ [43] nortest_1.0-4          goftest_1.2-3          RSpectra_0.16-2       
+ [46] spatstat.random_3.4-3  fitdistrplus_1.2-4     parallelly_1.46.0     
+ [49] coin_1.4-3             codetools_0.2-20       tidyselect_1.2.1      
+ [52] shape_1.4.6.1          farver_2.1.2           matrixStats_1.5.0     
+ [55] stats4_4.4.2           spatstat.explore_3.6-0 jsonlite_2.0.0        
+ [58] GetoptLong_1.1.0       e1071_1.7-16           progressr_0.18.0      
+ [61] Formula_1.2-5          ggridges_0.5.7         survival_3.8-3        
+ [64] iterators_1.0.14       foreach_1.5.2          tools_4.4.2           
+ [67] DescTools_0.99.60      ica_1.0-3              Rcpp_1.1.1            
+ [70] glue_1.8.0             gridExtra_2.3          xfun_0.54             
+ [73] withr_3.0.2            fastmap_1.2.0          boot_1.3-31           
+ [76] digest_0.6.39          timechange_0.3.0       R6_2.6.1              
+ [79] mime_0.13              colorspace_2.1-2       scattermore_1.2       
+ [82] tensor_1.5.1           dichromat_2.0-0.1      spatstat.data_3.1-9   
+ [85] generics_0.1.4         data.table_1.18.0      class_7.3-23          
+ [88] httr_1.4.7             htmlwidgets_1.6.4      uwot_0.2.4            
+ [91] pkgconfig_2.0.3        gtable_0.3.6           Exact_3.3             
+ [94] modeltools_0.2-24      lmtest_0.9-40          S7_0.2.1              
+ [97] htmltools_0.5.9        carData_3.0-5          dotCall64_1.2         
+[100] multcompView_0.1-10    clue_0.3-66            scales_1.4.0          
+[103] lmom_3.2               png_0.1-8              spatstat.univar_3.1-5 
+[106] knitr_1.51             rstudioapi_0.17.1      tzdb_0.5.0            
+[109] reshape2_1.4.5         rjson_0.2.23           nlme_3.1-168          
+[112] proxy_0.4-28           zoo_1.8-15             GlobalOptions_0.1.3   
+[115] rootSolve_1.8.2.4      KernSmooth_2.23-26     libcoin_1.0-10        
+[118] parallel_4.4.2         miniUI_0.1.2           pillar_1.11.1         
+[121] vctrs_0.6.5            RANN_2.6.2             promises_1.5.0        
+[124] car_3.1-3              xtable_1.8-4           cluster_2.1.8.1       
+[127] paletteer_1.6.0        evaluate_1.0.5         mvtnorm_1.3-3         
+[130] cli_3.6.5              compiler_4.4.2         rlang_1.1.6           
+[133] crayon_1.5.3           future.apply_1.20.1    ggsignif_0.6.4        
+[136] labeling_0.4.3         rematch2_2.1.2         fs_1.6.6              
+[139] plyr_1.8.9             stringi_1.8.7          viridisLite_0.4.2     
+[142] deldir_2.0-4           lazyeval_0.2.2         spatstat.geom_3.6-1   
+[145] Matrix_1.7-4           RcppHNSW_0.6.0         hms_1.1.4             
+[148] patchwork_1.3.2        future_1.68.0          statmod_1.5.1         
+[151] shiny_1.12.1           haven_2.5.5            ROCR_1.0-11           
+[154] igraph_2.2.1           broom_1.0.11          </code></pre>
+</div>
+</div>
+
+
+</section>
+
+</main> <!-- /main -->
+<script id="quarto-html-after-body" type="application/javascript">
+window.document.addEventListener("DOMContentLoaded", function (event) {
+  const toggleBodyColorMode = (bsSheetEl) => {
+    const mode = bsSheetEl.getAttribute("data-mode");
+    const bodyEl = window.document.querySelector("body");
+    if (mode === "dark") {
+      bodyEl.classList.add("quarto-dark");
+      bodyEl.classList.remove("quarto-light");
+    } else {
+      bodyEl.classList.add("quarto-light");
+      bodyEl.classList.remove("quarto-dark");
+    }
+  }
+  const toggleBodyColorPrimary = () => {
+    const bsSheetEl = window.document.querySelector("link#quarto-bootstrap");
+    if (bsSheetEl) {
+      toggleBodyColorMode(bsSheetEl);
+    }
+  }
+  toggleBodyColorPrimary();  
+  const icon = "";
+  const anchorJS = new window.AnchorJS();
+  anchorJS.options = {
+    placement: 'right',
+    icon: icon
+  };
+  anchorJS.add('.anchored');
+  const isCodeAnnotation = (el) => {
+    for (const clz of el.classList) {
+      if (clz.startsWith('code-annotation-')) {                     
+        return true;
+      }
+    }
+    return false;
+  }
+  const onCopySuccess = function(e) {
+    // button target
+    const button = e.trigger;
+    // don't keep focus
+    button.blur();
+    // flash "checked"
+    button.classList.add('code-copy-button-checked');
+    var currentTitle = button.getAttribute("title");
+    button.setAttribute("title", "Copied!");
+    let tooltip;
+    if (window.bootstrap) {
+      button.setAttribute("data-bs-toggle", "tooltip");
+      button.setAttribute("data-bs-placement", "left");
+      button.setAttribute("data-bs-title", "Copied!");
+      tooltip = new bootstrap.Tooltip(button, 
+        { trigger: "manual", 
+          customClass: "code-copy-button-tooltip",
+          offset: [0, -8]});
+      tooltip.show();    
+    }
+    setTimeout(function() {
+      if (tooltip) {
+        tooltip.hide();
+        button.removeAttribute("data-bs-title");
+        button.removeAttribute("data-bs-toggle");
+        button.removeAttribute("data-bs-placement");
+      }
+      button.setAttribute("title", currentTitle);
+      button.classList.remove('code-copy-button-checked');
+    }, 1000);
+    // clear code selection
+    e.clearSelection();
+  }
+  const getTextToCopy = function(trigger) {
+      const codeEl = trigger.previousElementSibling.cloneNode(true);
+      for (const childEl of codeEl.children) {
+        if (isCodeAnnotation(childEl)) {
+          childEl.remove();
+        }
+      }
+      return codeEl.innerText;
+  }
+  const clipboard = new window.ClipboardJS('.code-copy-button:not([data-in-quarto-modal])', {
+    text: getTextToCopy
+  });
+  clipboard.on('success', onCopySuccess);
+  if (window.document.getElementById('quarto-embedded-source-code-modal')) {
+    // For code content inside modals, clipBoardJS needs to be initialized with a container option
+    // TODO: Check when it could be a function (https://github.com/zenorocha/clipboard.js/issues/860)
+    const clipboardModal = new window.ClipboardJS('.code-copy-button[data-in-quarto-modal]', {
+      text: getTextToCopy,
+      container: window.document.getElementById('quarto-embedded-source-code-modal')
+    });
+    clipboardModal.on('success', onCopySuccess);
+  }
+    var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
+    var mailtoRegex = new RegExp(/^mailto:/);
+      var filterRegex = new RegExp('/' + window.location.host + '/');
+    var isInternal = (href) => {
+        return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
+    }
+    // Inspect non-navigation links and adorn them if external
+ 	var links = window.document.querySelectorAll('a[href]:not(.nav-link):not(.navbar-brand):not(.toc-action):not(.sidebar-link):not(.sidebar-item-toggle):not(.pagination-link):not(.no-external):not([aria-hidden]):not(.dropdown-item):not(.quarto-navigation-tool):not(.about-link)');
+    for (var i=0; i<links.length; i++) {
+      const link = links[i];
+      if (!isInternal(link.href)) {
+        // undo the damage that might have been done by quarto-nav.js in the case of
+        // links that we want to consider external
+        if (link.dataset.originalHref !== undefined) {
+          link.href = link.dataset.originalHref;
+        }
+      }
+    }
+  function tippyHover(el, contentFn, onTriggerFn, onUntriggerFn) {
+    const config = {
+      allowHTML: true,
+      maxWidth: 500,
+      delay: 100,
+      arrow: false,
+      appendTo: function(el) {
+          return el.parentElement;
+      },
+      interactive: true,
+      interactiveBorder: 10,
+      theme: 'quarto',
+      placement: 'bottom-start',
+    };
+    if (contentFn) {
+      config.content = contentFn;
+    }
+    if (onTriggerFn) {
+      config.onTrigger = onTriggerFn;
+    }
+    if (onUntriggerFn) {
+      config.onUntrigger = onUntriggerFn;
+    }
+    window.tippy(el, config); 
+  }
+  const noterefs = window.document.querySelectorAll('a[role="doc-noteref"]');
+  for (var i=0; i<noterefs.length; i++) {
+    const ref = noterefs[i];
+    tippyHover(ref, function() {
+      // use id or data attribute instead here
+      let href = ref.getAttribute('data-footnote-href') || ref.getAttribute('href');
+      try { href = new URL(href).hash; } catch {}
+      const id = href.replace(/^#\/?/, "");
+      const note = window.document.getElementById(id);
+      if (note) {
+        return note.innerHTML;
+      } else {
+        return "";
+      }
+    });
+  }
+  const xrefs = window.document.querySelectorAll('a.quarto-xref');
+  const processXRef = (id, note) => {
+    // Strip column container classes
+    const stripColumnClz = (el) => {
+      el.classList.remove("page-full", "page-columns");
+      if (el.children) {
+        for (const child of el.children) {
+          stripColumnClz(child);
+        }
+      }
+    }
+    stripColumnClz(note)
+    if (id === null || id.startsWith('sec-')) {
+      // Special case sections, only their first couple elements
+      const container = document.createElement("div");
+      if (note.children && note.children.length > 2) {
+        container.appendChild(note.children[0].cloneNode(true));
+        for (let i = 1; i < note.children.length; i++) {
+          const child = note.children[i];
+          if (child.tagName === "P" && child.innerText === "") {
+            continue;
+          } else {
+            container.appendChild(child.cloneNode(true));
+            break;
+          }
+        }
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(container);
+        }
+        return container.innerHTML
+      } else {
+        if (window.Quarto?.typesetMath) {
+          window.Quarto.typesetMath(note);
+        }
+        return note.innerHTML;
+      }
+    } else {
+      // Remove any anchor links if they are present
+      const anchorLink = note.querySelector('a.anchorjs-link');
+      if (anchorLink) {
+        anchorLink.remove();
+      }
+      if (window.Quarto?.typesetMath) {
+        window.Quarto.typesetMath(note);
+      }
+      // TODO in 1.5, we should make sure this works without a callout special case
+      if (note.classList.contains("callout")) {
+        return note.outerHTML;
+      } else {
+        return note.innerHTML;
+      }
+    }
+  }
+  for (var i=0; i<xrefs.length; i++) {
+    const xref = xrefs[i];
+    tippyHover(xref, undefined, function(instance) {
+      instance.disable();
+      let url = xref.getAttribute('href');
+      let hash = undefined; 
+      if (url.startsWith('#')) {
+        hash = url;
+      } else {
+        try { hash = new URL(url).hash; } catch {}
+      }
+      if (hash) {
+        const id = hash.replace(/^#\/?/, "");
+        const note = window.document.getElementById(id);
+        if (note !== null) {
+          try {
+            const html = processXRef(id, note.cloneNode(true));
+            instance.setContent(html);
+          } finally {
+            instance.enable();
+            instance.show();
+          }
+        } else {
+          // See if we can fetch this
+          fetch(url.split('#')[0])
+          .then(res => res.text())
+          .then(html => {
+            const parser = new DOMParser();
+            const htmlDoc = parser.parseFromString(html, "text/html");
+            const note = htmlDoc.getElementById(id);
+            if (note !== null) {
+              const html = processXRef(id, note);
+              instance.setContent(html);
+            } 
+          }).finally(() => {
+            instance.enable();
+            instance.show();
+          });
+        }
+      } else {
+        // See if we can fetch a full url (with no hash to target)
+        // This is a special case and we should probably do some content thinning / targeting
+        fetch(url)
+        .then(res => res.text())
+        .then(html => {
+          const parser = new DOMParser();
+          const htmlDoc = parser.parseFromString(html, "text/html");
+          const note = htmlDoc.querySelector('main.content');
+          if (note !== null) {
+            // This should only happen for chapter cross references
+            // (since there is no id in the URL)
+            // remove the first header
+            if (note.children.length > 0 && note.children[0].tagName === "HEADER") {
+              note.children[0].remove();
+            }
+            const html = processXRef(null, note);
+            instance.setContent(html);
+          } 
+        }).finally(() => {
+          instance.enable();
+          instance.show();
+        });
+      }
+    }, function(instance) {
+    });
+  }
+      let selectedAnnoteEl;
+      const selectorForAnnotation = ( cell, annotation) => {
+        let cellAttr = 'data-code-cell="' + cell + '"';
+        let lineAttr = 'data-code-annotation="' +  annotation + '"';
+        const selector = 'span[' + cellAttr + '][' + lineAttr + ']';
+        return selector;
+      }
+      const selectCodeLines = (annoteEl) => {
+        const doc = window.document;
+        const targetCell = annoteEl.getAttribute("data-target-cell");
+        const targetAnnotation = annoteEl.getAttribute("data-target-annotation");
+        const annoteSpan = window.document.querySelector(selectorForAnnotation(targetCell, targetAnnotation));
+        const lines = annoteSpan.getAttribute("data-code-lines").split(",");
+        const lineIds = lines.map((line) => {
+          return targetCell + "-" + line;
+        })
+        let top = null;
+        let height = null;
+        let parent = null;
+        if (lineIds.length > 0) {
+            //compute the position of the single el (top and bottom and make a div)
+            const el = window.document.getElementById(lineIds[0]);
+            top = el.offsetTop;
+            height = el.offsetHeight;
+            parent = el.parentElement.parentElement;
+          if (lineIds.length > 1) {
+            const lastEl = window.document.getElementById(lineIds[lineIds.length - 1]);
+            const bottom = lastEl.offsetTop + lastEl.offsetHeight;
+            height = bottom - top;
+          }
+          if (top !== null && height !== null && parent !== null) {
+            // cook up a div (if necessary) and position it 
+            let div = window.document.getElementById("code-annotation-line-highlight");
+            if (div === null) {
+              div = window.document.createElement("div");
+              div.setAttribute("id", "code-annotation-line-highlight");
+              div.style.position = 'absolute';
+              parent.appendChild(div);
+            }
+            div.style.top = top - 2 + "px";
+            div.style.height = height + 4 + "px";
+            div.style.left = 0;
+            let gutterDiv = window.document.getElementById("code-annotation-line-highlight-gutter");
+            if (gutterDiv === null) {
+              gutterDiv = window.document.createElement("div");
+              gutterDiv.setAttribute("id", "code-annotation-line-highlight-gutter");
+              gutterDiv.style.position = 'absolute';
+              const codeCell = window.document.getElementById(targetCell);
+              const gutter = codeCell.querySelector('.code-annotation-gutter');
+              gutter.appendChild(gutterDiv);
+            }
+            gutterDiv.style.top = top - 2 + "px";
+            gutterDiv.style.height = height + 4 + "px";
+          }
+          selectedAnnoteEl = annoteEl;
+        }
+      };
+      const unselectCodeLines = () => {
+        const elementsIds = ["code-annotation-line-highlight", "code-annotation-line-highlight-gutter"];
+        elementsIds.forEach((elId) => {
+          const div = window.document.getElementById(elId);
+          if (div) {
+            div.remove();
+          }
+        });
+        selectedAnnoteEl = undefined;
+      };
+        // Handle positioning of the toggle
+    window.addEventListener(
+      "resize",
+      throttle(() => {
+        elRect = undefined;
+        if (selectedAnnoteEl) {
+          selectCodeLines(selectedAnnoteEl);
+        }
+      }, 10)
+    );
+    function throttle(fn, ms) {
+    let throttle = false;
+    let timer;
+      return (...args) => {
+        if(!throttle) { // first call gets through
+            fn.apply(this, args);
+            throttle = true;
+        } else { // all the others get throttled
+            if(timer) clearTimeout(timer); // cancel #2
+            timer = setTimeout(() => {
+              fn.apply(this, args);
+              timer = throttle = false;
+            }, ms);
+        }
+      };
+    }
+      // Attach click handler to the DT
+      const annoteDls = window.document.querySelectorAll('dt[data-target-cell]');
+      for (const annoteDlNode of annoteDls) {
+        annoteDlNode.addEventListener('click', (event) => {
+          const clickedEl = event.target;
+          if (clickedEl !== selectedAnnoteEl) {
+            unselectCodeLines();
+            const activeEl = window.document.querySelector('dt[data-target-cell].code-annotation-active');
+            if (activeEl) {
+              activeEl.classList.remove('code-annotation-active');
+            }
+            selectCodeLines(clickedEl);
+            clickedEl.classList.add('code-annotation-active');
+          } else {
+            // Unselect the line
+            unselectCodeLines();
+            clickedEl.classList.remove('code-annotation-active');
+          }
+        });
+      }
+  const findCites = (el) => {
+    const parentEl = el.parentElement;
+    if (parentEl) {
+      const cites = parentEl.dataset.cites;
+      if (cites) {
+        return {
+          el,
+          cites: cites.split(' ')
+        };
+      } else {
+        return findCites(el.parentElement)
+      }
+    } else {
+      return undefined;
+    }
+  };
+  var bibliorefs = window.document.querySelectorAll('a[role="doc-biblioref"]');
+  for (var i=0; i<bibliorefs.length; i++) {
+    const ref = bibliorefs[i];
+    const citeInfo = findCites(ref);
+    if (citeInfo) {
+      tippyHover(citeInfo.el, function() {
+        var popup = window.document.createElement('div');
+        citeInfo.cites.forEach(function(cite) {
+          var citeDiv = window.document.createElement('div');
+          citeDiv.classList.add('hanging-indent');
+          citeDiv.classList.add('csl-entry');
+          var biblioDiv = window.document.getElementById('ref-' + cite);
+          if (biblioDiv) {
+            citeDiv.innerHTML = biblioDiv.innerHTML;
+          }
+          popup.appendChild(citeDiv);
+        });
+        return popup.innerHTML;
+      });
+    }
+  }
+});
+</script>
+<nav class="page-navigation">
+  <div class="nav-page nav-page-previous">
+      <a href="./index.html" class="pagination-link" aria-label="Introduction">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Introduction</span>
+      </a>          
+  </div>
+  <div class="nav-page nav-page-next">
+      <a href="./TS_and_VR_TCR_gene_expression.html" class="pagination-link" aria-label="Gene expression in TS and VR specific TCRs">
+        <span class="nav-page-text"><span class="chapter-number">2</span>&nbsp; <span class="chapter-title">Gene expression in TS and VR specific TCRs</span></span> <i class="bi bi-arrow-right-short"></i>
+      </a>
+  </div>
+</nav>
+</div> <!-- /content -->
+
+
+
+
+</body></html>

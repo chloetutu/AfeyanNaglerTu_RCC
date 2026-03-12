@@ -1,0 +1,607 @@
+# Region by region gene expression scores  {#sec-gene-exp-plots}
+
+# Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+library(muscat)
+library(limma)
+library(purrr)
+library(SummarizedExperiment)
+library(fgsea)
+library(msigdbr)
+library(ProjecTILs)
+library(readxl)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+set.seed(123)
+```
+
+# Open gene sets for GSEA
+```{r}
+gene_sets <- readRDS("../objects/immune_gene_sets.Rds")
+
+```
+
+# Load objects
+```{r}
+P102TA_10_RNA <- readRDS("../objects/02_Puck10_102TA_TCR_RNA_area_121125.Rds")
+P102TA_17_RNA <- readRDS("../objects/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+P102TA_39_RNA <- readRDS("../objects/02_Puck39_102TA_TCR_RNA_area_121125.Rds")
+
+P107TA_15_RNA <- readRDS("../objects/02_Puck15_107TA_TCR_RNA_area_121125.Rds")
+P107TA_18_RNA <- readRDS("../objects/02_Puck18_107TA_TCR_RNA_area_121125.Rds")
+P107TA_20_RNA <- readRDS("../objects/02_Puck20_107TA_TCR_RNA_area_121125.Rds")
+
+P108TA_26_RNA <- readRDS("../objects/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("../objects/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("../objects/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+
+P108TB_06_RNA <- readRDS("../objects/02_Puck06_108TB_TCR_RNA_area_121125.Rds")
+P108TB_14_RNA <- readRDS("../objects/02_Puck14_108TB_TCR_RNA_area_121125.Rds")
+
+P109TB_23_RNA <- readRDS("../objects/02_Puck23_109TB_TCR_RNA_area_121125.Rds")
+P109TB_34_RNA <- readRDS("../objects/02_Puck34_109TB_TCR_RNA_area_121125.Rds")
+
+P110TA_28_RNA <- readRDS("../objects/02_Puck28_110TA_TCR_RNA_area_121125.Rds")
+P110TA_30_RNA <- readRDS("../objects/02_Puck30_110TA_TCR_RNA_area_121125.Rds")
+
+P111TA_32_RNA <- readRDS("../objects/02_Puck32_111TA_TCR_RNA_area_121125.Rds")
+P111TA_37_RNA <- readRDS("../objects/02_Puck37_111TA_TCR_RNA_area_121125.Rds")
+```
+
+## Assign celltypes
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_10_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_17_RNA@meta.data <- P102TA_17_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_17_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_33_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_39_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P107TA_15_RNA@meta.data <- P107TA_15_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P107TA_15_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P107TA_18_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P107TA_20_RNA@meta.data <- P107TA_20_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P107TA_20_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_26_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_29_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_30_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_32_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P108TB_06_RNA@meta.data <- P108TB_06_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TB_06_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TB_14_RNA@meta.data <- P108TB_14_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TB_14_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P109TB_23_RNA@meta.data <- P109TB_23_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P109TB_23_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P109TB_34_RNA@meta.data <- P109TB_34_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P109TB_34_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P110TA_28_RNA@meta.data <- P110TA_28_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P110TA_28_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P110TA_30_RNA@meta.data <- P110TA_30_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P110TA_30_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P111TA_32_RNA@meta.data <- P111TA_32_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P111TA_32_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P111TA_37_RNA@meta.data <- P111TA_37_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P111TA_37_RNA@meta.data %>%
+  dplyr::count(assignment1)
+```
+
+
+# Remove extra columns
+## P109
+```{r}
+P109TB_23_RNA@meta.data <- P109TB_23_RNA@meta.data %>%
+  select(-c(puck23_count, log_puck23_count, largest_clone_id))
+P109TB_34_RNA@meta.data <- P109TB_34_RNA@meta.data %>%
+  select(-c(puck34_count, log_puck34_count, largest_clone_id))
+```
+
+## P110
+```{r}
+P110TA_28_RNA@meta.data <- P110TA_28_RNA@meta.data %>%
+  select(-c(puck28_count, log_puck28_count, largest_clone_id))
+P110TA_30_RNA@meta.data <- P110TA_30_RNA@meta.data %>%
+  select(-c(puck30_count, log_puck30_count, largest_clone_id))
+```
+
+## P111
+```{r}
+P111TA_32_RNA@meta.data <- P111TA_32_RNA@meta.data %>%
+  select(-c(puck32_count, log_puck32_count, largest_clone_id))
+P111TA_37_RNA@meta.data <- P111TA_37_RNA@meta.data %>%
+  select(-c(puck37_count, log_puck37_count, largest_clone_id))
+```
+
+# Remove empty beads
+```{r}
+P102TA_10_RNA <- subset(P102TA_10_RNA, subset = area == "Empty", invert = TRUE)
+P102TA_17_RNA <- subset(P102TA_17_RNA, subset = area == "Empty", invert = TRUE)
+P102TA_33_RNA <- subset(P102TA_33_RNA, subset = area == "Empty", invert = TRUE)
+P102TA_39_RNA <- subset(P102TA_39_RNA, subset = area == "Empty", invert = TRUE)
+
+P107TA_15_RNA <- subset(P107TA_15_RNA, subset = area == "Empty", invert = TRUE)
+P107TA_18_RNA <- subset(P107TA_18_RNA, subset = area == "Empty", invert = TRUE)
+P107TA_20_RNA <- subset(P107TA_20_RNA, subset = area == "Empty", invert = TRUE)
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = area == "Empty", invert = TRUE)
+
+P108TB_06_RNA <- subset(P108TB_06_RNA, subset = area == "Empty", invert = TRUE)
+P108TB_14_RNA <- subset(P108TB_14_RNA, subset = area == "Empty", invert = TRUE)
+
+P109TB_23_RNA <- subset(P109TB_23_RNA, subset = area == "Empty", invert = TRUE)
+P109TB_34_RNA <- subset(P109TB_34_RNA, subset = area == "Empty", invert = TRUE)
+
+P110TA_28_RNA <- subset(P110TA_28_RNA, subset = area == "Empty", invert = TRUE)
+P110TA_30_RNA <- subset(P110TA_30_RNA, subset = area == "Empty", invert = TRUE)
+
+P111TA_32_RNA <- subset(P111TA_32_RNA, subset = area == "Empty", invert = TRUE)
+P111TA_37_RNA <- subset(P111TA_37_RNA, subset = area == "Empty", invert = TRUE)
+```
+
+# Filter for beads with cell type assignments
+```{r}
+P102TA_10_RNA <- subset(P102TA_10_RNA, subset = !is.na(assignment1))
+P102TA_17_RNA <- subset(P102TA_17_RNA, subset = !is.na(assignment1))
+P102TA_33_RNA <- subset(P102TA_33_RNA, subset = !is.na(assignment1))
+P102TA_39_RNA <- subset(P102TA_39_RNA, subset = !is.na(assignment1))
+
+P107TA_15_RNA <- subset(P107TA_15_RNA, subset = !is.na(assignment1))
+P107TA_18_RNA <- subset(P107TA_18_RNA, subset = !is.na(assignment1))
+P107TA_20_RNA <- subset(P107TA_20_RNA, subset = !is.na(assignment1))
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = !is.na(assignment1))
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = !is.na(assignment1))
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = !is.na(assignment1))
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = !is.na(assignment1))
+
+P108TB_06_RNA <- subset(P108TB_06_RNA, subset = !is.na(assignment1))
+P108TB_14_RNA <- subset(P108TB_14_RNA, subset = !is.na(assignment1))
+
+P109TB_23_RNA <- subset(P109TB_23_RNA, subset = !is.na(assignment1))
+P109TB_34_RNA <- subset(P109TB_34_RNA, subset = !is.na(assignment1))
+
+P110TA_28_RNA <- subset(P110TA_28_RNA, subset = !is.na(assignment1))
+P110TA_30_RNA <- subset(P110TA_30_RNA, subset = !is.na(assignment1))
+
+P111TA_32_RNA <- subset(P111TA_32_RNA, subset = !is.na(assignment1))
+P111TA_37_RNA <- subset(P111TA_37_RNA, subset = !is.na(assignment1))
+```
+
+# Cast TLS to a singular value
+```{r}
+format_md <- function(obj){
+  obj <- obj %>%
+    mutate(final_area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4", "M2") ~ "TLS",
+                                T ~ area),
+         Patient = str_sub(orig.ident, start = 1, end = 5),
+         tls_bool = case_when(final_area == "TLS" ~ "TLS",
+                              T ~ "nonTLS"),
+         boundary_bool = case_when(final_area == "Boundary" ~ "Boundary",
+                                   T ~ "nonBoundary"),
+         tumor_bool = case_when(final_area == "Tumor" ~ "Tumor",
+                                   T ~ "nonTumor"),
+         Patient_tls = paste0(Patient, "_", tls_bool),
+         Patient_boundary = paste0(Patient, "_", boundary_bool),
+         Patient_tumor = paste0(Patient, "_", tumor_bool),
+         dummy = "dummy")
+  
+  return(obj)
+}
+
+P102TA_10_RNA@meta.data <-  P102TA_10_RNA@meta.data %>%
+  format_md()
+P102TA_17_RNA@meta.data <-  P102TA_17_RNA@meta.data %>%
+  format_md()
+P102TA_33_RNA@meta.data <-  P102TA_33_RNA@meta.data %>%
+  format_md()
+P102TA_39_RNA@meta.data <-  P102TA_39_RNA@meta.data %>%
+  format_md()
+
+P107TA_15_RNA@meta.data <-  P107TA_15_RNA@meta.data %>%
+  format_md()
+P107TA_18_RNA@meta.data <-  P107TA_18_RNA@meta.data %>%
+  format_md()
+P107TA_20_RNA@meta.data <-  P107TA_20_RNA@meta.data %>%
+  format_md()
+
+P108TA_26_RNA@meta.data <-  P108TA_26_RNA@meta.data %>%
+  format_md()
+P108TA_29_RNA@meta.data <-  P108TA_29_RNA@meta.data %>%
+  format_md()
+P108TA_30_RNA@meta.data <-  P108TA_30_RNA@meta.data %>%
+  format_md()
+P108TA_32_RNA@meta.data <-  P108TA_32_RNA@meta.data %>%
+  format_md()
+
+P108TB_06_RNA@meta.data <-  P108TB_06_RNA@meta.data %>%
+  format_md()
+P108TB_14_RNA@meta.data <-  P108TB_14_RNA@meta.data %>%
+  format_md()
+
+P109TB_23_RNA@meta.data <-  P109TB_23_RNA@meta.data %>%
+  format_md()
+P109TB_34_RNA@meta.data <-  P109TB_34_RNA@meta.data %>%
+  format_md()
+
+P110TA_28_RNA@meta.data <-  P110TA_28_RNA@meta.data %>%
+  format_md()
+P110TA_30_RNA@meta.data <-  P110TA_30_RNA@meta.data %>%
+  format_md()
+
+P111TA_32_RNA@meta.data <-  P111TA_32_RNA@meta.data %>%
+  format_md()
+P111TA_37_RNA@meta.data <-  P111TA_37_RNA@meta.data %>%
+  format_md()
+```
+
+## Format RNA objects
+### Normalize counts
+```{r, message = FALSE}
+P102TA_10_RNA <- NormalizeData(P102TA_10_RNA, assay = "Spatial")
+P102TA_33_RNA <- NormalizeData(P102TA_33_RNA, assay = "Spatial")
+P102TA_17_RNA <- NormalizeData(P102TA_17_RNA, assay = "Spatial")
+P102TA_39_RNA <- NormalizeData(P102TA_39_RNA, assay = "Spatial")
+
+P107TA_15_RNA <- NormalizeData(P107TA_15_RNA, assay = "Spatial")
+P107TA_18_RNA <- NormalizeData(P107TA_18_RNA, assay = "Spatial")
+P107TA_20_RNA <- NormalizeData(P107TA_20_RNA, assay = "Spatial")
+
+P108TA_26_RNA <- NormalizeData(P108TA_26_RNA, assay = "Spatial")
+P108TA_29_RNA <- NormalizeData(P108TA_29_RNA, assay = "Spatial")
+P108TA_30_RNA <- NormalizeData(P108TA_30_RNA, assay = "Spatial")
+P108TA_32_RNA <- NormalizeData(P108TA_32_RNA, assay = "Spatial")
+
+P108TB_06_RNA <- NormalizeData(P108TB_06_RNA, assay = "Spatial")
+P108TB_14_RNA <- NormalizeData(P108TB_14_RNA, assay = "Spatial")
+
+P109TB_23_RNA <- NormalizeData(P109TB_23_RNA, assay = "Spatial")
+P109TB_34_RNA <- NormalizeData(P109TB_34_RNA, assay = "Spatial")
+
+P110TA_28_RNA <- NormalizeData(P110TA_28_RNA, assay = "Spatial")
+P110TA_30_RNA <- NormalizeData(P110TA_30_RNA, assay = "Spatial")
+
+P111TA_32_RNA <- NormalizeData(P111TA_32_RNA, assay = "Spatial")
+P111TA_37_RNA <- NormalizeData(P111TA_37_RNA, assay = "Spatial")
+
+```
+
+
+### Merge RNA objects
+```{r}
+pucks <- merge(x = P102TA_10_RNA, y = list(P102TA_17_RNA, P102TA_33_RNA, P102TA_39_RNA, 
+                                           P107TA_15_RNA, P107TA_18_RNA, P107TA_20_RNA, 
+                                           P108TA_26_RNA, P108TA_29_RNA, P108TA_30_RNA, P108TA_32_RNA, 
+                                           P108TB_06_RNA, P108TB_14_RNA,
+                                           P109TB_23_RNA, P109TB_34_RNA,
+                                           P110TA_28_RNA, P110TA_30_RNA,
+                                           P111TA_32_RNA, P111TA_37_RNA))
+
+# Update metadata
+pucks@meta.data <- pucks@meta.data %>%
+  mutate(Patient = str_sub(orig.ident, start = 1, end = 5))
+
+pucks[['Spatial']] <- JoinLayers(pucks[['Spatial']])
+
+```
+
+# Open gene sets for GSEA
+```{r}
+gs_of_int <- gene_sets[c("nieto_b_plasma", "nieto_b", "nieto_myeloid_prolif", "projecTILs.CD4.NaiveLike", "projecTILs.CD4.Treg", "projecTILs.CD4.Tfh", "Guimaraes.Mac_AgPres", "Guimaraes.Mac_IFN", "Guimaraes.RTM_LA", "guimaraes.m1")]
+
+c7 <- msigdbr(species = "human", collection = "C7")
+c7_deg <- split(c7$gene_symbol, f = c7$gs_name)
+
+c2 <- msigdbr(species = "human", collection = "C2")
+c2_deg <- split(c2$gene_symbol, f = c2$gs_name)
+
+c2_of_int <- c2_deg[c("KEGG_RENAL_CELL_CARCINOMA", "BIOCARTA_VEGF_PATHWAY", "BUFFA_HYPOXIA_METAGENE", "WP_CLEAR_CELL_RENAL_CELL_CARCINOMA_PATHWAYS")]
+
+TLS.signatures <- list("Signature.Cabrita_TLS_Hallmark" = c("CCL19", "CCL21", "CXCL13", "CCR7", "CXCR5", "SELL", "LAMP3"), 
+                       "Signature.Cabrita_TLS_Signature" = c("CD79B", "CD1D", "CCR6", "LAT", "SKAP1", "CETP", "EIF1AY", "RBP5", "PTGDS"), 
+                       "Signature.Meylan_TLS" = c("IGHA1", "IGHG1", "IGHG2", "IGHG3", "IGHG4", "IGHGP", "IGHM", "IGKC", "IGLC1", "IGLC2", "IGLC3", "JCHAIN", "CD79A", "FCRL5", "MZB1", "SSR4", "XBP1", "TRBC2", "IL7R", "CXCL12", "LUM", "C1QA", "C7", "CD52", "APOE", "PTGDS", "PIM2", "DERL3", "PTLP"), 
+                       "Signature.Xu_TLS" = c("CCL2", "CCL3", "CCL4", "CCL5", "CCL8", "CCL18", "CCL19", "CCL21", "CXCL9", "CXCL10", "CXCL11", "CXCL13"))
+```
+
+## Calculate signature scores and stats
+```{r}
+pucks <- AddModuleScore(pucks, features = c(gs_of_int, c2_of_int, TLS.signatures), name = names(c(gs_of_int, c2_of_int, TLS.signatures)))
+```
+
+### Count the number of beads going into each area
+```{r}
+pucks@meta.data %>%
+  dplyr::count(Patient, final_area) %>%
+  pivot_wider(names_from = "final_area", values_from = "n")
+```
+
+### Calculate the mean macrophage score of each area
+```{r}
+mean_per_patient.df <- pucks@meta.data %>%
+  group_by(Patient, final_area) %>%
+  summarize(mean_plasma = round(mean(nieto_b_plasma1), 8),
+            mean_b = round(mean(nieto_b2), 8),
+            mean_myeloid_prolif = round(mean(nieto_myeloid_prolif3), 8),
+            mean_projectils_cd4_naive = round(mean(projecTILs.CD4.NaiveLike4), 8),
+            mean_projectils_treg = round(mean(projecTILs.CD4.Treg5), 8),
+            mean_projectils_tfh = round(mean(projecTILs.CD4.Tfh6), 8),
+            mean_ag_pres = round(mean(Guimaraes.Mac_AgPres7), 8),
+            mean_mac_ifn = round(mean(Guimaraes.Mac_IFN8), 8),
+            mean_m1 = round(mean(guimaraes.m110), 8),
+            mean_rtm_la = round(mean(Guimaraes.RTM_LA9), 8),
+            mean_rcc_kegg = round(mean(KEGG_RENAL_CELL_CARCINOMA11), 8),
+            mean_biocarta_hypoxia = round(mean(BIOCARTA_VEGF_PATHWAY12), 8),
+            mean_buffa_hypoxia = round(mean(BUFFA_HYPOXIA_METAGENE13), 8),
+            mean_rcc_wp = round(mean(WP_CLEAR_CELL_RENAL_CELL_CARCINOMA_PATHWAYS14), 8),
+            mean_cabrita_tls_hm = round(mean(Signature.Cabrita_TLS_Hallmark15), 8),
+            mean_cabrita_tls_sig = round(mean(Signature.Cabrita_TLS_Signature16), 8),
+            mean_meylan_tls = round(mean(Signature.Meylan_TLS17), 8),
+            mean_xu_tls = round(mean(Signature.Xu_TLS18), 8)) %>%
+  mutate(tls_status = case_when(Patient %in% c("P102T", "P107T", "P108T") ~ "TLS+",
+                                Patient %in% c("P109T", "P110T", "P111T") ~ "TLS-")) %>%
+  ungroup()
+
+mean.df <- pucks@meta.data %>%
+  group_by(Patient, final_area, orig.ident) %>%
+  summarize(mean_plasma = round(mean(nieto_b_plasma1), 8),
+            mean_b = round(mean(nieto_b2), 8),
+            mean_myeloid_prolif = round(mean(nieto_myeloid_prolif3), 8),
+            mean_projectils_cd4_naive = round(mean(projecTILs.CD4.NaiveLike4), 8),
+            mean_projectils_treg = round(mean(projecTILs.CD4.Treg5), 8),
+            mean_projectils_tfh = round(mean(projecTILs.CD4.Tfh6), 8),
+            mean_ag_pres = round(mean(Guimaraes.Mac_AgPres7), 8),
+            mean_mac_ifn = round(mean(Guimaraes.Mac_IFN8), 8),
+            mean_m1 = round(mean(guimaraes.m110), 8),
+            mean_rtm_la = round(mean(Guimaraes.RTM_LA9), 8),
+            mean_rcc_kegg = round(mean(KEGG_RENAL_CELL_CARCINOMA11), 8),
+            mean_biocarta_hypoxia = round(mean(BIOCARTA_VEGF_PATHWAY12), 8),
+            mean_buffa_hypoxia = round(mean(BUFFA_HYPOXIA_METAGENE13), 8),
+            mean_rcc_wp = round(mean(WP_CLEAR_CELL_RENAL_CELL_CARCINOMA_PATHWAYS14), 8),
+            mean_cabrita_tls_hm = round(mean(Signature.Cabrita_TLS_Hallmark15), 8),
+            mean_cabrita_tls_sig = round(mean(Signature.Cabrita_TLS_Signature16), 8),
+            mean_meylan_tls = round(mean(Signature.Meylan_TLS17), 8),
+            mean_xu_tls = round(mean(Signature.Xu_TLS18), 8)) %>%
+  mutate(tls_status = case_when(Patient %in% c("P102T", "P107T", "P108T") ~ "TLS+",
+                                Patient %in% c("P109T", "P110T", "P111T") ~ "TLS-")) %>%
+  ungroup()
+
+sd.df <- pucks@meta.data %>%
+  group_by(Patient, final_area, orig.ident) %>%
+  summarize(n = n(),
+            sd_plasma = round(sd(nieto_b_plasma1), 8),
+            sd_b = round(sd(nieto_b2), 8),
+            sd_myeloid_prolif = round(sd(nieto_myeloid_prolif3), 8),
+            sd_projectils_cd4_naive = round(sd(projecTILs.CD4.NaiveLike4), 8),
+            sd_projectils_treg = round(sd(projecTILs.CD4.Treg5), 8),
+            sd_projectils_tfh = round(sd(projecTILs.CD4.Tfh6), 8),
+            sd_ag_pres = round(sd(Guimaraes.Mac_AgPres7), 8),
+            sd_mac_ifn = round(sd(Guimaraes.Mac_IFN8), 8),
+            sd_m1 = round(sd(guimaraes.m110), 8),
+            sd_rtm_la = round(sd(Guimaraes.RTM_LA9), 8),
+            sd_rcc_kegg = round(sd(KEGG_RENAL_CELL_CARCINOMA11), 8),
+            sd_biocarta_hypoxia = round(sd(BIOCARTA_VEGF_PATHWAY12), 8),
+            sd_buffa_hypoxia = round(sd(BUFFA_HYPOXIA_METAGENE13), 8),
+            sd_rcc_wp = round(sd(WP_CLEAR_CELL_RENAL_CELL_CARCINOMA_PATHWAYS14), 8),
+            sd_cabrita_tls_hm = round(sd(Signature.Cabrita_TLS_Hallmark15), 8),
+            sd_cabrita_tls_sig = round(sd(Signature.Cabrita_TLS_Signature16), 8),
+            sd_meylan_tls = round(sd(Signature.Meylan_TLS17), 8),
+            sd_xu_tls = round(sd(Signature.Xu_TLS18), 8)) %>%
+  mutate(tls_status = case_when(Patient %in% c("P102T", "P107T", "P108T") ~ "TLS+",
+                                Patient %in% c("P109T", "P110T", "P111T") ~ "TLS-"),
+         se_plasma = round(sd_plasma/sqrt(n), 8),
+            se_b = round(sd_b/sqrt(n), 8),
+            se_myeloid_prolif = round((sd_myeloid_prolif/sqrt(n)), 8),
+            se_projectils_cd4_naive = round(sd_projectils_cd4_naive/sqrt(n), 8),
+            se_projectils_treg = round(sd_projectils_treg/sqrt(n), 8),
+            se_projectils_tfh = round(sd_projectils_tfh/sqrt(n), 8),
+            se_ag_pres = round(sd_ag_pres/sqrt(n), 8),
+            se_mac_ifn = round(sd_mac_ifn/sqrt(n), 8),
+            se_m1 = round(sd_m1/sqrt(n), 8),
+            se_rtm_la = round(sd_rtm_la/sqrt(n), 8),
+            se_rcc_kegg = round(sd_rcc_kegg/sqrt(n), 8),
+            se_biocarta_hypoxia = round(sd_biocarta_hypoxia/sqrt(n), 8),
+            se_buffa_hypoxia = round(sd_buffa_hypoxia/sqrt(n), 8),
+            se_rcc_wp = round(sd_rcc_wp/sqrt(n), 8),
+         se_cabrita_tls_hm = round(sd_cabrita_tls_hm/sqrt(n), 8),
+         se_cabrita_tls_sig = round(sd_cabrita_tls_sig/sqrt(n), 8),
+         se_meylan_tls = round(sd_meylan_tls/sqrt(n), 8),
+         se_xu_tls = round(sd_xu_tls/sqrt(n), 8)) %>%
+  ungroup()
+```
+
+# Pivot for plots and add SE
+```{r}
+long_per_patient.df <- mean_per_patient.df %>%
+  pivot_longer(cols = !c(Patient, final_area, tls_status), names_to = "signature", values_to = "score") %>%
+  mutate(signature = str_replace(signature, "mean_", ""))
+
+long_mean.df <- mean.df %>%
+  pivot_longer(cols = !c(Patient, final_area, tls_status, orig.ident), names_to = "signature", values_to = "score") %>%
+  mutate(signature = str_replace(signature, "mean_", ""))
+
+long_sd.df <- sd.df %>%
+  select(-n, -contains("se")) %>%
+  pivot_longer(cols = !c(Patient, final_area, tls_status, orig.ident), names_to = "signature", values_to = "sd") %>%
+  mutate(signature = str_replace(signature, "sd_", ""))
+
+long_merged <- long_mean.df %>%
+  full_join(long_sd.df, by = c("Patient", "final_area", "tls_status", "signature", "orig.ident")) %>%
+  rowwise() %>%
+  mutate(upper = score+sd,
+         lower = score-sd)
+```
+
+#### Boxplot, mean per patient
+```{r}
+long_per_patient.df %>%
+  filter(signature %in% c("ag_pres", "mac_ifn", "meylan_tls", "cabrita_tls_hm", "b", "plasma", "projectils_tfh", "projectils_treg", "rcc_wp", "buffa_hypoxia")) %>%
+  mutate(signature = factor(signature, levels = c("ag_pres", "mac_ifn", "meylan_tls", "cabrita_tls_hm", "b", "plasma", "projectils_tfh", "projectils_treg", "rcc_wp", "buffa_hypoxia"))) %>%
+ggplot(aes(x = final_area, y = score, fill = final_area)) +
+  geom_boxplot() +
+  geom_point(aes(color = Patient)) +
+  facet_wrap(~signature, scales = "free_y") +
+  scale_color_manual(values = c("P102T" = "#FF9300", "P107T" = "#FF8AD8", "P108T" = "#009193", "P109T" = "#531B93", "P110T" = "#941100", "P111T" = "#D4FB79")) +
+  scale_fill_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000"))
+```
+
+# Plot figure for each signature
+```{r}
+my_ggplot <- function(df){
+  ggplot(df, aes(x = orig.ident, y = score, fill = final_area)) +
+  geom_errorbar(aes(ymin=lower, ymax=upper), width=.2, position=position_dodge(.9)) +
+  geom_point(aes(color = Patient)) +
+  facet_wrap(signature~final_area, scales = "free_x") +
+  theme_minimal() +
+  theme(axis.text.x = element_blank()) +
+  scale_color_manual(values = c("P102T" = "#FF9300", "P107T" = "#FF8AD8", "P108T" = "#009193", "P109T" = "#531B93", "P110T" = "#941100", "P111T" = "#D4FB79"))
+}
+                              
+plasma_plot <- long_merged %>%
+  filter(signature == "plasma") %>%
+  my_ggplot()
+b_plot <- long_merged %>%
+  filter(signature == "b") %>%
+  my_ggplot()
+myeloid_prolif_plot <- long_merged %>%
+  filter(signature == "myeloid_prolif") %>%
+  my_ggplot()
+cd4_naive_plot <- long_merged %>%
+  filter(signature == "projectils_cd4_naive") %>%
+  my_ggplot()
+treg_plot <- long_merged %>%
+  filter(signature == "projectils_treg") %>%
+  my_ggplot()
+projectils_tfh_plot <- long_merged %>%
+  filter(signature == "projectils_tfh") %>%
+  my_ggplot()
+ag_pres_plot <- long_merged %>%
+  filter(signature == "ag_pres") %>%
+  my_ggplot()
+mac_ifn_plot <- long_merged %>%
+  filter(signature == "mac_ifn") %>%
+  my_ggplot()
+m1_plot <- long_merged %>%
+  filter(signature == "m1") %>%
+  my_ggplot()
+rtm_la_plot <- long_merged %>%
+  filter(signature == "rtm_la") %>%
+  my_ggplot()
+rcc_kegg_plot <- long_merged %>%
+  filter(signature == "rcc_kegg") %>%
+  my_ggplot()
+biocarta_hypoxia_plot <- long_merged %>%
+  filter(signature == "biocarta_hypoxia") %>%
+  my_ggplot()
+buffa_hypoxia_plot <- long_merged %>%
+  filter(signature == "buffa_hypoxia") %>%
+  my_ggplot()
+rcc_wp_plot <- long_merged %>%
+  filter(signature == "rcc_wp") %>%
+  my_ggplot()
+cabrita_tls_hm_plot <- long_merged %>%
+  filter(signature == "cabrita_tls_hm") %>%
+  my_ggplot()
+cabrita_tls_sig_plot <- long_merged %>%
+  filter(signature == "cabrita_tls_sig") %>%
+  my_ggplot()
+meylan_tls_plot <- long_merged %>%
+  filter(signature == "meylan_tls") %>%
+  my_ggplot()
+xu_tls_plot <- long_merged %>%
+  filter(signature == "xu_tls") %>%
+  my_ggplot()
+```
+
+# Combine plots to get a comparable axis
+```{r, fig.width = 15, fig.height = 8}
+b_plot  + plasma_plot + projectils_tfh_plot + treg_plot + cd4_naive_plot + cabrita_tls_hm_plot + cabrita_tls_sig_plot + meylan_tls_plot + xu_tls_plot + rcc_wp_plot +  biocarta_hypoxia_plot + buffa_hypoxia_plot +  rcc_kegg_plot + ag_pres_plot + myeloid_prolif_plot + m1_plot + mac_ifn_plot +  rtm_la_plot +  plot_layout(guides = 'collect', axes = "collect")
+```
+

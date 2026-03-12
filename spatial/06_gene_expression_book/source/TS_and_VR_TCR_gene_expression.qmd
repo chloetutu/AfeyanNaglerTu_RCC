@@ -1,0 +1,3919 @@
+# Gene expression in TS and VR specific TCRs {#sec-gene-exp-plots}
+
+# Heatmaps and dotplots of TS and VR specific TCRs
+
+# Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+library(muscat)
+library(limma)
+library(purrr)
+library(SummarizedExperiment)
+library(fgsea)
+library(msigdbr)
+library(ProjecTILs)
+library(readxl)
+library(UpSetR)
+library(ggpointdensity)
+library(ComplexHeatmap)
+library(circlize)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+colors <- structure(c("grey95", rep(c(paletteer::paletteer_d("khroma::smoothrainbow"), paletteer::paletteer_d("khroma::lapaz"), paletteer::paletteer_d("khroma::tokyo"), paletteer::paletteer_d("khroma::buda")), 10)), names = as.character(c(0:8019)))
+
+set.seed(123)
+```
+
+# Set definitions of "far" and "near"
+```{r}
+lower_radius.vec <- c(0, 100)
+upper_radius.vec <- c(30, 145)
+```
+
+# Load objects
+```{r}
+P102TA_10_RNA <- readRDS("../objects/02_Puck10_102TA_TCR_RNA_area_121125.Rds")
+P102TA_17_RNA <- readRDS("../objects/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+P102TA_39_RNA <- readRDS("../objects/02_Puck39_102TA_TCR_RNA_area_121125.Rds")
+
+P107TA_15_RNA <- readRDS("../objects/02_Puck15_107TA_TCR_RNA_area_121125.Rds")
+P107TA_18_RNA <- readRDS("../objects/02_Puck18_107TA_TCR_RNA_area_121125.Rds")
+P107TA_20_RNA <- readRDS("../objects/02_Puck20_107TA_TCR_RNA_area_121125.Rds")
+
+P108TA_26_RNA <- readRDS("../objects/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("../objects/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("../objects/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+
+P108TB_06_RNA <- readRDS("../objects/02_Puck06_108TB_TCR_RNA_area_121125.Rds")
+P108TB_14_RNA <- readRDS("../objects/02_Puck14_108TB_TCR_RNA_area_121125.Rds")
+```
+
+## Assign celltypes
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_10_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_17_RNA@meta.data <- P102TA_17_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_17_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_33_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P102TA_39_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_26_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_29_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_30_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_32_RNA@meta.data %>%
+  dplyr::count(assignment1)
+
+P108TB_06_RNA@meta.data <- P108TB_06_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TB_06_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TB_14_RNA@meta.data <- P108TB_14_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TB_14_RNA@meta.data %>%
+  dplyr::count(assignment1)
+```
+
+# Remove empty beads
+```{r}
+P102TA_10_RNA <- subset(P102TA_10_RNA, subset = area == "Empty", invert = TRUE)
+P102TA_17_RNA <- subset(P102TA_17_RNA, subset = area == "Empty", invert = TRUE)
+P102TA_33_RNA <- subset(P102TA_33_RNA, subset = area == "Empty", invert = TRUE)
+P102TA_39_RNA <- subset(P102TA_39_RNA, subset = area == "Empty", invert = TRUE)
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = area == "Empty", invert = TRUE)
+
+P108TB_06_RNA <- subset(P108TB_06_RNA, subset = area == "Empty", invert = TRUE)
+P108TB_14_RNA <- subset(P108TB_14_RNA, subset = area == "Empty", invert = TRUE)
+```
+
+# Remove extra columns
+## P102
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  select(-c(puck10_count, log_puck10_count, largest_clone_id))
+```
+
+## P107
+```{r}
+P107TA_15_RNA@meta.data <- P107TA_15_RNA@meta.data %>%
+  select(-c(puck15_count, log_puck15_count, largest_clone_id))
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  select(-c(puck18_count, log_puck18_count, largest_clone_id))
+P107TA_20_RNA@meta.data <- P107TA_20_RNA@meta.data %>%
+  select(-c(puck20_count, log_puck20_count, largest_clone_id))
+```
+
+## P108
+```{r}
+P108TB_06_RNA@meta.data <- P108TB_06_RNA@meta.data %>%
+  select(-c(puck06_count, log_puck06_count, largest_clone_id))
+```
+
+# Explore the scRNA derived phenotypes of the shared clones
+## Open scRNA derived phenotypes
+```{r}
+scrna_phenotypes <- read.csv("../objects/reformatted_RCC_slideseq_parameters_052925.csv")
+
+clones_of_int <- scrna_phenotypes %>%
+  filter(tumor_specific == TRUE | virus_reactive == TRUE) %>%
+  distinct(sctcr_clone) %>%
+  pull(sctcr_clone)
+
+phenotype_md <- scrna_phenotypes %>%
+  filter(sctcr_clone %in% clones_of_int,
+         (tumor_specific == TRUE | virus_reactive == TRUE)) %>%
+  distinct(sctcr_clone, tumor_specific, virus_reactive) %>%
+  mutate(specificity = case_when(tumor_specific == TRUE ~ "TS",
+                                 virus_reactive == TRUE ~ "VR")) %>%
+  select(sctcr_clone, specificity)
+```
+
+## Get clones of interest
+```{r}
+P102T_md <- rbind(P102TA_10_RNA@meta.data, P102TA_39_RNA@meta.data, P102TA_33_RNA@meta.data)
+
+P107T_md <- rbind(P107TA_15_RNA@meta.data, P107TA_18_RNA@meta.data, 
+                        P107TA_20_RNA@meta.data)
+
+P108T_md <- rbind(P108TA_26_RNA@meta.data, P108TA_29_RNA@meta.data, 
+                        P108TB_06_RNA@meta.data, P108TB_14_RNA@meta.data)
+
+P102T_clones_counts <- count_clones_by_annotated_area(P102T_md, get_unique_productive_clones(clones_of_int)) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup() %>%
+  left_join(phenotype_md, by = c("clone_id" = "sctcr_clone"))
+
+P107T_clones_counts <- count_clones_by_annotated_area(P107T_md, get_unique_productive_clones(clones_of_int)) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup() %>%
+  left_join(phenotype_md, by = c("clone_id" = "sctcr_clone"))
+
+P108T_clones_counts <- count_clones_by_annotated_area(P108T_md, get_unique_productive_clones(clones_of_int)) %>%
+  group_by(clone_id) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup() %>%
+  left_join(phenotype_md, by = c("clone_id" = "sctcr_clone"))
+  
+P102T_clones_counts %>%
+  arrange(sum_count)
+
+P107T_clones_counts %>%
+  arrange(sum_count)
+
+P108T_clones_counts %>%
+  arrange(sum_count)
+
+# Separate TS and VR clones
+P102T_TS_clones <- P102T_clones_counts %>%
+  filter(specificity == "TS") %>%
+  pull(clone_id)
+P102T_VR_clones <- P102T_clones_counts %>%
+  filter(specificity == "VR") %>%
+  pull(clone_id)
+
+P107T_TS_clones <- P107T_clones_counts %>%
+  filter(specificity == "TS") %>%
+  pull(clone_id)
+P107T_VR_clones <- P107T_clones_counts %>%
+  filter(specificity == "VR") %>%
+  pull(clone_id)
+
+P108T_TS_clones <- P108T_clones_counts %>%
+  filter(specificity == "TS") %>%
+  pull(clone_id)
+P108T_VR_clones <- P108T_clones_counts %>%
+  filter(specificity == "VR") %>%
+  pull(clone_id)
+
+# Separate non-TS or VR clones
+P102T_other_clones <- scrna_phenotypes %>%
+  filter(str_detect(sctcr_clone, "p102"),
+         !(sctcr_clone %in% c(P102T_clones_counts$clone_id))) %>%
+  distinct(sctcr_clone) %>%
+  pull(sctcr_clone)
+
+P107T_other_clones <- scrna_phenotypes %>%
+  filter(str_detect(sctcr_clone, "p107"),
+         !(sctcr_clone %in% c(P107T_clones_counts$clone_id))) %>%
+  distinct(sctcr_clone) %>%
+  pull(sctcr_clone)
+
+P108T_other_clones <- scrna_phenotypes %>%
+  filter(str_detect(sctcr_clone, "p108"),
+         !(sctcr_clone %in% c(P108T_clones_counts$clone_id))) %>%
+  distinct(sctcr_clone) %>%
+  pull(sctcr_clone)
+  
+```
+
+# Cast beads with multiple TS or VR clones to the smaller clone
+```{r}
+cast_clones <- function(md){
+  md <- md %>%
+    mutate(final_clone_id = case_when(str_detect(clone_id, "p102_312($|,)") ~ "p102_312",
+                                  str_detect(clone_id, "p108_189($|,)") ~ "p108_189",
+                                  str_detect(clone_id, "p108_277($|,)") ~ "p108_277",
+                                  str_detect(clone_id, "p102_564($|,)") ~ "p102_564",
+                                  str_detect(clone_id, "p108_271($|,)") ~ "p108_271",
+                                  str_detect(clone_id, "p108_395($|,)") ~ "p108_395",
+                                  str_detect(clone_id, "p108_244($|,)") ~ "p108_244",
+                                  str_detect(clone_id, "p102_341	($|,)") ~ "p102_341	",
+                                  str_detect(clone_id, "p108_2($|,)") ~ "p108_2",
+                                  str_detect(clone_id, "p108_280($|,)") ~ "p108_280",
+                                  str_detect(clone_id, "p102_357($|,)") ~ "p102_357",
+                                  str_detect(clone_id, "p102_290($|,)") ~ "p102_290",
+                                  str_detect(clone_id, "p102_280($|,)") ~ "p102_280",
+                                  str_detect(clone_id, "p108_215($|,)") ~ "p108_215",
+                                  str_detect(clone_id, "p108_212($|,)") ~ "p108_212",
+                                  str_detect(clone_id, "p108_3($|,)") ~ "p108_3",
+                                  str_detect(clone_id, "p108_266($|,)") ~ "p108_266",
+                                  str_detect(clone_id, "p108_1($|,)") ~ "p108_1",
+                                  str_detect(clone_id, "p108_206($|,)") ~ "p108_206",
+                                  str_detect(clone_id, "p108_208($|,)") ~ "p108_208",
+                                  str_detect(clone_id, "p108_205($|,)") ~ "p108_205",
+                                  str_detect(clone_id, "p108_4($|,)") ~ "p108_4",
+                                  str_detect(clone_id, "p102_768($|,)") ~ "p102_768",
+                                  str_detect(clone_id, "p108_11($|,)") ~ "p108_11",
+                                  str_detect(clone_id, "p108_263($|,)") ~ "p108_263",
+                                  str_detect(clone_id, "p108_6($|,)") ~ "p108_6",
+                                  str_detect(clone_id, "p102_389($|,)") ~ "p102_389"))
+  return(md)
+  
+}
+
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  cast_clones()
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  cast_clones()
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  cast_clones()
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  cast_clones()
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  cast_clones()
+P108TB_06_RNA@meta.data <- P108TB_06_RNA@meta.data %>%
+  cast_clones()
+P108TB_14_RNA@meta.data <- P108TB_14_RNA@meta.data %>%
+  cast_clones()
+```
+
+# P102TA
+## Puck 10
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_10_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P102T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_10_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P102T_TS_clones, ";TS")
+
+```
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P102T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_10_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P102T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P102T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_10_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P102T_VR_clones, ";VR")
+
+```
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_10_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_10_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### TS vs VR
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i > j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+                          barcode %in% VR_list[[3]]$near_beads$barcode ~ names(VR_list[3]),
+                          barcode %in% VR_list[[4]]$near_beads$barcode ~ names(VR_list[4]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+         barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P102TA_10_RNA <- subset(P102TA_10_RNA, subset = muscat == "Defined")
+```
+
+## Puck 17
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_17_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P102T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_17_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P102T_TS_clones, ";TS")
+
+```
+
+### No virus reactive TCRs
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_17_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_17_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P102TA_17_reassigned <- reassign_overlapping_beads(P102TA_17_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P102TA_17_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P102TA_17_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P102TA_17_RNA@meta.data <- P102TA_17_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P102TA_17_RNA <- subset(P102TA_17_RNA, subset = muscat == "Defined")
+```
+
+## Puck 33
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_33_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P102T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_33_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P102T_TS_clones, ";TS")
+
+```
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P102T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_33_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P102T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P102T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_33_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P102T_VR_clones, ";VR")
+
+```
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_33_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_33_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P102TA_33_reassigned <- reassign_overlapping_beads(P102TA_33_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P102TA_33_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P102TA_33_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### TS vs VR
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(names(TS_list[i]) != names(VR_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P102TA_33_reassigned <- reassign_overlapping_beads(P102TA_33_RNA, tex_beads = TS_list[[i]], tmem_beads = VR_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P102TA_33_reassigned$reassigned_tex_beads
+        VR_list[[j]] <- P102TA_33_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i > j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+                          barcode %in% VR_list[[3]]$near_beads$barcode ~ names(VR_list[3]),
+                          barcode %in% VR_list[[4]]$near_beads$barcode ~ names(VR_list[4]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P102TA_33_RNA <- subset(P102TA_33_RNA, subset = muscat == "Defined")
+```
+
+## Puck 39
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_39_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P102T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P102T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_39_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P102T_TS_clones, ";TS")
+
+```
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P102T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_39_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P102T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P102T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_39_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P102T_VR_clones, ";VR")
+
+```
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_39_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P102T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P102TA_39_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P102TA_39_reassigned <- reassign_overlapping_beads(P102TA_39_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P102TA_39_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P102TA_39_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### TS vs VR
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i > j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P102TA_39_RNA@meta.data <- P102TA_39_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+                          barcode %in% VR_list[[3]]$near_beads$barcode ~ names(VR_list[3]),
+                          barcode %in% VR_list[[4]]$near_beads$barcode ~ names(VR_list[4]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P102TA_39_RNA <- subset(P102TA_39_RNA, subset = muscat == "Defined")
+```
+
+
+
+# P107TA
+## Puck 15
+
+### No TS beads
+
+### No VR beads
+
+## Puck 18
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P107T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_18_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P107T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P107T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_18_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P107T_TS_clones, ";TS")
+
+```
+
+### No VR beads
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P107T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_18_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P107T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_18_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+paste0("TS TCRs: ", TS_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P107TA_18_RNA@meta.data <- P107TA_18_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P107TA_18_RNA <- subset(P107TA_18_RNA, subset = muscat == "Defined")
+```
+
+## Puck 20
+
+### No TS beads
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P107T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_20_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P107T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P107T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_20_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P107T_VR_clones, ";VR")
+
+```
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P107T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_20_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P107T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P107TA_20_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P107TA_20_RNA@meta.data <- P107TA_20_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P107TA_20_RNA <- subset(P107TA_20_RNA, subset = muscat == "Defined")
+```
+
+# P108TA
+## Puck 26
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_26_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_26_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_TS_clones, ";TS")
+
+```
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_26_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_26_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_VR_clones, ";VR")
+
+```
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_26_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_26_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TA_26_reassigned <- reassign_overlapping_beads(P108TA_26_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TA_26_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P108TA_26_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### TS vs VR
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(names(TS_list[i]) != names(VR_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TA_26_reassigned <- reassign_overlapping_beads(P108TA_26_RNA, tex_beads = TS_list[[i]], tmem_beads = VR_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TA_26_reassigned$reassigned_tex_beads
+        VR_list[[j]] <- P108TA_26_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% TS_list[[13]]$near_beads$barcode ~ names(TS_list[13]),
+                          barcode %in% TS_list[[14]]$near_beads$barcode ~ names(TS_list[14]),
+                          barcode %in% TS_list[[15]]$near_beads$barcode ~ names(TS_list[15]),
+                          barcode %in% TS_list[[16]]$near_beads$barcode ~ names(TS_list[16]),
+                          barcode %in% TS_list[[17]]$near_beads$barcode ~ names(TS_list[17]),
+                          barcode %in% TS_list[[18]]$near_beads$barcode ~ names(TS_list[18]),
+                          barcode %in% TS_list[[19]]$near_beads$barcode ~ names(TS_list[19]),
+                          barcode %in% TS_list[[20]]$near_beads$barcode ~ names(TS_list[20]),
+                          barcode %in% TS_list[[21]]$near_beads$barcode ~ names(TS_list[21]),
+                          barcode %in% TS_list[[22]]$near_beads$barcode ~ names(TS_list[22]),
+                          barcode %in% TS_list[[23]]$near_beads$barcode ~ names(TS_list[23]),
+                          barcode %in% TS_list[[24]]$near_beads$barcode ~ names(TS_list[24]),
+                          barcode %in% TS_list[[25]]$near_beads$barcode ~ names(TS_list[25]),
+                          barcode %in% TS_list[[26]]$near_beads$barcode ~ names(TS_list[26]),
+                          barcode %in% TS_list[[27]]$near_beads$barcode ~ names(TS_list[27]),
+                          barcode %in% TS_list[[28]]$near_beads$barcode ~ names(TS_list[28]),
+                          barcode %in% TS_list[[29]]$near_beads$barcode ~ names(TS_list[29]),
+                          barcode %in% TS_list[[30]]$near_beads$barcode ~ names(TS_list[30]),
+                          barcode %in% TS_list[[31]]$near_beads$barcode ~ names(TS_list[31]),
+                          barcode %in% TS_list[[32]]$near_beads$barcode ~ names(TS_list[32]),
+                          barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+                          barcode %in% VR_list[[3]]$near_beads$barcode ~ names(VR_list[3]),
+                          barcode %in% VR_list[[4]]$near_beads$barcode ~ names(VR_list[4]),
+                          barcode %in% VR_list[[5]]$near_beads$barcode ~ names(VR_list[5]),
+                          barcode %in% VR_list[[6]]$near_beads$barcode ~ names(VR_list[6]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = muscat == "Defined")
+```
+
+
+## Puck 29
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_29_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_29_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_TS_clones, ";TS")
+
+```
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_29_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_29_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_VR_clones, ";VR")
+
+```
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_29_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_29_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TA_29_reassigned <- reassign_overlapping_beads(P108TA_29_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TA_29_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P108TA_29_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### TS vs VR
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(names(TS_list[i]) != names(VR_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TA_29_reassigned <- reassign_overlapping_beads(P108TA_29_RNA, tex_beads = TS_list[[i]], tmem_beads = VR_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TA_29_reassigned$reassigned_tex_beads
+        VR_list[[j]] <- P108TA_29_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(names(VR_list[i]) != names(VR_list[j])){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TA_29_reassigned <- reassign_overlapping_beads(P108TA_29_RNA, tex_beads = VR_list[[i]], tmem_beads = VR_list[[j]])
+  		  
+  		  # Split list back out
+        VR_list[[i]] <- P108TA_29_reassigned$reassigned_tex_beads
+        VR_list[[j]] <- P108TA_29_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% TS_list[[13]]$near_beads$barcode ~ names(TS_list[13]),
+                          barcode %in% TS_list[[14]]$near_beads$barcode ~ names(TS_list[14]),
+                          barcode %in% TS_list[[15]]$near_beads$barcode ~ names(TS_list[15]),
+                          barcode %in% TS_list[[16]]$near_beads$barcode ~ names(TS_list[16]),
+                          barcode %in% TS_list[[17]]$near_beads$barcode ~ names(TS_list[17]),
+                          barcode %in% TS_list[[18]]$near_beads$barcode ~ names(TS_list[18]),
+                          barcode %in% TS_list[[19]]$near_beads$barcode ~ names(TS_list[19]),
+                          barcode %in% TS_list[[20]]$near_beads$barcode ~ names(TS_list[20]),
+                          barcode %in% TS_list[[21]]$near_beads$barcode ~ names(TS_list[21]),
+                          barcode %in% TS_list[[22]]$near_beads$barcode ~ names(TS_list[22]),
+                          barcode %in% TS_list[[23]]$near_beads$barcode ~ names(TS_list[23]),
+                          barcode %in% TS_list[[24]]$near_beads$barcode ~ names(TS_list[24]),
+                          barcode %in% TS_list[[25]]$near_beads$barcode ~ names(TS_list[25]),
+                          barcode %in% TS_list[[26]]$near_beads$barcode ~ names(TS_list[26]),
+                          barcode %in% TS_list[[27]]$near_beads$barcode ~ names(TS_list[27]),
+                          barcode %in% TS_list[[28]]$near_beads$barcode ~ names(TS_list[28]),
+                          barcode %in% TS_list[[29]]$near_beads$barcode ~ names(TS_list[29]),
+                          barcode %in% TS_list[[30]]$near_beads$barcode ~ names(TS_list[30]),
+                          barcode %in% TS_list[[31]]$near_beads$barcode ~ names(TS_list[31]),
+                          barcode %in% TS_list[[32]]$near_beads$barcode ~ names(TS_list[32]),
+                          barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+                          barcode %in% VR_list[[3]]$near_beads$barcode ~ names(VR_list[3]),
+                          barcode %in% VR_list[[4]]$near_beads$barcode ~ names(VR_list[4]),
+                          barcode %in% VR_list[[5]]$near_beads$barcode ~ names(VR_list[5]),
+                          barcode %in% VR_list[[6]]$near_beads$barcode ~ names(VR_list[6]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = muscat == "Defined")
+```
+
+## Puck 30
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_30_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_30_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_TS_clones, ";TS")
+
+```
+
+### No virus reactive TCRs
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_30_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_30_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TA_30_reassigned <- reassign_overlapping_beads(P108TA_30_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TA_30_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P108TA_30_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+paste0("TS TCRs: ", TS_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% TS_list[[13]]$near_beads$barcode ~ names(TS_list[13]),
+                          barcode %in% TS_list[[14]]$near_beads$barcode ~ names(TS_list[14]),
+                          barcode %in% TS_list[[15]]$near_beads$barcode ~ names(TS_list[15]),
+                          barcode %in% TS_list[[16]]$near_beads$barcode ~ names(TS_list[16]),
+                          barcode %in% TS_list[[17]]$near_beads$barcode ~ names(TS_list[17]),
+                          barcode %in% TS_list[[18]]$near_beads$barcode ~ names(TS_list[18]),
+                          barcode %in% TS_list[[19]]$near_beads$barcode ~ names(TS_list[19]),
+                          barcode %in% TS_list[[20]]$near_beads$barcode ~ names(TS_list[20]),
+                          barcode %in% TS_list[[21]]$near_beads$barcode ~ names(TS_list[21]),
+                          barcode %in% TS_list[[22]]$near_beads$barcode ~ names(TS_list[22]),
+                          barcode %in% TS_list[[23]]$near_beads$barcode ~ names(TS_list[23]),
+                          barcode %in% TS_list[[24]]$near_beads$barcode ~ names(TS_list[24]),
+                          barcode %in% TS_list[[25]]$near_beads$barcode ~ names(TS_list[25]),
+                          barcode %in% TS_list[[26]]$near_beads$barcode ~ names(TS_list[26]),
+                          barcode %in% TS_list[[27]]$near_beads$barcode ~ names(TS_list[27]),
+                          barcode %in% TS_list[[28]]$near_beads$barcode ~ names(TS_list[28]),
+                          barcode %in% TS_list[[29]]$near_beads$barcode ~ names(TS_list[29]),
+                          barcode %in% TS_list[[30]]$near_beads$barcode ~ names(TS_list[30]),
+                          barcode %in% TS_list[[31]]$near_beads$barcode ~ names(TS_list[31]),
+                          barcode %in% TS_list[[32]]$near_beads$barcode ~ names(TS_list[32]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = muscat == "Defined")
+```
+
+## Puck 32
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_32_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_32_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_TS_clones, ";TS")
+
+```
+
+### No virus reactive TCRs
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_32_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TA_32_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TA_32_reassigned <- reassign_overlapping_beads(P108TA_32_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TA_32_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P108TA_32_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+paste0("TS TCRs: ", TS_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% TS_list[[13]]$near_beads$barcode ~ names(TS_list[13]),
+                          barcode %in% TS_list[[14]]$near_beads$barcode ~ names(TS_list[14]),
+                          barcode %in% TS_list[[15]]$near_beads$barcode ~ names(TS_list[15]),
+                          barcode %in% TS_list[[16]]$near_beads$barcode ~ names(TS_list[16]),
+                          barcode %in% TS_list[[17]]$near_beads$barcode ~ names(TS_list[17]),
+                          barcode %in% TS_list[[18]]$near_beads$barcode ~ names(TS_list[18]),
+                          barcode %in% TS_list[[19]]$near_beads$barcode ~ names(TS_list[19]),
+                          barcode %in% TS_list[[20]]$near_beads$barcode ~ names(TS_list[20]),
+                          barcode %in% TS_list[[21]]$near_beads$barcode ~ names(TS_list[21]),
+                          barcode %in% TS_list[[22]]$near_beads$barcode ~ names(TS_list[22]),
+                          barcode %in% TS_list[[23]]$near_beads$barcode ~ names(TS_list[23]),
+                          barcode %in% TS_list[[24]]$near_beads$barcode ~ names(TS_list[24]),
+                          barcode %in% TS_list[[25]]$near_beads$barcode ~ names(TS_list[25]),
+                          barcode %in% TS_list[[26]]$near_beads$barcode ~ names(TS_list[26]),
+                          barcode %in% TS_list[[27]]$near_beads$barcode ~ names(TS_list[27]),
+                          barcode %in% TS_list[[28]]$near_beads$barcode ~ names(TS_list[28]),
+                          barcode %in% TS_list[[29]]$near_beads$barcode ~ names(TS_list[29]),
+                          barcode %in% TS_list[[30]]$near_beads$barcode ~ names(TS_list[30]),
+                          barcode %in% TS_list[[31]]$near_beads$barcode ~ names(TS_list[31]),
+                          barcode %in% TS_list[[32]]$near_beads$barcode ~ names(TS_list[32]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = muscat == "Defined")
+```
+
+# P108TB
+
+## Puck 06
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_06_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_06_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_TS_clones, ";TS")
+
+```
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_06_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_06_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_VR_clones, ";VR")
+
+```
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_06_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_06_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TB_06_reassigned <- reassign_overlapping_beads(P108TB_06_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TB_06_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P108TB_06_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### TS vs VR
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TB_06_RNA@meta.data <- P108TB_06_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% TS_list[[13]]$near_beads$barcode ~ names(TS_list[13]),
+                          barcode %in% TS_list[[14]]$near_beads$barcode ~ names(TS_list[14]),
+                          barcode %in% TS_list[[15]]$near_beads$barcode ~ names(TS_list[15]),
+                          barcode %in% TS_list[[16]]$near_beads$barcode ~ names(TS_list[16]),
+                          barcode %in% TS_list[[17]]$near_beads$barcode ~ names(TS_list[17]),
+                          barcode %in% TS_list[[18]]$near_beads$barcode ~ names(TS_list[18]),
+                          barcode %in% TS_list[[19]]$near_beads$barcode ~ names(TS_list[19]),
+                          barcode %in% TS_list[[20]]$near_beads$barcode ~ names(TS_list[20]),
+                          barcode %in% TS_list[[21]]$near_beads$barcode ~ names(TS_list[21]),
+                          barcode %in% TS_list[[22]]$near_beads$barcode ~ names(TS_list[22]),
+                          barcode %in% TS_list[[23]]$near_beads$barcode ~ names(TS_list[23]),
+                          barcode %in% TS_list[[24]]$near_beads$barcode ~ names(TS_list[24]),
+                          barcode %in% TS_list[[25]]$near_beads$barcode ~ names(TS_list[25]),
+                          barcode %in% TS_list[[26]]$near_beads$barcode ~ names(TS_list[26]),
+                          barcode %in% TS_list[[27]]$near_beads$barcode ~ names(TS_list[27]),
+                          barcode %in% TS_list[[28]]$near_beads$barcode ~ names(TS_list[28]),
+                          barcode %in% TS_list[[29]]$near_beads$barcode ~ names(TS_list[29]),
+                          barcode %in% TS_list[[30]]$near_beads$barcode ~ names(TS_list[30]),
+                          barcode %in% TS_list[[31]]$near_beads$barcode ~ names(TS_list[31]),
+                          barcode %in% TS_list[[32]]$near_beads$barcode ~ names(TS_list[32]),
+                          barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+                          barcode %in% VR_list[[3]]$near_beads$barcode ~ names(VR_list[3]),
+                          barcode %in% VR_list[[4]]$near_beads$barcode ~ names(VR_list[4]),
+                          barcode %in% VR_list[[5]]$near_beads$barcode ~ names(VR_list[5]),
+                          barcode %in% VR_list[[6]]$near_beads$barcode ~ names(VR_list[6]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P108TB_06_RNA <- subset(P108TB_06_RNA, subset = muscat == "Defined")
+```
+
+## Puck 14
+
+### Get beads near each each TS TCR at the near distance
+```{r}
+# Get the beads near tumor specific clones
+TS_near_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_14_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  TS_near_list <- append(TS_near_list, list(result_list))
+}
+
+# Rename lists
+names(TS_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_TS_clones, ";TS")
+```
+
+### Get beads near each each TS TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+TS_far_list <- list()
+
+for(clone in P108T_TS_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_14_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  TS_far_list <- append(TS_far_list, list(result_list))
+}
+
+# Rename lists
+names(TS_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_TS_clones, ";TS")
+
+```
+
+### Get beads near each each VR TCR at the near distance
+```{r}
+# Get the beads near virus reactive clones
+VR_near_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_14_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  VR_near_list <- append(VR_near_list, list(result_list))
+}
+
+# Rename lists
+names(VR_near_list) <- paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";", P108T_VR_clones, ";VR")
+```
+
+### Get beads near each each VR TCR at the far distance
+```{r}
+# Get the beads near tumor specific clones
+VR_far_list <- list()
+
+for(clone in P108T_VR_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_14_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  VR_far_list <- append(VR_far_list, list(result_list))
+}
+
+# Rename lists
+names(VR_far_list) <- paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";", P108T_VR_clones, ";VR")
+
+```
+
+
+### Get beads near any non-TS or VR TCR at the near distance
+```{r}
+# Get the beads near non-TS or VR clones
+other_near_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_14_RNA, cln = clone, lower_radius = lower_radius.vec[1], upper_radius = upper_radius.vec[1])
+  other_near_list <- append(other_near_list, list(result_list))
+}
+
+# Collapse into one list
+other_near_list <- collapse_list(other_near_list, name = paste0("r", lower_radius.vec[1], "-", upper_radius.vec[1], ";p10;Other"))
+
+```
+
+### Get beads near any non-TS or VR TCR at the far distance
+```{r}
+# Get the beads far from non-TS or VR clones
+other_far_list <- list()
+
+for(clone in P108T_other_clones){
+  result_list <- get_beads_near_specific_TCR(P108TB_14_RNA, cln = clone, lower_radius = lower_radius.vec[2], upper_radius = upper_radius.vec[2])
+  other_far_list <- append(other_far_list, list(result_list))
+}
+
+# Collapse into one list
+other_far_list <- collapse_list(other_far_list, name = paste0("r", lower_radius.vec[2], "-", upper_radius.vec[2], ";p10;Other"))
+
+```
+
+### Merge TS distances, and VR distances
+```{r}
+TS_list <- c(TS_near_list, TS_far_list)
+VR_list <- c(VR_near_list, VR_far_list)
+other_list <- c(other_near_list, other_far_list)
+```
+
+### Check for overlaps
+
+#### TS vs TS
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	  }
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+	  if(names(TS_list[i]) != names(TS_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TB_14_reassigned <- reassign_overlapping_beads(P108TB_14_RNA, tex_beads = TS_list[[i]], tmem_beads = TS_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TB_14_reassigned$reassigned_tex_beads
+        TS_list[[j]] <- P108TB_14_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_ts.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(TS_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, TS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(TS_list)[j], same_beads)
+  		ts_vs_ts.df <- rbind(ts_vs_ts.df, new_row)
+	}
+}
+
+colnames(ts_vs_ts.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_ts.df <- ts_vs_ts.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_ts.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs TS beads",
+        name = "No. of\nbeads")
+```
+
+#### TS vs VR
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r, message = FALSE}
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(names(TS_list[i]) != names(VR_list[j])){
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		
+  		if(same_beads > 0){
+  		  # Reassign overlapping beads
+  		  P108TB_14_reassigned <- reassign_overlapping_beads(P108TB_14_RNA, tex_beads = TS_list[[i]], tmem_beads = VR_list[[j]])
+  		  
+  		  # Split list back out
+        TS_list[[i]] <- P108TB_14_reassigned$reassigned_tex_beads
+        VR_list[[j]] <- P108TB_14_reassigned$reassigned_tmem_beads
+  		}
+	  }
+	}
+}
+```
+
+##### Check reassignment
+```{r}
+ts_vs_vr.df <- data.frame()
+for(i in 1:length(TS_list)) {
+	for(j in 1:length(VR_list)) {
+  		same_beads <- length(intersect(TS_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(TS_list)[i], names(VR_list)[j], same_beads)
+  		ts_vs_vr.df <- rbind(ts_vs_vr.df, new_row)
+	}
+}
+
+colnames(ts_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+ts_vs_vr.df <- ts_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(ts_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby TS beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### VR vs VR
+```{r}
+vr_vs_vr.df <- data.frame()
+for(i in 1:length(VR_list)) {
+	for(j in 1:length(VR_list)) {
+	  if(i < j){
+  		same_beads <- length(intersect(VR_list[[i]]$near_beads$barcode, VR_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(VR_list)[i], names(VR_list)[j], same_beads)
+  		vr_vs_vr.df <- rbind(vr_vs_vr.df, new_row)
+	  }
+	}
+}
+
+colnames(vr_vs_vr.df) <- c("tcr1", "tcr2", "beads")
+
+# Reformat
+vr_vs_vr.df <- vr_vs_vr.df %>%
+	pivot_wider(names_from=tcr2,values_from=beads) %>%
+	column_to_rownames("tcr1") %>%
+	as.matrix()
+
+Heatmap(vr_vs_vr.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby VR beads vs VR beads",
+        name = "No. of\nbeads")
+```
+
+#### Check number of clones
+```{r}
+TS_count <- 0
+for(i in c(1: length(TS_list))){
+  count <- nrow(TS_list[[i]]$TCRs)
+  TS_count <- TS_count + count
+}
+VR_count <- 0
+for(i in c(1: length(VR_list))){
+  count <- nrow(VR_list[[i]]$TCRs)
+  VR_count <- VR_count + count
+}
+paste0("TS TCRs: ", TS_count)
+paste0("VR TCRs: ", VR_count)
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+P108TB_14_RNA@meta.data <- P108TB_14_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% TS_list[[1]]$near_beads$barcode ~ names(TS_list[1]),
+                          barcode %in% TS_list[[2]]$near_beads$barcode ~ names(TS_list[2]),
+                          barcode %in% TS_list[[3]]$near_beads$barcode ~ names(TS_list[3]),
+                          barcode %in% TS_list[[4]]$near_beads$barcode ~ names(TS_list[4]),
+                          barcode %in% TS_list[[5]]$near_beads$barcode ~ names(TS_list[5]),
+                          barcode %in% TS_list[[6]]$near_beads$barcode ~ names(TS_list[6]),
+                          barcode %in% TS_list[[7]]$near_beads$barcode ~ names(TS_list[7]),
+                          barcode %in% TS_list[[8]]$near_beads$barcode ~ names(TS_list[8]),
+                          barcode %in% TS_list[[9]]$near_beads$barcode ~ names(TS_list[9]),
+                          barcode %in% TS_list[[10]]$near_beads$barcode ~ names(TS_list[10]),
+                          barcode %in% TS_list[[11]]$near_beads$barcode ~ names(TS_list[11]),
+                          barcode %in% TS_list[[12]]$near_beads$barcode ~ names(TS_list[12]),
+                          barcode %in% TS_list[[13]]$near_beads$barcode ~ names(TS_list[13]),
+                          barcode %in% TS_list[[14]]$near_beads$barcode ~ names(TS_list[14]),
+                          barcode %in% TS_list[[15]]$near_beads$barcode ~ names(TS_list[15]),
+                          barcode %in% TS_list[[16]]$near_beads$barcode ~ names(TS_list[16]),
+                          barcode %in% TS_list[[17]]$near_beads$barcode ~ names(TS_list[17]),
+                          barcode %in% TS_list[[18]]$near_beads$barcode ~ names(TS_list[18]),
+                          barcode %in% TS_list[[19]]$near_beads$barcode ~ names(TS_list[19]),
+                          barcode %in% TS_list[[20]]$near_beads$barcode ~ names(TS_list[20]),
+                          barcode %in% TS_list[[21]]$near_beads$barcode ~ names(TS_list[21]),
+                          barcode %in% TS_list[[22]]$near_beads$barcode ~ names(TS_list[22]),
+                          barcode %in% TS_list[[23]]$near_beads$barcode ~ names(TS_list[23]),
+                          barcode %in% TS_list[[24]]$near_beads$barcode ~ names(TS_list[24]),
+                          barcode %in% TS_list[[25]]$near_beads$barcode ~ names(TS_list[25]),
+                          barcode %in% TS_list[[26]]$near_beads$barcode ~ names(TS_list[26]),
+                          barcode %in% TS_list[[27]]$near_beads$barcode ~ names(TS_list[27]),
+                          barcode %in% TS_list[[28]]$near_beads$barcode ~ names(TS_list[28]),
+                          barcode %in% TS_list[[29]]$near_beads$barcode ~ names(TS_list[29]),
+                          barcode %in% TS_list[[30]]$near_beads$barcode ~ names(TS_list[30]),
+                          barcode %in% TS_list[[31]]$near_beads$barcode ~ names(TS_list[31]),
+                          barcode %in% TS_list[[32]]$near_beads$barcode ~ names(TS_list[32]),
+                          barcode %in% VR_list[[1]]$near_beads$barcode ~ names(VR_list[1]),
+                          barcode %in% VR_list[[2]]$near_beads$barcode ~ names(VR_list[2]),
+                          barcode %in% VR_list[[3]]$near_beads$barcode ~ names(VR_list[3]),
+                          barcode %in% VR_list[[4]]$near_beads$barcode ~ names(VR_list[4]),
+                          barcode %in% VR_list[[5]]$near_beads$barcode ~ names(VR_list[5]),
+                          barcode %in% VR_list[[6]]$near_beads$barcode ~ names(VR_list[6]),
+         # Due to the way mutate is implemented, any previously beads assigned to be a TS or VR will not be given the "Other" label
+                          barcode %in% other_list[[1]]$near_beads$barcode ~ names(other_list[1]),
+                          barcode %in% other_list[[2]]$near_beads$barcode ~ names(other_list[2])),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"),
+         general_type = str_replace(type, "p10.*(?<=;)", ""),
+         distance = str_split_i(type, ";", 1),
+         specificity = str_split_i(type, ";", 3))
+
+P108TB_14_RNA <- subset(P108TB_14_RNA, subset = muscat == "Defined")
+```
+
+## Format RNA objects
+### Normalize counts
+```{r, message = FALSE}
+P102TA_10_RNA <- NormalizeData(P102TA_10_RNA, assay = "Spatial")
+P102TA_33_RNA <- NormalizeData(P102TA_33_RNA, assay = "Spatial")
+P102TA_17_RNA <- NormalizeData(P102TA_17_RNA, assay = "Spatial")
+P102TA_39_RNA <- NormalizeData(P102TA_39_RNA, assay = "Spatial")
+
+P107TA_18_RNA <- NormalizeData(P107TA_18_RNA, assay = "Spatial")
+P107TA_20_RNA <- NormalizeData(P107TA_20_RNA, assay = "Spatial")
+
+P108TA_26_RNA <- NormalizeData(P108TA_26_RNA, assay = "Spatial")
+P108TA_29_RNA <- NormalizeData(P108TA_29_RNA, assay = "Spatial")
+P108TA_30_RNA <- NormalizeData(P108TA_30_RNA, assay = "Spatial")
+P108TA_32_RNA <- NormalizeData(P108TA_32_RNA, assay = "Spatial")
+
+P108TB_06_RNA <- NormalizeData(P108TB_06_RNA, assay = "Spatial")
+P108TB_14_RNA <- NormalizeData(P108TB_14_RNA, assay = "Spatial")
+
+```
+
+
+## Open gene sets for GSEA
+```{r}
+gene_sets <- readRDS("../objects/immune_gene_sets.Rds")
+
+gs_of_int <- gene_sets[c("nieto_b_prolif", "nieto_b", "nieto_b_plasma", "projecTILs.CD4.NaiveLike", "projecTILs.CD8.NaiveLike", "projecTILs.CD4.Treg",
+                         "nieto_mac_spp1", "nieto_tam_c1qc", "nieto_tam_proinflam", "nieto_myeloid_prolif", "nieto_mono", "nieto_cdc", "nieto_pdc", "nieto_mdc", "nieto_mast", "Guimaraes.Mac_AgPres", "Guimaraes.Mac_IFN", "Guimaraes.RTM_LA")]
+```
+
+## Calculate signature scores and stats
+### Calculate a B cell and plasma score
+```{r}
+pucks <- merge(x = P102TA_10_RNA, y = list(P102TA_17_RNA, P102TA_33_RNA, P102TA_39_RNA, P107TA_18_RNA, P107TA_20_RNA, P108TA_26_RNA, P108TA_29_RNA, P108TA_30_RNA, P108TA_32_RNA, P108TB_06_RNA, P108TB_14_RNA))
+
+pucks <- AddModuleScore(pucks, features = list(gene_sets$nieto_b), name = "nieto.b")
+pucks <- AddModuleScore(pucks, features = list(gene_sets$nieto_b_plasma), name = "nieto.plasma")
+
+```
+
+## Count how many beads per puck
+```{r}
+pucks@meta.data %>%
+  dplyr::count(muscat, orig.ident)
+```
+
+### Calculate the median plasma score of each neoantigen
+```{r}
+pucks@meta.data <- pucks@meta.data %>%
+  mutate(distance = str_split_i(type, ";", 1),
+         distance = case_when(is.na(distance) ~ "Other",
+                              T ~ distance),
+         final_clone_id = str_split_i(type, ";", 2),
+         specificity = str_split_i(type, ";", 3),
+         specificity = case_when(is.na(specificity) ~ "Other",
+                                 T ~ specificity),
+         Patient = str_sub(orig.ident, start = 1, end = 5),
+         Patient_specificity = paste0(Patient, "_", specificity))
+  
+median.df <- pucks@meta.data %>%
+  group_by(final_clone_id, distance, specificity, Patient) %>%
+  summarize(median_b = round(median(nieto.b1), 4),
+            median_plasma = round(median(nieto.plasma1), 4),
+            count = n()) %>%
+  filter(Patient != "P107T",
+         specificity != "Other")
+
+```
+
+# Plot mean B and plasma gene expression values
+## Format near and far data into a heatmap
+```{r}
+pucks@meta.data <- pucks@meta.data %>%
+  mutate(distance = str_split_i(type, ";", 1),
+         distance = case_when(is.na(distance) ~ "Other",
+                              T ~ distance),
+         final_clone_id = str_split_i(type, ";", 2),
+         specificity = str_split_i(type, ";", 3),
+         specificity = case_when(is.na(specificity) ~ "Other",
+                                 T ~ specificity),
+         Patient = str_sub(orig.ident, start = 1, end = 5),
+         Patient_specificity = paste0(Patient, "_", specificity))
+
+## plasma and b
+plasma_b_genes <- c(gene_sets$nieto_b, gene_sets$nieto_b_plasma)
+
+# Remove VPREB3 and IGKV1-12
+plasma_b_genes <- plasma_b_genes[!(plasma_b_genes %in% c("VPREB3", "IGKV1-12"))]
+
+pb_counts.df <- FetchData(object = pucks, vars = plasma_b_genes, layer = "counts") %>%
+  rownames_to_column(var = "merged_bc")
+
+pb_pucks.md <- pucks@meta.data[,c("Patient", "distance", "specificity", "final_clone_id")] %>%
+  mutate(merged_bc = rownames(.)) %>%
+  full_join(pb_counts.df, by = "merged_bc") %>%
+  filter(specificity %in% c("TS", "VR"))
+
+pb_mean.df <- pb_pucks.md %>%
+  group_by(Patient, distance, specificity, final_clone_id) %>%
+  summarize(num = n(),
+            across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
+            .groups = "drop") %>%
+  ungroup() %>%
+  filter(Patient %in% c("P102T", "P108T"))
+
+# Add phenotypes to mean df
+unique_scrna_phenotypes <- scrna_phenotypes %>%
+  distinct(sctcr_clone, PrimaryCluster)
+
+pb_mean.df <- unique_scrna_phenotypes %>%
+  right_join(pb_mean.df, by = c("sctcr_clone" = "final_clone_id"))
+
+pb_mean.mat <- pb_mean.df[,-c(1:6)] %>%
+  t()
+
+pb_mean.md <- pb_mean.df[,c(1:6)] %>%
+  mutate(Patient_specificity_distance = paste0(Patient, "_", specificity, "_", distance),
+         Patient_specificity_distance = factor(Patient_specificity_distance, levels = c("P108T_TS_r0-30", "P108T_TS_r100-145", "P108T_VR_r0-30", "P108T_VR_r100-145", "P102T_TS_r0-30", "P102T_TS_r100-145", "P102T_VR_r0-30", "P102T_VR_r100-145")))
+
+```
+
+#### Build row annotation
+```{r}
+pb_gene.md <- do.call(list, list(gene_sets$nieto_b, gene_sets$nieto_b_plasma))
+
+names(pb_gene.md) <- c("B cell", "Plasma cell")
+
+pb_gene.md <- pb_gene.md %>%
+  enframe(name = "cell_type", value = "gene") %>% 
+  unnest(gene)
+
+pb_gene.md <- pb_gene.md[c(pb_gene.md$gene %in% rownames(pb_mean.mat)),]
+
+pb_gene.md <- pb_gene.md %>%
+  # Remove duplicated genes
+  filter(!(cell_type == "Plasma cell" & gene %in% c("POU2AF1", "CD79A")))
+
+row_annot <- rowAnnotation(Cell_type = pb_gene.md$cell_type)
+```
+
+### Plot heatmap
+```{r, fig.width = 12, fig.height = 17}
+col_annot <- HeatmapAnnotation(Patient = pb_mean.md$Patient,
+                           Distance = pb_mean.md$distance,
+                           Specificity = pb_mean.md$specificity,
+                           Area = pb_mean.md$area_final,
+                           Phenotype = pb_mean.md$PrimaryCluster,
+                          `TS Score` = pb_mean.md$ts21,
+                           col = list(Patient = c("P102T" = "#FF9300", "P107T" = "#FF8AD8", "P108T" = "#009193"),
+                                      Distance = c("r0-30" = "grey40", "r100-145" = "grey80", "Other" = "grey90"),
+                                      Specificity = c("VR" = "navyblue", "TS" = "red", "Other" = "grey"),
+                                      Area = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000"),
+                                      Phenotype = c("Tmem" = "#0330F3", "Tex" = "#931101", "Treg" = "#ff4ff0")
+                                      ),
+                           simple_anno_size = unit(0.7, "cm"),
+                           annotation_name_gp = gpar(fontsize = 15),
+                           border = TRUE)
+
+
+c_col = colorRamp2(c(0, 1.5), c("grey90", "red"))
+
+hm <- Heatmap(pb_mean.mat,
+        top_annotation = col_annot,
+        # Rows
+        row_split = pb_gene.md$cell_type,
+        row_title_rot = 0,
+        show_row_dend = FALSE,
+        cluster_row_slices = FALSE,
+        row_names_gp = gpar(fontsize = 11),
+        row_title_gp = gpar(fontsize = 14),
+        # Columns
+        column_split = pb_mean.md$Patient_specificity_distance,
+        cluster_column_slices = FALSE,
+        column_title = " ",
+        show_column_dend = FALSE,
+        column_labels = pb_mean.md$num,
+        column_names_gp = gpar(fontsize = 11),
+        column_names_side = "bottom",
+        column_names_rot = -90,
+        # Misc
+        col = c_col,
+        border_gp = gpar(col = "black"),
+        name = "Mean\nexpr.")
+
+hm
+```
+
+### Plot boxplot
+```{r}
+median.df <- pucks@meta.data %>%
+  group_by(final_clone_id, distance, specificity, Patient) %>%
+  summarize(median_b = round(median(nieto.b1), 4),
+            median_plasma = round(median(nieto.plasma1), 4),
+            count = n()) %>%
+  filter(Patient != "P107T",
+         specificity != "Other")
+
+ggplot(median.df, aes(x = distance, y = median_plasma)) +
+  geom_boxplot(aes(fill = distance)) +
+  geom_point(aes(color = Patient, group = final_clone_id)) +
+  theme_bw() +
+  facet_wrap(Patient~specificity, scale = "free") +
+  geom_line(aes(color = Patient, group = final_clone_id)) +
+  scale_color_manual(values = c("P102T" = "#FF9300", "P108T" = "#009193")) +
+  scale_fill_manual(values = c("grey40", "grey90")) +
+  ylab("Median Plasma Score") +
+  xlab("Distance") +
+  coord_cartesian(ylim = c(0.052, -0.021))
+
+ggplot(median.df, aes(x = distance, y = median_b)) +
+  geom_boxplot(aes(fill = distance)) +
+  geom_point(aes(color = Patient, group = final_clone_id)) +
+  theme_bw() +
+  facet_wrap(Patient~specificity, scale = "free") +
+  geom_line(aes(color = Patient, group = final_clone_id)) +
+  scale_color_manual(values = c("P102T" = "#FF9300", "P108T" = "#009193")) +
+  scale_fill_manual(values = c("grey40", "grey90")) +
+  ylab("Median B Cell Score") +
+  xlab("Distance") +
+  coord_cartesian(ylim = c(0.215, 0.009))
+
+```
+
+# Plot T cell phenotypes gene expression
+```{r}
+extra <- list(exhaustion = c('PDCD1', 'TIGIT', 'LAG3', 'HAVCR2', 'CTLA4', 'TOX'), memory = c('TCF7', 'SELL', 'IL7R', 'CCR7', 'CD28'), ts = c("KRT86", "RDH10", "TYMS", "HMOX1", "GNG4", "CXCL13", "AFAP1L2", "ACP5", "MYO1E", "LAYN", "TNS3", "TNFSF4", "AKAP5", "HAVCR2", "ENTPD1", "SLC2A8", "AC243829.4", "ZBED2", "MCM5", "CAV1", "GOLIM4", "TRAV21", "VCAM1", "PON2", "MTSS1", "CD38", "TRBV11-2", "MS4A6A", "TOX2", "CSF1", "GALNT2", "FXYD2", "PLPP1", "LMCD1", "MYL6B", "LAG3", "HLA-DRA", "IGFLR1", "CCDC50", "CD27", "KIAA1324", "CDKN2A", "CD70", "ABHD6", "CTLA4", "PDCD1", "GEM", "NUSAP1", "TOX", "CXCR6", "NMB", "HOPX", "CLIC3", "INPP5F", "SNAP47", "TSHZ2", "HLA-DMA", "SIT1", "HLA-DRB1", "TUBB", "PYCARD", "ADGRG1", "HLA-DQA1", "PRF1", "HLA-DPA1", "PTMS", "CKS1B", "HIPK2", "CHST12", "LSP1", "FAM3C", "SLC1A4", "NUDT1", "DNPH1"), vr = c("RARA", "GADD45B", "C1orf21", "AOAH", "MATK", "SATB1", "MBP", "ANTXR2", "RORA", "CCR7", "ANXA1", "BACH2", "GLUL", "TNFSF14", "AUTS2", "PERP", "EPHA4", "TCF7", "SELL", "MYC", "IL7R", "CD300A", "ITGA5", "GPR183", "KLF3", "S1PR1"))
+
+```
+
+### Merge RNA objects
+```{r}
+pucks <- merge(x = P102TA_10_RNA, y = list(P102TA_17_RNA, P102TA_33_RNA, P102TA_39_RNA, P108TA_26_RNA, P108TA_29_RNA, P108TA_30_RNA, P108TA_32_RNA, P108TB_06_RNA, P108TB_14_RNA))
+
+pucks <- AddModuleScore(object = pucks, features = c(extra), name = names(c(extra)), slot = "data")
+
+# Update metadata
+pucks@meta.data <- pucks@meta.data %>%
+  mutate(distance = str_split_i(type, ";", 1),
+         distance = case_when(is.na(distance) ~ "Other",
+                              T ~ distance),
+         final_clone_id = str_split_i(type, ";", 2),
+         specificity = str_split_i(type, ";", 3),
+         specificity = case_when(is.na(specificity) ~ "Other",
+                                 T ~ specificity),
+         Patient = str_sub(orig.ident, start = 1, end = 5),
+         Patient_specificity = paste0(Patient, "_", specificity))
+
+pucks[['Spatial']] <- JoinLayers(pucks[['Spatial']])
+
+```
+
+## Format near and far data into a heatmap for supplement
+```{r}
+genes_of_int <- c("PDCD1", "CTLA4", "TIGIT", "LAG3", "HAVCR2", "TOX", "CCR7", "TCF7", "SELL", "IL7R", "CD28", "PRF1", "GZMH", "GZMK", "GZMB", "GZMA", "GNLY", "MKI67", "STMN1", "BCL6", "CXCL13", "CXCR5", "FOXP3")
+
+counts.df <- FetchData(object = pucks, vars = genes_of_int, layer = "counts") %>%
+  rownames_to_column(var = "merged_bc")
+
+pucks.md <- pucks@meta.data[,c("Patient", "distance", "specificity", "final_clone_id", "ts3", "vr4", "exhaustion1", "memory2")] %>%
+  mutate(merged_bc = rownames(.)) %>%
+  full_join(counts.df, by = "merged_bc") %>%
+  filter(specificity %in% c("TS", "VR"))
+
+mean.df <- pucks.md %>%
+  group_by(Patient, distance, specificity, final_clone_id) %>%
+  summarize(num = n(),
+            across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
+            .groups = "drop") %>%
+  ungroup() %>%
+  filter(Patient %in% c("P102T", "P108T"),
+         distance != "r100-145")
+
+# Add phenotypes to mean df
+unique_scrna_phenotypes <- scrna_phenotypes %>%
+  distinct(sctcr_clone, PrimaryCluster)
+
+mean.df <- unique_scrna_phenotypes %>%
+  right_join(mean.df, by = c("sctcr_clone" = "final_clone_id"))
+
+mean.mat <- mean.df[,-c(1:10)] %>%
+  t()
+
+scaled_mean.mat <- t(scale(t(mean.mat)))
+
+mean.md <- mean.df[,c(1:10)] %>%
+  mutate(Patient_specificity = paste0(Patient, "_", specificity),
+         Patient_specificity = factor(Patient_specificity, levels = c("P108T_TS", "P108T_VR", "P108T_Other", "P102T_TS", "P102T_VR", "P102T_Other")))
+
+```
+
+#### Build row annotation
+```{r}
+exhaustion <- c("PDCD1", "CTLA4", "TIGIT", "LAG3", "HAVCR2", "TOX")
+memory <- c("CCR7", "TCF7", "SELL", "IL7R", "CD28")
+cytotoxicity <- c("PRF1", "GZMH", "GZMK", "GZMB", "GZMA", "GNLY")
+proliferation <- c("MKI67", "STMN1") 
+tfh <- c("BCL6", "CXCL13", "CXCR5")
+treg <- c("FOXP3")
+
+gene.md <- do.call(list, list(exhaustion, memory, cytotoxicity, proliferation, tfh, treg))
+
+names(gene.md) <- c("Exhaustion", "Memory", "Cytotoxicity", "Proliferation", "Tfh", "Treg")
+
+gene.md <- gene.md %>%
+  enframe(name = "cell_type", value = "gene") %>% 
+  unnest(gene) %>%
+  mutate(cell_type = factor(cell_type, levels = c("Memory", "Exhaustion", "Cytotoxicity", "Proliferation", "Tfh", "Treg")))
+
+row_annot <- rowAnnotation(Cell_type = gene.md$cell_type)
+```
+
+### Plot supplementary heatmapheatmap
+```{r, fig.width = 8, fig.height = 7}
+col_annot <- HeatmapAnnotation(Patient = mean.md$Patient,
+                           # Distance = mean.md$distance,
+                           Specificity = mean.md$specificity,
+                           Area = mean.md$area_final,
+                           Phenotype = mean.md$PrimaryCluster,
+                           col = list(Patient = c("P102T" = "#FF9300", "P107T" = "#FF8AD8", "P108T" = "#009193"),
+                                      # Distance = c("r0-30" = "grey40", "r100-145" = "grey80", "Other" = "grey90"),
+                                      Specificity = c("VR" = "navyblue", "TS" = "red", "Other" = "grey"),
+                                      Area = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000"),
+                                      Phenotype = c("Tmem" = "#0330F3", "Tex" = "#931101", "Treg" = "#ff4ff0")),
+                           simple_anno_size = unit(0.7, "cm"),
+                           annotation_name_gp = gpar(fontsize = 15),
+                           border = TRUE)
+
+
+c_col = colorRamp2(c(0, 0.1), c("grey90", "red"))
+
+hm_sup <- Heatmap(mean.mat,
+        top_annotation = col_annot,
+        # Rows
+        row_split = gene.md$cell_type,
+        row_title_rot = 0,
+        show_row_dend = FALSE,
+        cluster_row_slices = FALSE,
+        row_names_gp = gpar(fontsize = 12),
+        row_title_gp = gpar(fontsize = 14),
+        # Columns
+        column_split = mean.md$Patient_specificity,
+        cluster_column_slices = FALSE,
+        column_title = " ",
+        show_column_dend = FALSE,
+        column_names_gp = gpar(fontsize = 11),
+        column_names_side = "bottom",
+        column_names_rot = -90,
+        # Misc
+        col = c_col,
+        border_gp = gpar(col = "black"),
+        name = "Mean\nexpr.")
+
+draw(hm_sup, padding = unit(c(0, 0, 0, 10), "mm"))
+```
+
+# Plot cell type gene expression
+```{r}
+genes_of_int <- c("CD3E", "CD4", "CD8A", "CD8B", "BANK1", "CD19", "MS4A1", "FCRLA", "IGKC", "IGHG1", "IGHG3", "JCHAIN", "MZB1", "SDC1", "TNFRSF17", "SPP1", "APOE", "CD163", "ARG1", "MRC1", "IL10", "FTL", "FN1", "LGALS9", "CD68", "CD14", "C1QB", "CD80", "CD86", "IL1B", "FCGR3A", "S100A8", "S100A9")
+
+counts.df <- FetchData(object = pucks, vars = genes_of_int, layer = "counts") %>%
+  rownames_to_column(var = "merged_bc")
+
+pucks.md <- pucks@meta.data[,c("Patient", "distance", "specificity", "final_clone_id", "ts3", "vr4", "exhaustion1", "memory2")] %>%
+  mutate(merged_bc = rownames(.)) %>%
+  full_join(counts.df, by = "merged_bc") %>%
+  filter(specificity %in% c("TS", "VR"))
+
+mean.df <- pucks.md %>%
+  group_by(Patient, distance, specificity, final_clone_id) %>%
+  summarize(num = n(),
+            across(where(is.numeric), ~ mean(.x, na.rm = TRUE)),
+            .groups = "drop") %>%
+  ungroup() %>%
+  filter(Patient %in% c("P102T", "P108T"),
+         distance != "r100-145")
+
+# Add phenotypes to mean df
+unique_scrna_phenotypes <- scrna_phenotypes %>%
+  distinct(sctcr_clone, PrimaryCluster)
+
+mean.df <- unique_scrna_phenotypes %>%
+  right_join(mean.df, by = c("sctcr_clone" = "final_clone_id"))
+
+mean.mat <- mean.df[,-c(1:10)] %>%
+  t()
+
+scaled_mean.mat <- t(scale(t(mean.mat)))
+
+mean.md <- mean.df[,c(1:10)] %>%
+  mutate(Patient_specificity = paste0(Patient, "_", specificity),
+         Patient_specificity = factor(Patient_specificity, levels = c("P108T_TS", "P108T_VR", "P108T_Other", "P102T_TS", "P102T_VR", "P102T_Other")))
+
+```
+
+#### Build row annotation
+```{r}
+t_cell <- c("CD3E", "CD4", "CD8A", "CD8B") 
+b_cell <- c("BANK1", "CD19", "MS4A1", "FCRLA")
+plasma <- c("IGKC", "IGHG1", "IGHG3", "JCHAIN", "MZB1", "SDC1", "TNFRSF17")
+mac_immunosup <- c("SPP1", "APOE", "CD163", "ARG1", "MRC1", "IL10", "FTL", "FN1", "LGALS9")
+macrophage <- c("CD68", "CD14", "C1QB", "CD80", "CD86")
+mac_proinf <- c("IL1B", "FCGR3A")
+monocyte <- c("S100A8", "S100A9")
+
+gene.md <- do.call(list, list(t_cell, b_cell, plasma, mac_immunosup, macrophage, mac_proinf, monocyte))
+
+names(gene.md) <- c("T", "B", "Plasma/Ig", "Suppress. Mac", "Mac.", "Inflamm. Mac.", "Mono.")
+
+gene.md <- gene.md %>%
+  enframe(name = "cell_type", value = "gene") %>% 
+  unnest(gene) %>%
+  mutate(cell_type = factor(cell_type, levels = c("T", "B", "Plasma/Ig", "Mono.", "Mac.", "Suppress. Mac",  "Inflamm. Mac.")))
+
+row_annot <- rowAnnotation(Cell_type = gene.md$cell_type)
+```
+
+### Plot heatmap
+```{r, fig.width = 10, fig.height = 11}
+col_annot <- HeatmapAnnotation(Patient = mean.md$Patient,
+                           # Distance = mean.md$distance,
+                           Specificity = mean.md$specificity,
+                           Area = mean.md$area_final,
+                           Phenotype = mean.md$PrimaryCluster,
+                           col = list(Patient = c("P102T" = "#FF9300", "P107T" = "#FF8AD8", "P108T" = "#009193"),
+                                      Area = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000"),
+                                      Phenotype = c("Tmem" = "#0330F3", "Tex" = "#931101", "Treg" = "#ff4ff0"),
+                                      Specificity = c("VR" = "navyblue", "TS" = "red", "Other" = "grey"),
+                                      `TS Score` = colorRamp2(c(0, 0.1), c("grey90", "red")),
+                                      `VR Score` = colorRamp2(c(-0.04, 0.04), c("grey90", "#0330F3"))),
+                           simple_anno_size = unit(0.7, "cm"),
+                           annotation_name_gp = gpar(fontsize = 15),
+                           border = TRUE)
+
+
+c_col = colorRamp2(c(0, 0.9, 1.5), c("grey90", "red", "red"))
+hm_main <- Heatmap(mean.mat,
+        top_annotation = col_annot,
+        # Rows
+        row_split = gene.md$cell_type,
+        row_title_rot = 0,
+        show_row_dend = FALSE,
+        cluster_row_slices = FALSE,
+        row_names_gp = gpar(fontsize = 12),
+        row_title_gp = gpar(fontsize = 14),
+        # Columns
+        column_split = mean.md$Patient_specificity,
+        cluster_column_slices = FALSE,
+        column_title = " ",
+        show_column_dend = FALSE,
+        column_labels = mean.md$num,
+        column_names_gp = gpar(fontsize = 11),
+        column_names_side = "bottom",
+        column_names_rot = -90,
+        # Misc
+        col = c_col,
+        border_gp = gpar(col = "black"),
+        name = "Mean\nexpr.")
+
+draw(hm_main, padding = unit(c(0, 0, 0, 10), "mm"))
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```
+

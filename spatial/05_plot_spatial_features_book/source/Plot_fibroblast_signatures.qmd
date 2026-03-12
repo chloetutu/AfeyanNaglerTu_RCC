@@ -1,0 +1,237 @@
+# Plot fibroblast signatures spatially {#sec-spatial-features}
+
+## We could not include fibroblasts in RCTD for most patients given the very low number of fibroblast cells (< 40) to use as reference from patient-matched scRNAseq data for P107, 108, 109, 110, 111. However, we can attempt to include fibroblasts in cell type calling for P102. For the other patients, we use the fibroblast DEG selected by RCTD in P102 as the gene set to generalize where fibroblasts localize and plot spatially
+
+## Libraries
+```{r}
+library(Seurat)
+library(dplyr)
+library(spacexr)
+library(tidyverse)
+library(viridis)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+```
+
+## Get the fibroblast gene set
+```{r}
+fib_markers <- c("COL1A1", "COL1A2", "LUM", "COL6A3", "COL5A1", "LOXL1")
+```
+
+# Visualize fibroblast gene signature in the other pucks
+
+## Open objects with annotated areas
+```{r}
+P102TA_10_RNA <- readRDS("../objects/02_Puck10_102TA_TCR_RNA_area_121125.Rds")
+P102TA_17_RNA <- readRDS("../objects/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+P102TA_39_RNA <- readRDS("../objects/02_Puck39_102TA_TCR_RNA_area_121125.Rds")
+
+P107TA_15_RNA <- readRDS("../objects/02_Puck15_107TA_TCR_RNA_area_121125.Rds")
+P107TA_18_RNA <- readRDS("../objects/02_Puck18_107TA_TCR_RNA_area_121125.Rds")
+P107TA_20_RNA <- readRDS("../objects/02_Puck20_107TA_TCR_RNA_area_121125.Rds")
+
+P108TA_26_RNA <- readRDS("../objects/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("../objects/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("../objects/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+
+P108TB_06_RNA <- readRDS("../objects/02_Puck06_108TB_TCR_RNA_area_121125.Rds")
+P108TB_14_RNA <- readRDS("../objects/02_Puck14_108TB_TCR_RNA_area_121125.Rds")
+
+P109TB_23_RNA <- readRDS("../objects/02_Puck23_109TB_TCR_RNA_area_121125.Rds")
+P109TB_34_RNA <- readRDS("../objects/02_Puck34_109TB_TCR_RNA_area_121125.Rds")
+
+P110TA_28_RNA <- readRDS("../objects/02_Puck28_110TA_TCR_RNA_area_121125.Rds")
+P110TA_30_RNA <- readRDS("../objects/02_Puck30_110TA_TCR_RNA_area_121125.Rds")
+
+P111TA_32_RNA <- readRDS("../objects/02_Puck32_111TA_TCR_RNA_area_121125.Rds")
+P111TA_37_RNA <- readRDS("../objects/02_Puck37_111TA_TCR_RNA_area_121125.Rds")
+```
+
+## Remove empty areas
+```{r}
+P102TA_10_RNA <- subset(P102TA_10_RNA, area == "Empty", invert = TRUE)
+P102TA_17_RNA <- subset(P102TA_17_RNA, area == "Empty", invert = TRUE)
+P102TA_33_RNA <- subset(P102TA_33_RNA, area == "Empty", invert = TRUE)
+P102TA_39_RNA <- subset(P102TA_39_RNA, area == "Empty", invert = TRUE)
+
+P107TA_15_RNA <- subset(P107TA_15_RNA, area == "Empty", invert = TRUE)
+P107TA_18_RNA <- subset(P107TA_18_RNA, area == "Empty", invert = TRUE)
+P107TA_20_RNA <- subset(P107TA_20_RNA, area == "Empty", invert = TRUE)
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, area == "Empty", invert = TRUE)
+P108TA_29_RNA <- subset(P108TA_29_RNA, area == "Empty", invert = TRUE)
+P108TA_30_RNA <- subset(P108TA_30_RNA, area == "Empty", invert = TRUE)
+P108TA_32_RNA <- subset(P108TA_32_RNA, area == "Empty", invert = TRUE)
+
+P108TB_06_RNA <- subset(P108TB_06_RNA, area == "Empty", invert = TRUE)
+P108TB_14_RNA <- subset(P108TB_14_RNA, area == "Empty", invert = TRUE)
+
+P109TB_23_RNA <- subset(P109TB_23_RNA, area == "Empty", invert = TRUE)
+P109TB_34_RNA <- subset(P109TB_34_RNA, area == "Empty", invert = TRUE)
+
+P110TA_28_RNA <- subset(P110TA_28_RNA, area == "Empty", invert = TRUE)
+P110TA_30_RNA <- subset(P110TA_30_RNA, area == "Empty", invert = TRUE)
+
+P111TA_32_RNA <- subset(P111TA_32_RNA, area == "Empty", invert = TRUE)
+P111TA_37_RNA <- subset(P111TA_37_RNA, area == "Empty", invert = TRUE)
+```
+
+## Normalize data
+```{r}
+P102TA_10_RNA <- NormalizeData(P102TA_10_RNA)
+P102TA_17_RNA <- NormalizeData(P102TA_17_RNA)
+P102TA_33_RNA <- NormalizeData(P102TA_33_RNA)
+P102TA_39_RNA <- NormalizeData(P102TA_39_RNA)
+
+P107TA_15_RNA <- NormalizeData(P107TA_15_RNA)
+P107TA_18_RNA <- NormalizeData(P107TA_18_RNA)
+P107TA_20_RNA <- NormalizeData(P107TA_20_RNA)
+
+P108TA_26_RNA <- NormalizeData(P108TA_26_RNA)
+P108TA_29_RNA <- NormalizeData(P108TA_29_RNA)
+P108TA_30_RNA <- NormalizeData(P108TA_30_RNA)
+P108TA_32_RNA <- NormalizeData(P108TA_32_RNA)
+
+P108TB_06_RNA <- NormalizeData(P108TB_06_RNA)
+P108TB_14_RNA <- NormalizeData(P108TB_14_RNA)
+
+P109TB_23_RNA <- NormalizeData(P109TB_23_RNA)
+P109TB_34_RNA <- NormalizeData(P109TB_34_RNA)
+
+P110TA_28_RNA <- NormalizeData(P110TA_28_RNA)
+P110TA_30_RNA <- NormalizeData(P110TA_30_RNA)
+
+P111TA_32_RNA <- NormalizeData(P111TA_32_RNA)
+P111TA_37_RNA <- NormalizeData(P111TA_37_RNA)
+```
+
+## Calculate fibroblast gene signatures
+```{r}
+P102TA_10_RNA <- AddModuleScore(P102TA_10_RNA, features = list(fib_markers), name = "fib")
+P102TA_17_RNA <- AddModuleScore(P102TA_17_RNA, features = list(fib_markers), name = "fib")
+P102TA_33_RNA <- AddModuleScore(P102TA_33_RNA, features = list(fib_markers), name = "fib")
+P102TA_39_RNA <- AddModuleScore(P102TA_39_RNA, features = list(fib_markers), name = "fib")
+
+P107TA_15_RNA <- AddModuleScore(P107TA_15_RNA, features = list(fib_markers), name = "fib")
+P107TA_18_RNA <- AddModuleScore(P107TA_18_RNA, features = list(fib_markers), name = "fib")
+P107TA_20_RNA <- AddModuleScore(P107TA_20_RNA, features = list(fib_markers), name = "fib")
+
+P108TA_26_RNA <- AddModuleScore(P108TA_26_RNA, features = list(fib_markers), name = "fib")
+P108TA_29_RNA <- AddModuleScore(P108TA_29_RNA, features = list(fib_markers), name = "fib")
+P108TA_30_RNA <- AddModuleScore(P108TA_30_RNA, features = list(fib_markers), name = "fib")
+P108TA_32_RNA <- AddModuleScore(P108TA_32_RNA, features = list(fib_markers), name = "fib")
+
+P108TB_06_RNA <- AddModuleScore(P108TB_06_RNA, features = list(fib_markers), name = "fib")
+P108TB_14_RNA <- AddModuleScore(P108TB_14_RNA, features = list(fib_markers), name = "fib")
+
+P109TB_23_RNA <- AddModuleScore(P109TB_23_RNA, features = list(fib_markers), name = "fib")
+P109TB_34_RNA <- AddModuleScore(P109TB_34_RNA, features = list(fib_markers), name = "fib")
+
+P110TA_28_RNA <- AddModuleScore(P110TA_28_RNA, features = list(fib_markers), name = "fib")
+P110TA_30_RNA <- AddModuleScore(P110TA_30_RNA, features = list(fib_markers), name = "fib")
+
+P111TA_32_RNA <- AddModuleScore(P111TA_32_RNA, features = list(fib_markers), name = "fib")
+P111TA_37_RNA <- AddModuleScore(P111TA_37_RNA, features = list(fib_markers), name = "fib")
+```
+
+## Save AddModuleScores for supp table
+```{r, eval = FALSE}
+pucks <- merge(x = P102TA_10_RNA, y = list(P102TA_17_RNA, P102TA_33_RNA, P102TA_39_RNA, 
+                                           P107TA_15_RNA, P107TA_18_RNA, P107TA_20_RNA, 
+                                           P108TA_26_RNA, P108TA_29_RNA, P108TA_30_RNA, P108TA_32_RNA, 
+                                           P108TB_06_RNA, P108TB_14_RNA,
+                                           P109TB_23_RNA, P109TB_34_RNA,
+                                           P110TA_28_RNA, P110TA_30_RNA,
+                                           P111TA_32_RNA, P111TA_37_RNA))
+
+saved_md <- pucks@meta.data %>%
+  filter(area != "Empty") %>%
+  select(orig.ident, barcode, fib1)
+
+write.csv(saved_md, "../objects/Supp Fig 15 fibroblast scores.csv")
+```
+
+## Reorient pucks
+```{r}
+reorient_pucks <- function(obj){
+  obj@images$image@coordinates$x <- obj$plot_x
+  obj@images$image@coordinates$y <- -obj$plot_y
+  
+  return(obj)
+}
+
+P102TA_10_RNA <- reorient_pucks(P102TA_10_RNA)
+P102TA_17_RNA <- reorient_pucks(P102TA_17_RNA)
+P102TA_33_RNA <- reorient_pucks(P102TA_33_RNA)
+P102TA_39_RNA <- reorient_pucks(P102TA_39_RNA)
+
+P107TA_15_RNA <- reorient_pucks(P107TA_15_RNA)
+P107TA_18_RNA <- reorient_pucks(P107TA_18_RNA)
+P107TA_20_RNA <- reorient_pucks(P107TA_20_RNA)
+
+P108TA_26_RNA <- reorient_pucks(P108TA_26_RNA)
+P108TA_29_RNA <- reorient_pucks(P108TA_29_RNA)
+P108TA_30_RNA <- reorient_pucks(P108TA_30_RNA)
+P108TA_32_RNA <- reorient_pucks(P108TA_32_RNA)
+
+P108TB_06_RNA <- reorient_pucks(P108TB_06_RNA)
+P108TB_14_RNA <- reorient_pucks(P108TB_14_RNA)
+
+P109TB_23_RNA <- reorient_pucks(P109TB_23_RNA)
+P109TB_34_RNA <- reorient_pucks(P109TB_34_RNA)
+
+P110TA_28_RNA <- reorient_pucks(P110TA_28_RNA)
+P110TA_30_RNA <- reorient_pucks(P110TA_30_RNA)
+
+P111TA_32_RNA <- reorient_pucks(P111TA_32_RNA)
+P111TA_37_RNA <- reorient_pucks(P111TA_37_RNA)
+```
+
+## Plot fibroblast gene signature
+```{r}
+SpatialFeaturePlot(subset(P102TA_10_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +
+  scale_fill_viridis() + ggtitle("P102TA_10_RNA")
+SpatialFeaturePlot(subset(P102TA_17_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +
+  scale_fill_viridis() + ggtitle("P102TA_17_RNA")
+SpatialFeaturePlot(subset(P102TA_33_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +
+  scale_fill_viridis() + ggtitle("P102TA_33_RNA")
+SpatialFeaturePlot(subset(P102TA_39_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +
+  scale_fill_viridis() + ggtitle("P102TA_39_RNA")
+
+SpatialFeaturePlot(subset(P107TA_15_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +
+  scale_fill_viridis() + ggtitle("P107TA_15_RNA")  +
+  coord_fixed(xlim = c(0, 5000), ylim = c(0, 5000))
+SpatialFeaturePlot(subset(P107TA_18_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +
+  scale_fill_viridis() + ggtitle("P107TA_18_RNA")
+SpatialFeaturePlot(subset(P107TA_20_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P107TA_20_RNA")
+
+SpatialFeaturePlot(subset(P108TA_26_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P108TA_26_RNA")
+SpatialFeaturePlot(subset(P108TA_29_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P108TA_29_RNA")
+SpatialFeaturePlot(subset(P108TA_30_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P108TA_30_RNA") +
+  coord_fixed(xlim = c(0, 5000), ylim = c(0, 5000))
+SpatialFeaturePlot(subset(P108TA_32_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P108TA_32_RNA")
+
+SpatialFeaturePlot(subset(P108TB_06_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P108TB_06_RNA")
+SpatialFeaturePlot(subset(P108TB_14_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P108TB_14_RNA")
+
+SpatialFeaturePlot(subset(P109TB_23_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P109TB_23_RNA")
+SpatialFeaturePlot(subset(P109TB_34_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P109TB_34_RNA")
+
+SpatialFeaturePlot(subset(P110TA_28_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P110TA_28_RNA") +
+  coord_fixed(xlim = c(0, 5000), ylim = c(0, 5000))
+SpatialFeaturePlot(subset(P110TA_30_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P110TA_30_RNA")
+
+SpatialFeaturePlot(subset(P111TA_32_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P111TA_32_RNA")
+SpatialFeaturePlot(subset(P111TA_37_RNA, subset = fib1 > 1), features = "fib1", pt.size = 3) +   scale_fill_viridis() + ggtitle("P111TA_37_RNA")
+
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```
+

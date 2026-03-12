@@ -1,0 +1,1215 @@
+# Gene expression in shared neoantigen-specific TCRs {#sec-gene-exp-plots}
+
+# Dotplot of shared neoantigen-specific TCRs in the TLS
+
+# Libraries
+```{r}
+library(Seurat)
+library(SeuratWrappers)
+library(ggplot2)
+library(patchwork)
+library(dplyr)
+library(wesanderson)
+library(ggplotify)
+library(cowplot)
+library(stringr)
+library(reshape2)
+library(ggrepel)
+library(tidyverse)
+library(infer)
+library(RANN)
+library(muscat)
+library(limma)
+library(purrr)
+library(SummarizedExperiment)
+library(fgsea)
+library(msigdbr)
+library(ProjecTILs)
+library(readxl)
+library(UpSetR)
+library(ggpointdensity)
+library(ComplexHeatmap)
+library(scales)
+library(escape)
+library(lme4)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+colors <- structure(c("white", paletteer::paletteer_d("khroma::smoothrainbow")), names = as.character(c(0:34)))
+
+set.seed(123)
+```
+
+# Set radius to explore
+```{r}
+rad <- 15
+```
+
+# Load objects
+```{r}
+P108TA_26_RNA <- readRDS("../objects/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("../objects/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("../objects/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+
+```
+
+## Add a generalized column "tls_status"
+```{r}
+add_TLS_column <- function(obj){
+  obj <- obj %>%
+    mutate(tls_status = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4", "M2") ~ "inTLS",
+                              area %in% c("Boundary", "Tumor") ~ "outTLS"))
+  
+  return(obj)
+}
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  add_TLS_column()
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  add_TLS_column()
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  add_TLS_column()
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  add_TLS_column()
+```
+
+## Assign celltypes
+```{r}
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_26_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_29_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_30_RNA@meta.data %>%
+  dplyr::count(assignment1)
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  assign_celltypes() %>%
+  order_celltypes()
+P108TA_32_RNA@meta.data %>%
+  dplyr::count(assignment1)
+```
+
+# Remove empty beads
+```{r}
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = area == "Empty", invert = TRUE)
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = area == "Empty", invert = TRUE)
+```
+
+# Explore the scRNA derived phenotypes of the shared clones
+## Open scRNA derived phenotypes
+```{r}
+scrna_phenotypes <- read.csv("../objects/reformatted_RCC_slideseq_parameters_052925.csv")
+
+neoantigen_clones <- scrna_phenotypes %>%
+  filter(antigen == "NSUN5 p.Q18K") %>%
+  distinct(sctcr_clone) %>%
+  pull(sctcr_clone)
+```
+
+# Get shared clonotypes in both the TLS and non-TLS areas per patient
+
+## P108TA
+```{r}
+P108TA_md <- rbind(P108TA_26_RNA@meta.data, P108TA_29_RNA@meta.data, P108TA_30_RNA@meta.data, P108TA_32_RNA@meta.data)
+
+P108TA_tls_md <- P108TA_md %>%
+  filter(tls_status == "inTLS")
+
+P108TA_nontls_md <- P108TA_md %>%
+  filter(tls_status == "outTLS")
+
+P108TA_tls_clones_counts <- count_clones_by_annotated_area(P108TA_tls_md, get_unique_productive_clones(P108TA_tls_md$clone_id)) %>%
+  mutate(area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "M2") ~ "TLS",
+                          T ~ "wrong")) %>%
+  group_by(clone_id, area) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup()
+  
+P108TA_nontls_clones_counts <- count_clones_by_annotated_area(P108TA_nontls_md, get_unique_productive_clones(P108TA_nontls_md$clone_id)) %>%
+  mutate(area = case_when(area %in% c("Tumor", "Boundary") ~ "nonTLS",
+                          T ~ "wrong")) %>%
+  group_by(clone_id, area) %>%
+  summarize(sum_count = sum(count)) %>%
+  ungroup()
+
+# We want neoantigen clones seen in 3 beads or more in each region
+P108TA_tls_clones <- P108TA_tls_clones_counts %>%
+  filter(sum_count >= 3,
+         clone_id %in% neoantigen_clones) %>%
+  pull(clone_id)
+P108TA_nontls_clones <- P108TA_nontls_clones_counts %>%
+  filter(sum_count >= 3,
+         clone_id %in% neoantigen_clones) %>%
+  pull(clone_id)
+
+table(P108TA_tls_clones %in% P108TA_nontls_clones)
+table(P108TA_nontls_clones %in% P108TA_tls_clones)
+
+P108TA_shared_clones <- P108TA_tls_clones[P108TA_tls_clones %in% P108TA_nontls_clones]
+```
+
+# Set neoantigen clone order based increasing frequency of clones across all pucks
+Determined earlier
+```{r}
+P108TA_shared_clones <- factor(P108TA_shared_clones, levels = c("p108_215", "p108_266", "p108_1", "p108_208", "p108_205"))
+```
+
+# Cast beads with multiple neoantigen specific clones to the smaller clone
+```{r}
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  mutate(neoantigen_id = case_when(str_detect(sctcr_clone, "p108_215($|,)") ~ "p108_215",
+                                  str_detect(sctcr_clone, "p108_266($|,)") ~ "p108_266",
+                                  str_detect(sctcr_clone, "p108_1($|,)") ~ "p108_1",
+                                  str_detect(sctcr_clone, "p108_208($|,)") ~ "p108_208",
+                                  str_detect(sctcr_clone, "p108_205($|,)") ~ "p108_205"))
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  mutate(neoantigen_id = case_when(str_detect(sctcr_clone, "p108_215($|,)") ~ "p108_215",
+                                  str_detect(sctcr_clone, "p108_266($|,)") ~ "p108_266",
+                                  str_detect(sctcr_clone, "p108_1($|,)") ~ "p108_1",
+                                  str_detect(sctcr_clone, "p108_208($|,)") ~ "p108_208",
+                                  str_detect(sctcr_clone, "p108_205($|,)") ~ "p108_205"))
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  mutate(neoantigen_id = case_when(str_detect(sctcr_clone, "p108_215($|,)") ~ "p108_215",
+                                  str_detect(sctcr_clone, "p108_266($|,)") ~ "p108_266",
+                                  str_detect(sctcr_clone, "p108_1($|,)") ~ "p108_1",
+                                  str_detect(sctcr_clone, "p108_208($|,)") ~ "p108_208",
+                                  str_detect(sctcr_clone, "p108_205($|,)") ~ "p108_205"))
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  mutate(neoantigen_id = case_when(str_detect(sctcr_clone, "p108_215($|,)") ~ "p108_215",
+                                  str_detect(sctcr_clone, "p108_266($|,)") ~ "p108_266",
+                                  str_detect(sctcr_clone, "p108_1($|,)") ~ "p108_1",
+                                  str_detect(sctcr_clone, "p108_208($|,)") ~ "p108_208",
+                                  str_detect(sctcr_clone, "p108_205($|,)") ~ "p108_205"))
+```
+
+# P108TA
+## Puck 26
+
+### Get beads near each shared neoantigen clone inside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+inTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_26_RNA, "inTLS", clone, rad)
+  inTLS_list <- append(inTLS_list, list(result_list))
+}
+
+# Rename lists
+names(inTLS_list) <- P108TA_shared_clones
+```
+
+### Get beads near each shared neoantigen clone outside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+outTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_26_RNA, "outTLS", clone, rad)
+  outTLS_list <- append(outTLS_list, list(result_list))
+}
+
+# Rename lists
+names(outTLS_list) <- P108TA_shared_clones
+```
+
+### Check for overlaps
+#### in TLS vs in TLS
+```{r}
+in_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(inTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(inTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		in_vs_in.df <- rbind(in_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(in_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+in_vs_in.df <- in_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(in_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads in TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+#### Outside TLS vs outside TLS
+```{r}
+out_vs_out.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, outTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(outTLS_list)[j], same_beads)
+  		out_vs_out.df <- rbind(out_vs_out.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_out.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_out.df <- out_vs_out.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_out.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs outside TLS",
+        name = "No. of\nbeads")
+```
+
+##### View overlap of beads in p108_1 and p108_205
+```{r}
+overlapped_beads <- intersect(outTLS_list$p108_1$near_beads$barcode, outTLS_list$p108_205$near_beads$barcode)
+
+ggplot() +
+  geom_point(data = outTLS_list$p108_1$near_beads, aes(x = x, y = y)) +
+  geom_point(data = outTLS_list$p108_1$TCRs, aes(x = x, y = y), color = "blue") +
+  geom_point(data = filter(P108TA_26_RNA@meta.data, barcode %in% overlapped_beads), aes(x = x, y = y), color = "red") +
+  coord_cartesian(xlim = c(0, 5000), ylim = c(0, 5000))
+
+ggplot() +
+  geom_point(data = outTLS_list$p108_205$near_beads, aes(x = x, y = y)) +
+  geom_point(data = outTLS_list$p108_205$TCRs, aes(x = x, y = y), color = "blue")+
+  geom_point(data = filter(P108TA_26_RNA@meta.data, barcode %in% overlapped_beads), aes(x = x, y = y), color = "red") +
+  coord_cartesian(xlim = c(0, 5000), ylim = c(0, 5000))
+```
+
+##### Reassign overlapping beads
+```{r}
+# P108_1 and P108_205
+# Reassign overlapping beads
+P108TA_26_reassigned <- reassign_overlapping_beads(P108TA_26_RNA, tex_beads = outTLS_list$p108_205, tmem_beads = outTLS_list$p108_1)
+
+# Split list back out
+outTLS_list$p108_205 <- P108TA_26_reassigned$reassigned_tex_beads
+outTLS_list$p108_1 <- P108TA_26_reassigned$reassigned_tmem_beads
+
+# Plot updated beads
+ggplot() +
+  geom_point(data = outTLS_list$p108_1$near_beads, aes(x = x, y = y)) +
+  geom_point(data = outTLS_list$p108_1$TCRs, aes(x = x, y = y), color = "blue") +
+  coord_cartesian(xlim = c(0, 5000), ylim = c(0, 5000))
+
+ggplot() +
+  geom_point(data = outTLS_list$p108_205$near_beads, aes(x = x, y = y)) +
+  geom_point(data = outTLS_list$p108_205$TCRs, aes(x = x, y = y), color = "blue")+
+  coord_cartesian(xlim = c(0, 5000), ylim = c(0, 5000))
+
+# P108_208 and P108_205
+# Reassign overlapping beads
+P108TA_26_reassigned <- reassign_overlapping_beads(P108TA_26_RNA, tex_beads = outTLS_list$p108_205, tmem_beads = outTLS_list$p108_208)
+
+# Split list back out
+outTLS_list$p108_205 <- P108TA_26_reassigned$reassigned_tex_beads
+outTLS_list$p108_208 <- P108TA_26_reassigned$reassigned_tmem_beads
+
+# P108_215 and P108_205
+# Reassign overlapping beads
+P108TA_26_reassigned <- reassign_overlapping_beads(P108TA_26_RNA, tex_beads = outTLS_list$p108_205, tmem_beads = outTLS_list$p108_215)
+
+# Split list back out
+outTLS_list$p108_205 <- P108TA_26_reassigned$reassigned_tex_beads
+outTLS_list$p108_215 <- P108TA_26_reassigned$reassigned_tmem_beads
+
+# P108_266 and P108_205
+# Reassign overlapping beads
+P108TA_26_reassigned <- reassign_overlapping_beads(P108TA_26_RNA, tex_beads = outTLS_list$p108_205, tmem_beads = outTLS_list$p108_266)
+
+# Split list back out
+outTLS_list$p108_205 <- P108TA_26_reassigned$reassigned_tex_beads
+outTLS_list$p108_266 <- P108TA_26_reassigned$reassigned_tmem_beads
+
+# P108_266 and P108_208
+# Reassign overlapping beads
+P108TA_26_reassigned <- reassign_overlapping_beads(P108TA_26_RNA, tex_beads = outTLS_list$p108_266, tmem_beads = outTLS_list$p108_208)
+
+# Split list back out
+outTLS_list$p108_266 <- P108TA_26_reassigned$reassigned_tex_beads
+outTLS_list$p108_208 <- P108TA_26_reassigned$reassigned_tmem_beads
+```
+
+#### Outside TLS vs in TLS
+```{r}
+out_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i <= j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		out_vs_in.df <- rbind(out_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_in.df <- out_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+# Attach partition data
+partition.df <- data.frame()
+for(i in c(1:(length(inTLS_list)))){
+  if(nrow(inTLS_list[[i]]$near_beads) > 0){
+    near <- inTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+for(i in c(1:(length(outTLS_list)))){
+  if(nrow(outTLS_list[[i]]$near_beads) > 0){
+    near <- outTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  left_join(partition.df, by = "barcode") %>%
+  column_to_rownames("barcode") %>%
+  mutate(barcode = rownames(.))
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% inTLS_list$p108_1$near_beads$barcode ~ "p108_1,inTLS",
+                          barcode %in% inTLS_list$p108_205$near_beads$barcode ~ "p108_205,inTLS",
+                          barcode %in% inTLS_list$p108_208$near_beads$barcode ~ "p108_208,inTLS",
+                          barcode %in% inTLS_list$p108_215$near_beads$barcode ~ "p108_215,inTLS",
+                          barcode %in% inTLS_list$p108_266$near_beads$barcode ~ "p108_266,inTLS",
+                          barcode %in% outTLS_list$p108_1$near_beads$barcode ~ "p108_1,outTLS",
+                          barcode %in% outTLS_list$p108_205$near_beads$barcode ~ "p108_205,outTLS",
+                          barcode %in% outTLS_list$p108_208$near_beads$barcode ~ "p108_208,outTLS",
+                          barcode %in% outTLS_list$p108_215$near_beads$barcode ~ "p108_215,outTLS",
+                          barcode %in% outTLS_list$p108_266$near_beads$barcode ~ "p108_266,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, subset = muscat == "Defined")
+```
+
+## Puck 29
+### Get beads near each shared neoantigen clone inside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+inTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_29_RNA, "inTLS", clone, rad)
+  inTLS_list <- append(inTLS_list, list(result_list))
+}
+
+# Rename lists
+names(inTLS_list) <- P108TA_shared_clones
+```
+
+### Get beads near each shared neoantigen clone outside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+outTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_29_RNA, "outTLS", clone, rad)
+  outTLS_list <- append(outTLS_list, list(result_list))
+}
+
+# Rename lists
+names(outTLS_list) <- P108TA_shared_clones
+```
+
+### Check for overlaps
+#### in TLS vs in TLS
+```{r}
+in_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(inTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(inTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		in_vs_in.df <- rbind(in_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(in_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+in_vs_in.df <- in_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(in_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads in TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+#### Outside TLS vs outside tls
+```{r}
+out_vs_out.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, outTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(outTLS_list)[j], same_beads)
+  		out_vs_out.df <- rbind(out_vs_out.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_out.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_out.df <- out_vs_out.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_out.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs outside TLS",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r}
+# P108_208 and P108_205
+# Reassign overlapping beads
+P108TA_29_reassigned <- reassign_overlapping_beads(P108TA_29_RNA, tex_beads = outTLS_list$p108_205, tmem_beads = outTLS_list$p108_208)
+
+# Split list back out
+outTLS_list$p108_205 <- P108TA_29_reassigned$reassigned_tex_beads
+outTLS_list$p108_208 <- P108TA_29_reassigned$reassigned_tmem_beads
+
+# P108_208 and P108_215
+# Reassign overlapping beads
+P108TA_29_reassigned <- reassign_overlapping_beads(P108TA_29_RNA, tex_beads = outTLS_list$p108_215, tmem_beads = outTLS_list$p108_208)
+
+# Split list back out
+outTLS_list$p108_215 <- P108TA_29_reassigned$reassigned_tex_beads
+outTLS_list$p108_208 <- P108TA_29_reassigned$reassigned_tmem_beads
+```
+
+#### Outside TLS vs in TLS
+```{r}
+out_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i <= j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		out_vs_in.df <- rbind(out_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_in.df <- out_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+# Attach partition data
+partition.df <- data.frame()
+for(i in c(1:(length(inTLS_list)))){
+  if(nrow(inTLS_list[[i]]$near_beads) > 0){
+    near <- inTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+for(i in c(1:(length(outTLS_list)))){
+  if(nrow(outTLS_list[[i]]$near_beads) > 0){
+    near <- outTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  left_join(partition.df, by = "barcode") %>%
+  column_to_rownames("barcode") %>%
+  mutate(barcode = rownames(.))
+
+
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% inTLS_list$p108_1$near_beads$barcode ~ "p108_1,inTLS",
+                          barcode %in% inTLS_list$p108_205$near_beads$barcode ~ "p108_205,inTLS",
+                          barcode %in% inTLS_list$p108_208$near_beads$barcode ~ "p108_208,inTLS",
+                          barcode %in% inTLS_list$p108_215$near_beads$barcode ~ "p108_215,inTLS",
+                          barcode %in% inTLS_list$p108_266$near_beads$barcode ~ "p108_266,inTLS",
+                          barcode %in% outTLS_list$p108_1$near_beads$barcode ~ "p108_1,outTLS",
+                          barcode %in% outTLS_list$p108_205$near_beads$barcode ~ "p108_205,outTLS",
+                          barcode %in% outTLS_list$p108_208$near_beads$barcode ~ "p108_208,outTLS",
+                          barcode %in% outTLS_list$p108_215$near_beads$barcode ~ "p108_215,outTLS",
+                          barcode %in% outTLS_list$p108_266$near_beads$barcode ~ "p108_266,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_29_RNA <- subset(P108TA_29_RNA, subset = muscat == "Defined")
+```
+
+## Puck 30
+### Get beads near each shared neoantigen clone inside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+inTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_30_RNA, "inTLS", clone, rad)
+  inTLS_list <- append(inTLS_list, list(result_list))
+}
+
+# Rename lists
+names(inTLS_list) <- P108TA_shared_clones
+```
+
+### Get beads near each shared neoantigen clone outside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+outTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_30_RNA, "outTLS", clone, rad)
+  outTLS_list <- append(outTLS_list, list(result_list))
+}
+
+# Rename lists
+names(outTLS_list) <- P108TA_shared_clones
+```
+
+### Check for overlaps
+#### in TLS vs in TLS
+```{r}
+in_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(inTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(inTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		in_vs_in.df <- rbind(in_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(in_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+in_vs_in.df <- in_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(in_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads in TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+#### Outside TLS vs outside tls
+```{r}
+out_vs_out.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, outTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(outTLS_list)[j], same_beads)
+  		out_vs_out.df <- rbind(out_vs_out.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_out.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_out.df <- out_vs_out.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_out.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs outside TLS",
+        name = "No. of\nbeads")
+```
+
+#### Outside TLS vs in TLS
+```{r}
+out_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i <= j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		out_vs_in.df <- rbind(out_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_in.df <- out_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+# Attach partition data
+partition.df <- data.frame()
+for(i in c(1:(length(inTLS_list)))){
+  if(nrow(inTLS_list[[i]]$near_beads) > 0){
+    near <- inTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+for(i in c(1:(length(outTLS_list)))){
+  if(nrow(outTLS_list[[i]]$near_beads) > 0){
+    near <- outTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  left_join(partition.df, by = "barcode") %>%
+  column_to_rownames("barcode") %>%
+  mutate(barcode = rownames(.))
+
+
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% inTLS_list$p108_1$near_beads$barcode ~ "p108_1,inTLS",
+                          barcode %in% inTLS_list$p108_205$near_beads$barcode ~ "p108_205,inTLS",
+                          barcode %in% inTLS_list$p108_208$near_beads$barcode ~ "p108_208,inTLS",
+                          barcode %in% inTLS_list$p108_215$near_beads$barcode ~ "p108_215,inTLS",
+                          barcode %in% inTLS_list$p108_266$near_beads$barcode ~ "p108_266,inTLS",
+                          barcode %in% outTLS_list$p108_1$near_beads$barcode ~ "p108_1,outTLS",
+                          barcode %in% outTLS_list$p108_205$near_beads$barcode ~ "p108_205,outTLS",
+                          barcode %in% outTLS_list$p108_208$near_beads$barcode ~ "p108_208,outTLS",
+                          barcode %in% outTLS_list$p108_215$near_beads$barcode ~ "p108_215,outTLS",
+                          barcode %in% outTLS_list$p108_266$near_beads$barcode ~ "p108_266,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_30_RNA <- subset(P108TA_30_RNA, subset = muscat == "Defined")
+```
+
+## Puck 32
+### Get beads near each shared neoantigen clone inside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+inTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_32_RNA, "inTLS", clone, rad)
+  inTLS_list <- append(inTLS_list, list(result_list))
+}
+
+# Rename lists
+names(inTLS_list) <- P108TA_shared_clones
+```
+
+### Get beads near each shared neoantigen clone outside the TLS
+```{r}
+# Get the beads near shared neoantigen clones
+outTLS_list <- list()
+
+for(clone in P108TA_shared_clones){
+  result_list <- get_beads_near_specific_neoantigen_TCR2(P108TA_32_RNA, "outTLS", clone, rad)
+  outTLS_list <- append(outTLS_list, list(result_list))
+}
+
+# Rename lists
+names(outTLS_list) <- P108TA_shared_clones
+```
+
+### Check for overlaps
+#### in TLS vs in TLS
+```{r}
+in_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(inTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(inTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		in_vs_in.df <- rbind(in_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(in_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+in_vs_in.df <- in_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(in_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads in TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+##### Reassign overlapping beads
+```{r}
+# P108_208 and P108_266
+# Reassign overlapping beads
+P108TA_32_reassigned <- reassign_overlapping_beads(P108TA_32_RNA, tex_beads = inTLS_list$p108_266, tmem_beads = inTLS_list$p108_208)
+
+# Split list back out
+inTLS_list$p108_266 <- P108TA_32_reassigned$reassigned_tex_beads
+inTLS_list$p108_208 <- P108TA_32_reassigned$reassigned_tmem_beads
+
+```
+
+#### Outside TLS vs outside tls
+```{r}
+out_vs_out.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i < j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, outTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(outTLS_list)[j], same_beads)
+  		out_vs_out.df <- rbind(out_vs_out.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_out.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_out.df <- out_vs_out.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_out.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs outside TLS",
+        name = "No. of\nbeads")
+
+```
+
+##### Reassign overlapping beads
+```{r}
+# P108_205 and P108_1
+# Reassign overlapping beads
+P108TA_32_reassigned <- reassign_overlapping_beads(P108TA_32_RNA, tex_beads = outTLS_list$p108_205, tmem_beads = outTLS_list$p108_1)
+
+# Split list back out
+outTLS_list$p108_205 <- P108TA_32_reassigned$reassigned_tex_beads
+outTLS_list$p108_1 <- P108TA_32_reassigned$reassigned_tmem_beads
+
+# P108_266 and P108_208
+# Reassign overlapping beads
+P108TA_32_reassigned <- reassign_overlapping_beads(P108TA_32_RNA, tex_beads = outTLS_list$p108_266, tmem_beads = outTLS_list$p108_208)
+
+# Split list back out
+outTLS_list$p108_266 <- P108TA_32_reassigned$reassigned_tex_beads
+outTLS_list$p108_208 <- P108TA_32_reassigned$reassigned_tmem_beads
+
+```
+
+#### Outside TLS vs in TLS
+```{r}
+out_vs_in.df <- data.frame()
+for(i in 1:length(P108TA_shared_clones)) {
+	for(j in 1:length(P108TA_shared_clones)) {
+	  if(i <= j){
+  		same_beads <- length(intersect(outTLS_list[[i]]$near_beads$barcode, inTLS_list[[j]]$near_beads$barcode))
+  		new_row <- c(names(outTLS_list)[i], names(inTLS_list)[j], same_beads)
+  		out_vs_in.df <- rbind(out_vs_in.df, new_row)
+	  }
+	}
+}
+
+colnames(out_vs_in.df) <- c("neoantigen1", "neoantigen2", "beads")
+
+# Reformat
+out_vs_in.df <- out_vs_in.df %>%
+	pivot_wider(names_from=neoantigen2,values_from=beads) %>%
+	column_to_rownames("neoantigen1") %>%
+	as.matrix()
+
+Heatmap(out_vs_in.df,
+        col = colors,
+        na_col = "grey80",
+        cluster_rows = FALSE,
+        cluster_columns = FALSE,
+        column_title = "Overlap of nearby beads outside TLS vs in TLS",
+        name = "No. of\nbeads")
+```
+
+### Attach assignments to original Seurat object and filter for defined beads
+```{r}
+# Attach partition data
+partition.df <- data.frame()
+for(i in c(1:(length(inTLS_list)))){
+  if(nrow(inTLS_list[[i]]$near_beads) > 0){
+    near <- inTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+for(i in c(1:(length(outTLS_list)))){
+  if(nrow(outTLS_list[[i]]$near_beads) > 0){
+    near <- outTLS_list[[i]]$near_beads %>%
+      select(barcode, partition)
+    partition.df <- rbind(partition.df, near)
+  }
+}
+
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  left_join(partition.df, by = "barcode") %>%
+  column_to_rownames("barcode") %>%
+  mutate(barcode = rownames(.))
+
+
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  mutate(type = case_when(barcode %in% inTLS_list$p108_1$near_beads$barcode ~ "p108_1,inTLS",
+                          barcode %in% inTLS_list$p108_205$near_beads$barcode ~ "p108_205,inTLS",
+                          barcode %in% inTLS_list$p108_208$near_beads$barcode ~ "p108_208,inTLS",
+                          barcode %in% inTLS_list$p108_215$near_beads$barcode ~ "p108_215,inTLS",
+                          barcode %in% inTLS_list$p108_266$near_beads$barcode ~ "p108_266,inTLS",
+                          barcode %in% outTLS_list$p108_1$near_beads$barcode ~ "p108_1,outTLS",
+                          barcode %in% outTLS_list$p108_205$near_beads$barcode ~ "p108_205,outTLS",
+                          barcode %in% outTLS_list$p108_208$near_beads$barcode ~ "p108_208,outTLS",
+                          barcode %in% outTLS_list$p108_215$near_beads$barcode ~ "p108_215,outTLS",
+                          barcode %in% outTLS_list$p108_266$near_beads$barcode ~ "p108_266,outTLS"),
+         muscat = case_when(!is.na(type) ~ "Defined",
+                             is.na(type) ~ "Undefined"))
+
+P108TA_32_RNA <- subset(P108TA_32_RNA, subset = muscat == "Defined")
+```
+
+# Genes of interest
+```{r}
+genes_of_int <- c("PDCD1", "ENTPD1", "LAG3", "HAVCR2", "TOX", "TOX2", "IL7R", "SELL", "CCR7", "TCF7", "CXCL13")
+```
+
+# Set up RNA objects
+## Normalize counts
+```{r}
+P108TA_26_RNA <- NormalizeData(P108TA_26_RNA, assay = "Spatial")
+P108TA_29_RNA <- NormalizeData(P108TA_29_RNA, assay = "Spatial")
+P108TA_30_RNA <- NormalizeData(P108TA_30_RNA, assay = "Spatial")
+P108TA_32_RNA <- NormalizeData(P108TA_32_RNA, assay = "Spatial")
+
+```
+
+## Update metadata column
+```{r}
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  mutate(tls_status_gid = str_split_i(type, ",", 2))
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  mutate(tls_status_gid = str_split_i(type, ",", 2))
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  mutate(tls_status_gid = str_split_i(type, ",", 2))
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  mutate(tls_status_gid = str_split_i(type, ",", 2))
+```
+
+
+## Get beads within 15px of a neoantigen specific TCR to share the same "area" annotation
+### Puck 26
+```{r}
+P108TA_26_RNA@meta.data %>%
+  dplyr::count(area, tls_status_gid)
+
+boundary_inTLS <- P108TA_26_RNA@meta.data %>%
+  filter(area == "Boundary", str_detect(type, "inTLS"))
+
+# Get beads near the boundary beads
+near_beads <- nn2(P108TA_26_RNA@meta.data[,c("x", "y")], boundary_inTLS[,c("x", "y")], radius = 15, k = 10, searchtype = "radius")
+# Collapse matrix of row indexes into a vector of unique values
+near_beads <- unique(as.vector(near_beads$nn.idx))
+# Collect metadata of nearby beads
+near_beads_md <- P108TA_26_RNA@meta.data[near_beads,]
+# Which areas are those beads from?
+near_beads_md %>%
+  dplyr::count(area)
+
+# Cast beads to TLS3
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  mutate(final_area = case_when(area == "Boundary" & str_detect(type, "inTLS") ~ "TLS3",
+                              T ~ area))
+```
+
+### Puck 29
+```{r}
+P108TA_29_RNA@meta.data %>%
+  dplyr::count(area, tls_status_gid)
+
+# Cast TLS3 beads to boundary
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  mutate(final_area = case_when(area == "TLS3" & str_detect(type, "outTLS") ~ "Boundary",
+                              T ~ area))
+```
+
+### Puck 30
+```{r}
+P108TA_30_RNA@meta.data %>%
+  dplyr::count(area, tls_status_gid)
+
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  mutate(final_area = area)
+```
+
+### Puck 32
+```{r}
+P108TA_32_RNA@meta.data %>%
+  dplyr::count(area, tls_status_gid)
+
+boundary_inTLS <- P108TA_32_RNA@meta.data %>%
+  filter(area == "Boundary", str_detect(type, "inTLS"))
+
+# Get beads near the boundary beads
+near_beads <- nn2(P108TA_32_RNA@meta.data[,c("x", "y")], boundary_inTLS[1,c("x", "y")], radius = 15, k = 10, searchtype = "radius")
+# Collapse matrix of row indexes into a vector of unique values
+near_beads <- unique(as.vector(near_beads$nn.idx))
+# Collect metadata of nearby beads
+near_beads_md <- P108TA_32_RNA@meta.data[near_beads,]
+# Which areas are those beads from?
+near_beads_md %>%
+  dplyr::count(area)
+# Which bead is this?
+boundary_inTLS[1, "barcode"]
+
+near_beads <- nn2(P108TA_32_RNA@meta.data[,c("x", "y")], boundary_inTLS[2,c("x", "y")], radius = 15, k = 10, searchtype = "radius")
+# Collapse matrix of row indexes into a vector of unique values
+near_beads <- unique(as.vector(near_beads$nn.idx))
+# Collect metadata of nearby beads
+near_beads_md <- P108TA_32_RNA@meta.data[near_beads,]
+# Which areas are those beads from?
+near_beads_md %>%
+  dplyr::count(area)
+# Which bead is this?
+boundary_inTLS[2, "barcode"]
+
+# Cast beads to TLS3
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  mutate(final_area = case_when(barcode == "GTCATTACCCACTT-1" ~ "TLS1",
+                              barcode == "CCGTGGGTTTTGGG-1" ~ "TLS2",
+                              T ~ area))
+
+```
+
+
+# Merge RNA objects
+```{r}
+TLS_pucks <- merge(x = P108TA_26_RNA, y = list(P108TA_29_RNA, P108TA_30_RNA, P108TA_32_RNA))
+
+# Update metadata
+TLS_pucks@meta.data <- TLS_pucks@meta.data %>%
+  mutate(tls_status_gid = str_split_i(type, ",", 2))
+
+TLS_pucks[['Spatial']] <- JoinLayers(TLS_pucks[['Spatial']])
+
+TLS_pucks@meta.data %>%
+  dplyr::count(tls_status_gid, final_area)
+
+TLS_pucks@meta.data %>%
+  dplyr::count(tls_status_gid, orig.ident)
+```
+
+
+# Get normalized counts and attach metadata
+```{r}
+TLS_md <- TLS_pucks@meta.data %>%
+  select(orig.ident, clone_id, barcode, final_area, tls_status, assignment1, neoantigen_id, type, tls_status_gid, nCount_Spatial) %>%
+  mutate(final_neoant_id = str_split_i(type, ",", 1))
+
+counts_of_int <- as.data.frame(LayerData(TLS_pucks, assay = "Spatial", layer = "data")[genes_of_int,]) %>%
+  t() %>%
+  as.data.frame() %>%
+  rownames_to_column("barcode")
+
+TLS_md <- full_join(TLS_md, counts_of_int)
+```
+
+# Explore
+## Which neoant clones are most expanded?
+```{r}
+TLS_md %>%
+  dplyr::count(final_neoant_id, orig.ident) %>%
+  dplyr::rename("n_count" = "n") %>%
+  pivot_wider(values_from = "n_count", names_from = "orig.ident") %>%
+  rowwise() %>%
+  mutate(total = rowSums(across(contains("P108")), na.rm = TRUE)) %>%
+  arrange(desc(total))
+```
+
+## Which neoant clones are most expanded per area?
+```{r}
+TLS_md %>%
+  dplyr::count(final_neoant_id, orig.ident, tls_status) %>%
+  dplyr::rename("n_count" = "n") %>%
+  pivot_wider(values_from = "n_count", names_from = "orig.ident") %>%
+  rowwise() %>%
+  mutate(total = rowSums(across(contains("P108")), na.rm = TRUE)) %>%
+  arrange(desc(final_neoant_id))
+```
+
+## Which neoant clones are most expanded in each TLS?
+```{r}
+TLS_md %>%
+  dplyr::count(final_neoant_id, final_area) %>%
+  dplyr::rename("n_count" = "n") %>%
+  pivot_wider(values_from = "n_count", names_from = "final_area") %>%
+  rowwise() %>%
+  mutate(total = rowSums(across(where(is.numeric)), na.rm = TRUE)) %>%
+  arrange(desc(total))
+```
+
+
+# Pivot for ggplots
+```{r}
+TLS_md_long <- TLS_md %>%
+  pivot_longer(cols = all_of(genes_of_int), values_to = "counts", names_to = "gene") %>%
+mutate(gene = factor(gene, levels = c("TOX", "TOX2", "LAG3", "ENTPD1", "HAVCR2", "PDCD1", "TCF7", "CCR7", "IL7R", "SELL", "CXCL13")))
+```
+
+# Plots
+## Dotplot split by area and tls status
+```{r, fig.width = 6, fig.height = 4}
+TLS_nonzero <- TLS_md_long %>%
+  filter(counts > 0) %>%
+  group_by(tls_status_gid, gene, final_area) %>%
+  summarize(n_cells_nonzero = n())
+
+TLS_md_sum <- TLS_md_long %>%
+  group_by(tls_status_gid, gene, final_area) %>%
+  summarize(mean_counts = mean(counts),
+            n_cells = n()) %>%
+  full_join(TLS_nonzero, by = c("tls_status_gid", "gene", "final_area")) %>%
+  mutate(n_cells_nonzero = replace_na(n_cells_nonzero, 0),
+         pct_cells_exp = n_cells_nonzero/n_cells)
+
+TLS_md_sum %>%
+  ggplot(aes(x = gene, y = final_area, fill = mean_counts, size = pct_cells_exp))+
+  geom_point(shape = 21, color = "black") +
+  theme_bw() +
+  facet_wrap(~tls_status_gid, scales = "free_y", ncol = 1) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.box = "horizontal", 
+        legend.position = "right") +
+  scale_fill_gradient2(low = "white", mid = "red", high = "red", midpoint = 0.6) +
+  ylab("TLS")
+
+```
+
+## Dotplot split by neoantigen and tls status
+```{r, fig.width = 7, fig.height = 4}
+TLS_nonzero <- TLS_md_long %>%
+  filter(counts > 0) %>%
+  group_by(tls_status_gid, gene, final_neoant_id) %>%
+  summarize(n_cells_nonzero = n())
+
+TLS_md_sum <- TLS_md_long %>%
+  group_by(tls_status_gid, gene, final_neoant_id) %>%
+  summarize(mean_counts = mean(counts),
+            n_cells = n()) %>%
+  full_join(TLS_nonzero, by = c("tls_status_gid", "gene", "final_neoant_id")) %>%
+  mutate(n_cells_nonzero = replace_na(n_cells_nonzero, 0),
+         pct_cells_exp = n_cells_nonzero/n_cells)
+
+TLS_md_sum %>%
+  ggplot(aes(x = gene, y = final_neoant_id, fill = mean_counts, size = pct_cells_exp))+
+  geom_point(shape = 21, color = "black") +
+  theme_bw() +
+  facet_wrap(~tls_status_gid) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  scale_fill_gradient2(low = "white", mid = "red", high = "red", midpoint = 0.9) +
+  ylab("Neoantigen-specific TCR")
+
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```

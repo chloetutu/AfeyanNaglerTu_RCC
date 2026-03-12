@@ -1,0 +1,305 @@
+# Gene expression in myeloid boundary {#sec-gene-exp-plots}
+
+# Boxplot of myeloid cell type signatures in the boundary
+
+# Libraries
+```{r}
+library(Seurat)
+library(dplyr)
+library(ggpointdensity)
+library(tidyverse)
+library(ComplexHeatmap)
+library(stringr)
+library(readxl)
+library(circlize)
+library(ggpubr)
+library(rcompanion)
+
+source("../source_scripts/slideseq_functions_main.R")
+
+options(Seurat.object.assay.version = 'v5')
+
+```
+
+# Process spatial data
+## Open objects with annotated areas
+```{r}
+P102TA_10_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck10_102TA_TCR_RNA_area_121125.Rds")
+P102TA_17_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+
+P108TA_26_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/02_area_annotation/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+```
+
+## Remove empty areas
+```{r}
+P102TA_10_RNA <- subset(P102TA_10_RNA, area == "Empty", invert = TRUE)
+P102TA_17_RNA <- subset(P102TA_17_RNA, area == "Empty", invert = TRUE)
+P102TA_33_RNA <- subset(P102TA_33_RNA, area == "Empty", invert = TRUE)
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, area == "Empty", invert = TRUE)
+P108TA_29_RNA <- subset(P108TA_29_RNA, area == "Empty", invert = TRUE)
+P108TA_30_RNA <- subset(P108TA_30_RNA, area == "Empty", invert = TRUE)
+P108TA_32_RNA <- subset(P108TA_32_RNA, area == "Empty", invert = TRUE)
+
+```
+
+## Normalize data
+```{r}
+P102TA_10_RNA <- NormalizeData(P102TA_10_RNA, assay = "Spatial")
+P102TA_17_RNA <- NormalizeData(P102TA_17_RNA, assay = "Spatial")
+P102TA_33_RNA <- NormalizeData(P102TA_33_RNA, assay = "Spatial")
+
+P108TA_26_RNA <- NormalizeData(P108TA_26_RNA, assay = "Spatial")
+P108TA_29_RNA <- NormalizeData(P108TA_29_RNA, assay = "Spatial")
+P108TA_30_RNA <- NormalizeData(P108TA_30_RNA, assay = "Spatial")
+P108TA_32_RNA <- NormalizeData(P108TA_32_RNA, assay = "Spatial")
+```
+
+# Get markers for each myeloid cell type
+## Read in the single cell object and create a single cell reference from each patient
+```{r}
+scrna <- readRDS("/n/data2/dfci/medonc/cwu/alex/objects/merged_RCC.NeoVax.CancerCell.rds")
+
+# Join layers- seurat obj v5 specific code
+scrna <- JoinLayers(scrna)
+```
+
+## Print clusters
+```{r}
+DimPlot(scrna, group.by = "unified_cluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+unique(scrna$unified_cluster)
+```
+
+## Subset for myeloid clusters
+```{r}
+myeloid_clusters <- subset(scrna, subset = unified_cluster %in% c("cDC", "MONO.NONCLASS", "MONO.CLASS", "M2.MAC", "MAC", "pDC"))
+
+p102_108_myeloid_clusters <- subset(myeloid_clusters, subset = patient %in% c("16097-102", "16097-108"))
+
+p102_108_myeloid_deg <- FindAllMarkers(p102_108_myeloid_clusters, group.by = "unified_cluster", logfc.threshold = 1.5, min.pct = 0.3, only.pos = TRUE)
+```
+
+## Get markers for each myeloid cluster
+```{r}
+unique(p102_108_myeloid_deg$cluster)
+
+tam_cd163 <- p102_108_myeloid_deg %>% 
+  filter(cluster == "M2.MAC",
+         p_val_adj < 0.05) %>% 
+  pull(gene)
+
+mono <- p102_108_myeloid_deg %>% 
+  filter(cluster == "MONO.CLASS",
+         p_val_adj < 0.05) %>% 
+  pull(gene)
+
+nc_mono <- p102_108_myeloid_deg %>% 
+  filter(cluster == "MONO.NONCLASS",
+         p_val_adj < 0.05) %>% 
+  pull(gene)
+
+cdc <- p102_108_myeloid_deg %>% 
+  filter(cluster == "cDC",
+         p_val_adj < 0.05) %>% 
+  pull(gene)
+
+pdc <- p102_108_myeloid_deg %>% 
+  filter(cluster == "pDC",
+         p_val_adj < 0.05) %>% 
+  pull(gene)
+
+tam2 <- p102_108_myeloid_deg %>% 
+  filter(cluster == "MAC",
+         p_val_adj < 0.05) %>% 
+  pull(gene)
+
+```
+
+# Add signature score to seurat object
+```{r}
+myeloid_clusters <- myeloid_clusters %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+```
+
+# Check that the gene sets are specific to the cluster
+```{r}
+DimPlot(myeloid_clusters, group.by = "unified_cluster") + paletteer::scale_colour_paletteer_d("ggsci::default_igv")
+
+FeaturePlot(myeloid_clusters, features = c("tam_cd1631", "tam21", "pdc1", "cdc1", "mono1", "nc_mono1"), max.cutoff = "q95")
+```
+
+# Add signature score to spatial objects
+```{r, message=FALSE}
+P102TA_10_RNA <- P102TA_10_RNA %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+P102TA_17_RNA <- P102TA_17_RNA %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+P102TA_33_RNA <- P102TA_33_RNA %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+
+P108TA_26_RNA <- P108TA_26_RNA %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+P108TA_29_RNA <- P108TA_29_RNA %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+P108TA_30_RNA <- P108TA_30_RNA %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+P108TA_32_RNA <- P108TA_32_RNA %>%
+  AddModuleScore(features = list(tam_cd163), name = "tam_cd163") %>%
+  AddModuleScore(features = list(tam2), name = "tam2") %>%
+  AddModuleScore(features = list(pdc), name = "pdc") %>%
+  AddModuleScore(features = list(cdc), name = "cdc") %>%
+  AddModuleScore(features = list(mono), name = "mono") %>%
+  AddModuleScore(features = list(nc_mono), name = "nc_mono")
+
+```
+
+# Spatially plot myeloid cluster scores
+```{r, message=FALSE}
+SpatialFeaturePlot(P102TA_10_RNA, features = c("cdc1", "mono1", "nc_mono1", "tam_cd1631", "tam21"), alpha = c(0.01, 1)) &
+  scale_fill_viridis_c(option = "inferno", direction = -1)
+SpatialFeaturePlot(P102TA_17_RNA, features = c("cdc1", "mono1", "nc_mono1", "tam_cd1631", "tam21"), alpha = c(0.01, 1)) &
+  scale_fill_viridis_c(option = "inferno", direction = -1)
+SpatialFeaturePlot(P102TA_33_RNA, features = c("cdc1", "mono1", "nc_mono1", "tam_cd1631", "tam21"), alpha = c(0.01, 1)) &
+  scale_fill_viridis_c(option = "inferno", direction = -1)
+
+SpatialFeaturePlot(P108TA_26_RNA, features = c("cdc1", "mono1", "nc_mono1", "tam_cd1631", "tam21"), alpha = c(0.01, 1)) &
+  scale_fill_viridis_c(option = "inferno", direction = -1)
+SpatialFeaturePlot(P108TA_29_RNA, features = c("cdc1", "mono1", "nc_mono1", "tam_cd1631", "tam21"), alpha = c(0.01, 1)) &
+  scale_fill_viridis_c(option = "inferno", direction = -1)
+SpatialFeaturePlot(P108TA_30_RNA, features = c("cdc1", "mono1", "nc_mono1", "tam_cd1631", "tam21"), alpha = c(0.01, 1)) &
+  scale_fill_viridis_c(option = "inferno", direction = -1)
+SpatialFeaturePlot(P108TA_32_RNA, features = c("cdc1", "mono1", "nc_mono1", "tam_cd1631", "tam21"), alpha = c(0.01, 1)) &
+  scale_fill_viridis_c(option = "inferno", direction = -1)
+```
+
+
+# Create big dataframe
+```{r}
+# Remove metadata columns that other pucks don't have
+P102TA_17_RNA@meta.data <- P102TA_17_RNA@meta.data %>%
+  select(-largest_clone_id, -puck17_count, -log_puck17_count, -Fibroblast)
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  select(-largest_clone_id, -puck10_count, -log_puck10_count, -Fibroblast)
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  select(-Fibroblast)
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  select(-Fibroblast)
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  select(-Fibroblast)
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  select(-Fibroblast)
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  select(-Fibroblast)
+
+md <- do.call(rbind, list(P102TA_10_RNA@meta.data, P102TA_17_RNA@meta.data, P102TA_33_RNA@meta.data,
+                                 P108TA_26_RNA@meta.data, P108TA_29_RNA@meta.data, P108TA_30_RNA@meta.data, P108TA_32_RNA@meta.data))
+
+```
+
+
+# Save as supplementary table
+```{r}
+saved_md <- md %>%
+  assign_celltypes() %>%
+  filter(assignment1 == "Myeloid",
+         area == "Boundary") %>%
+  select(orig.ident, tam_cd1631, tam21, cdc1, mono1, nc_mono1)
+
+```
+
+# Subset for the signature of myeloid cells
+```{r}
+myeloid_signature_md <- md %>%
+  assign_celltypes %>%
+  filter(assignment1 == "Myeloid",
+         area == "Boundary") %>%
+  mutate(Patient = str_split_i(orig.ident, "_", 1),
+         area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "M2") ~ "TLS",
+                          T ~ area)) %>%
+  select(orig.ident, Patient, area, assignment1, tam_cd1631, tam21, pdc1, cdc1, mono1, nc_mono1)
+```
+
+
+# Plot boxplot
+```{r, fig.width = 4, fig.height = 4}
+means <- myeloid_signature_md %>%
+  group_by(orig.ident, Patient, area) %>%
+  summarize(tam_cd1631 = mean(tam_cd1631),
+            tam21 = mean(tam21),
+            cdc1 = mean(cdc1),
+            pdc1 = mean(pdc1),
+            mono1 = mean(mono1),
+            nc_mono1 = mean(nc_mono1)) %>% 
+  dplyr::rename("TAM-CD163+" = "tam_cd1631",
+                "CLASS. MONO" = "mono1",
+                "NONCLASS. MONO" = "nc_mono1",
+                "cDC" = "cdc1",
+                "pDC" = "pdc1",
+                "TAM2" = "tam21") %>%
+  pivot_longer(cols = !c("area", "orig.ident", "Patient"), names_to = "signature", values_to = "score")
+
+myeloid_signature_md %>%
+  select(tam_cd1631, tam21, cdc1, pdc1, mono1, nc_mono1, area, orig.ident) %>%
+  dplyr::rename("TAM-CD163+" = "tam_cd1631",
+                "CLASS. MONO" = "mono1",
+                "NONCLASS. MONO" = "nc_mono1",
+                "cDC" = "cdc1",
+                "pDC" = "pdc1",
+                "TAM2" = "tam21") %>%
+  pivot_longer(cols = !c("area", "orig.ident"), names_to = "signature", values_to = "score") %>%
+  mutate(signature = factor(signature, levels = c("TAM-CD163+", "NONCLASS. MONO", "CLASS. MONO", "cDC", "pDC", "TAM2"))) %>%
+  ggplot() +
+  geom_boxplot(aes(x = signature, y = score, fill = area)) +
+  geom_jitter(data = means, aes(y = score, x = signature, fill = Patient), height = 0, width = 0.15, shape = 22) +
+  scale_fill_manual(values = c("Boundary" = "white", "P102TA" = "#FF9300", "P108TA" = "#009193")) +
+  theme_classic() +
+  ylab("Signature score (myeloid cells)") +
+  xlab("") +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+# Session info
+```{r}
+sessionInfo()
+```
+
