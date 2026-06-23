@@ -1,4 +1,4 @@
-# **Tertiary lymphoid structures are reservoirs of stem-like tumor-specific T cells in renal cell carcinoma**
+# **Tertiary lymphoid structures harbor stem-like tumor-specific T cells**
 
 **Alexander B. Afeyan†<sup>1**, Adi Nagler†, **Chloe R. Tu†<sup>2**, Gabriel Roberti De Oliveira, Berkay Simsek, Maxwell D. Seager, Nourhan El Ahmar, Haley E. Sax, Emma Lin, Amit Sud, Mehdi Borji, Cleo Forman, Sophia Liu, Patrick A. Ott, Toni K. Choueiri, Jennifer G. Abelin, Richard Burack, Shuqiang Li, Kenneth J. Livak, Svitlana Tyekucheva, Derin B. Keskin, Fei Chen, Michael B. Atkins, Jeremy M. Simon, Sabina Signoretti, Giacomo Oliveira°, David A. Braun‡°, Catherine J. Wu‡°
 
