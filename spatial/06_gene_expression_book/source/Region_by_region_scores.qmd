@@ -172,7 +172,6 @@ P111TA_37_RNA@meta.data %>%
   dplyr::count(assignment1)
 ```
 
-
 # Remove extra columns
 ## P109
 ```{r}
@@ -497,6 +496,11 @@ sd.df <- pucks@meta.data %>%
   ungroup()
 ```
 
+### Save source data per patient
+```{r}
+# write.csv(mean_per_patient.df, "../../../supplementary_tables/Ext Data 9C means per patient.csv")
+```
+
 # Pivot for plots and add SE
 ```{r}
 long_per_patient.df <- mean_per_patient.df %>%
@@ -525,11 +529,13 @@ long_per_patient.df %>%
   filter(signature %in% c("ag_pres", "mac_ifn", "meylan_tls", "cabrita_tls_hm", "b", "plasma", "projectils_tfh", "projectils_treg", "rcc_wp", "buffa_hypoxia")) %>%
   mutate(signature = factor(signature, levels = c("ag_pres", "mac_ifn", "meylan_tls", "cabrita_tls_hm", "b", "plasma", "projectils_tfh", "projectils_treg", "rcc_wp", "buffa_hypoxia"))) %>%
 ggplot(aes(x = final_area, y = score, fill = final_area)) +
-  geom_boxplot() +
-  geom_point(aes(color = Patient)) +
+  geom_boxplot(data = \(d) d %>% filter(final_area != "Boundary")
+) +
+  geom_point(aes(color = Patient), shape = 15) +
   facet_wrap(~signature, scales = "free_y") +
   scale_color_manual(values = c("P102T" = "#FF9300", "P107T" = "#FF8AD8", "P108T" = "#009193", "P109T" = "#531B93", "P110T" = "#941100", "P111T" = "#D4FB79")) +
-  scale_fill_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000"))
+  scale_fill_manual(values = c("Boundary" = "#ff8f1b", "TLS" = "#8A9A5B", "Tumor" = "#974000")) +
+  theme_bw()
 ```
 
 # Plot figure for each signature

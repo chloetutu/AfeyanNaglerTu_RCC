@@ -176,9 +176,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   </ul></li>
   <li><a href="#get-gene-sets-from-a-single-cell-tumor-immune-atlas-for-precision-oncology" id="toc-get-gene-sets-from-a-single-cell-tumor-immune-atlas-for-precision-oncology" class="nav-link" data-scroll-target="#get-gene-sets-from-a-single-cell-tumor-immune-atlas-for-precision-oncology"><span class="header-section-number">6</span> Get gene sets from “A single-cell tumor immune atlas for precision oncology”</a></li>
   <li><a href="#get-gene-sets-from-single-cell-resolution-characterization-of-myeloid-derived-cell-states-with-implication-in-cancer-outcome-httpspmc.ncbi.nlm.nih.govarticlespmc11228020" id="toc-get-gene-sets-from-single-cell-resolution-characterization-of-myeloid-derived-cell-states-with-implication-in-cancer-outcome-httpspmc.ncbi.nlm.nih.govarticlespmc11228020" class="nav-link" data-scroll-target="#get-gene-sets-from-single-cell-resolution-characterization-of-myeloid-derived-cell-states-with-implication-in-cancer-outcome-httpspmc.ncbi.nlm.nih.govarticlespmc11228020"><span class="header-section-number">7</span> Get gene sets from “Single-cell resolution characterization of myeloid-derived cell states with implication in cancer outcome” https://pmc.ncbi.nlm.nih.gov/articles/PMC11228020/</a></li>
-  <li><a href="#compile-gene-sets" id="toc-compile-gene-sets" class="nav-link" data-scroll-target="#compile-gene-sets"><span class="header-section-number">8</span> Compile gene sets</a></li>
-  <li><a href="#save-gene-sets" id="toc-save-gene-sets" class="nav-link" data-scroll-target="#save-gene-sets"><span class="header-section-number">9</span> Save gene sets</a></li>
-  <li><a href="#get-session-info" id="toc-get-session-info" class="nav-link" data-scroll-target="#get-session-info"><span class="header-section-number">10</span> Get session info</a></li>
+  <li><a href="#get-all-gene-sets-from-single-cell-resolution-characterization-of-myeloid-derived-cell-states-with-implication-in-cancer-outcome-httpspmc.ncbi.nlm.nih.govarticlespmc11228020" id="toc-get-all-gene-sets-from-single-cell-resolution-characterization-of-myeloid-derived-cell-states-with-implication-in-cancer-outcome-httpspmc.ncbi.nlm.nih.govarticlespmc11228020" class="nav-link" data-scroll-target="#get-all-gene-sets-from-single-cell-resolution-characterization-of-myeloid-derived-cell-states-with-implication-in-cancer-outcome-httpspmc.ncbi.nlm.nih.govarticlespmc11228020"><span class="header-section-number">8</span> Get ALL gene sets from “Single-cell resolution characterization of myeloid-derived cell states with implication in cancer outcome” https://pmc.ncbi.nlm.nih.gov/articles/PMC11228020/</a></li>
+  <li><a href="#compile-gene-sets" id="toc-compile-gene-sets" class="nav-link" data-scroll-target="#compile-gene-sets"><span class="header-section-number">9</span> Compile gene sets</a></li>
+  <li><a href="#save-gene-sets" id="toc-save-gene-sets" class="nav-link" data-scroll-target="#save-gene-sets"><span class="header-section-number">10</span> Save gene sets</a></li>
+  <li><a href="#get-all-gene-sets-from-macrophage-diversity-in-cancer-revisited-in-the-era-of-single-cell-omics" id="toc-get-all-gene-sets-from-macrophage-diversity-in-cancer-revisited-in-the-era-of-single-cell-omics" class="nav-link" data-scroll-target="#get-all-gene-sets-from-macrophage-diversity-in-cancer-revisited-in-the-era-of-single-cell-omics"><span class="header-section-number">11</span> Get all gene sets from “Macrophage diversity in cancer revisited in the era of single-cell omics”</a></li>
+  <li><a href="#save-gene-sets-1" id="toc-save-gene-sets-1" class="nav-link" data-scroll-target="#save-gene-sets-1"><span class="header-section-number">12</span> Save gene sets</a></li>
+  <li><a href="#get-session-info" id="toc-get-session-info" class="nav-link" data-scroll-target="#get-session-info"><span class="header-section-number">13</span> Get session info</a></li>
   </ul>
 </nav>
     </div>
@@ -558,22 +561,51 @@ The following object is masked from 'package:SeuratObject':
 <span id="cb41-11"><a href="#cb41-11" aria-hidden="true" tabindex="-1"></a>guimaraes_gs <span class="ot">&lt;-</span> <span class="fu">c</span>(guimaraes_gs, <span class="fu">list</span>(<span class="at">guimaraes.m1 =</span> guimaraes_m1<span class="sc">$</span><span class="st">`</span><span class="at">Gene symbol</span><span class="st">`</span>, <span class="at">guimaraes.m2 =</span> guimaraes_m2<span class="sc">$</span><span class="st">`</span><span class="at">Gene symbol</span><span class="st">`</span>))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="compile-gene-sets" class="level1" data-number="8">
-<h1 data-number="8"><span class="header-section-number">8</span> Compile gene sets</h1>
+<section id="get-all-gene-sets-from-single-cell-resolution-characterization-of-myeloid-derived-cell-states-with-implication-in-cancer-outcome-httpspmc.ncbi.nlm.nih.govarticlespmc11228020" class="level1" data-number="8">
+<h1 data-number="8"><span class="header-section-number">8</span> Get ALL gene sets from “Single-cell resolution characterization of myeloid-derived cell states with implication in cancer outcome” https://pmc.ncbi.nlm.nih.gov/articles/PMC11228020/</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>gene_sets <span class="ot">&lt;-</span> <span class="fu">c</span>(cd4_deg, cd8_deg, nieto_gs, guimaraes_gs, <span class="at">coret =</span> <span class="fu">list</span>(core_t))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb42"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb42-1"><a href="#cb42-1" aria-hidden="true" tabindex="-1"></a>guimaraes <span class="ot">&lt;-</span> <span class="fu">read_xlsx</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/41467_2024_49916_MOESM8_ESM (2).xlsx"</span>, <span class="at">sheet =</span> <span class="dv">2</span>, <span class="at">skip =</span> <span class="dv">2</span>) <span class="sc">%&gt;%</span></span>
+<span id="cb42-2"><a href="#cb42-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(<span class="st">`</span><span class="at">Macrophages Subpopulations</span><span class="st">`</span> <span class="sc">!=</span> <span class="st">"Mac_Alv-like"</span>,</span>
+<span id="cb42-3"><a href="#cb42-3" aria-hidden="true" tabindex="-1"></a>         avg_log2FC <span class="sc">&gt;</span> <span class="fl">0.5</span>)</span>
+<span id="cb42-4"><a href="#cb42-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-5"><a href="#cb42-5" aria-hidden="true" tabindex="-1"></a>guimaraes_gs <span class="ot">&lt;-</span> <span class="fu">split</span>(guimaraes<span class="sc">$</span>gene, <span class="at">f =</span> guimaraes<span class="sc">$</span><span class="st">`</span><span class="at">Macrophages Subpopulations</span><span class="st">`</span>)</span>
+<span id="cb42-6"><a href="#cb42-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb42-7"><a href="#cb42-7" aria-hidden="true" tabindex="-1"></a><span class="fu">names</span>(guimaraes_gs) <span class="ot">&lt;-</span> <span class="fu">paste0</span>(<span class="st">"Guimaraes."</span>, <span class="fu">names</span>(guimaraes_gs))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="save-gene-sets" class="level1" data-number="9">
-<h1 data-number="9"><span class="header-section-number">9</span> Save gene sets</h1>
+<section id="compile-gene-sets" class="level1" data-number="9">
+<h1 data-number="9"><span class="header-section-number">9</span> Compile gene sets</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(gene_sets, <span class="st">"../objects/immune_gene_sets.Rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb43"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb43-1"><a href="#cb43-1" aria-hidden="true" tabindex="-1"></a>gene_sets <span class="ot">&lt;-</span> <span class="fu">c</span>(cd4_deg, cd8_deg, nieto_gs, guimaraes_gs, <span class="at">coret =</span> <span class="fu">list</span>(core_t))</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </section>
-<section id="get-session-info" class="level1" data-number="10">
-<h1 data-number="10"><span class="header-section-number">10</span> Get session info</h1>
+<section id="save-gene-sets" class="level1" data-number="10">
+<h1 data-number="10"><span class="header-section-number">10</span> Save gene sets</h1>
 <div class="cell">
-<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb44"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb44-1"><a href="#cb44-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(gene_sets, <span class="st">"../objects/immune_gene_sets.Rds"</span>)</span>
+<span id="cb44-2"><a href="#cb44-2" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(guimaraes_gs, <span class="st">"../objects/guimaraes_gene_sets.Rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="get-all-gene-sets-from-macrophage-diversity-in-cancer-revisited-in-the-era-of-single-cell-omics" class="level1" data-number="11">
+<h1 data-number="11"><span class="header-section-number">11</span> Get all gene sets from “Macrophage diversity in cancer revisited in the era of single-cell omics”</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb45"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb45-1"><a href="#cb45-1" aria-hidden="true" tabindex="-1"></a>ma <span class="ot">&lt;-</span> <span class="fu">read_xlsx</span>(<span class="st">"/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/TAM_subtypes_Ma_et_al_2022.xlsx"</span>)</span>
+<span id="cb45-2"><a href="#cb45-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-3"><a href="#cb45-3" aria-hidden="true" tabindex="-1"></a>ma_gs <span class="ot">&lt;-</span> <span class="fu">split</span>(ma<span class="sc">$</span>Signature, <span class="at">f =</span> ma<span class="sc">$</span>Annotation)</span>
+<span id="cb45-4"><a href="#cb45-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb45-5"><a href="#cb45-5" aria-hidden="true" tabindex="-1"></a>ma_gs <span class="ot">&lt;-</span> <span class="fu">lapply</span>(ma_gs, str_split_1, <span class="st">", "</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="save-gene-sets-1" class="level1" data-number="12">
+<h1 data-number="12"><span class="header-section-number">12</span> Save gene sets</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb46"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb46-1"><a href="#cb46-1" aria-hidden="true" tabindex="-1"></a><span class="fu">saveRDS</span>(ma_gs, <span class="st">"../objects/ma_gene_sets.Rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</div>
+</section>
+<section id="get-session-info" class="level1" data-number="13">
+<h1 data-number="13"><span class="header-section-number">13</span> Get session info</h1>
+<div class="cell">
+<div class="sourceCode cell-code" id="cb47"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb47-1"><a href="#cb47-1" aria-hidden="true" tabindex="-1"></a><span class="fu">sessionInfo</span>()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 <div class="cell-output cell-output-stdout">
 <pre><code>R version 4.4.2 (2024-10-31)
 Platform: x86_64-pc-linux-gnu

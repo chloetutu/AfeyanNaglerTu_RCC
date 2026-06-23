@@ -114,6 +114,17 @@ names(guimaraes_gs) <- paste0("Guimaraes.", c("Mac_AgPres", "Mac_IFN", "RTM_LA")
 guimaraes_gs <- c(guimaraes_gs, list(guimaraes.m1 = guimaraes_m1$`Gene symbol`, guimaraes.m2 = guimaraes_m2$`Gene symbol`))
 ```
 
+# Get ALL gene sets from "Single-cell resolution characterization of myeloid-derived cell states with implication in cancer outcome" https://pmc.ncbi.nlm.nih.gov/articles/PMC11228020/
+```{r}
+guimaraes <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/41467_2024_49916_MOESM8_ESM (2).xlsx", sheet = 2, skip = 2) %>%
+  filter(`Macrophages Subpopulations` != "Mac_Alv-like",
+         avg_log2FC > 0.5)
+
+guimaraes_gs <- split(guimaraes$gene, f = guimaraes$`Macrophages Subpopulations`)
+
+names(guimaraes_gs) <- paste0("Guimaraes.", names(guimaraes_gs))
+```
+
 # Compile gene sets
 ```{r}
 gene_sets <- c(cd4_deg, cd8_deg, nieto_gs, guimaraes_gs, coret = list(core_t))
@@ -122,6 +133,21 @@ gene_sets <- c(cd4_deg, cd8_deg, nieto_gs, guimaraes_gs, coret = list(core_t))
 # Save gene sets
 ```{r, eval = FALSE}
 saveRDS(gene_sets, "../objects/immune_gene_sets.Rds")
+saveRDS(guimaraes_gs, "../objects/guimaraes_gene_sets.Rds")
+```
+
+# Get all gene sets from "Macrophage diversity in cancer revisited in the era of single-cell omics"
+```{r}
+ma <- read_xlsx("/n/data2/dfci/medonc/cwu/chloe/slideseq_data/tcr_analysis/RCC_neovax_pucks/analysis_110624/objects/gene_set_sources/TAM_subtypes_Ma_et_al_2022.xlsx")
+
+ma_gs <- split(ma$Signature, f = ma$Annotation)
+
+ma_gs <- lapply(ma_gs, str_split_1, ", ")
+```
+
+# Save gene sets
+```{r, eval = FALSE}
+saveRDS(ma_gs, "../objects/ma_gene_sets.Rds")
 ```
 
 # Get session info

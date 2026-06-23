@@ -1,0 +1,385 @@
+# Gene expression of external macrophage gene sets {#sec-gene-exp-plots}
+
+# Plot the gene expression of external macrophage gene sets in spatial pucks containing a myeloid boundary across all areas
+
+## Libraries
+```{r}
+library(harmony)
+library(Seurat)
+library(paletteer)
+library(liana)
+library(tidyverse)
+library(ggpointdensity)
+library(rmarkdown)
+library(knitr)
+library(ComplexHeatmap)
+library(clustree)
+library(ggridges)
+
+source("../source_scripts/slideseq_functions_main.R")
+```
+
+
+# Process spatial data
+## Open objects with annotated areas
+```{r}
+P102TA_10_RNA <- readRDS("../objects/02_Puck10_102TA_TCR_RNA_area_121125.Rds")
+P102TA_17_RNA <- readRDS("../objects/02_Puck17_102TA_TCR_RNA_area_121125.Rds")
+P102TA_33_RNA <- readRDS("../objects/02_Puck33_102TA_TCR_RNA_area_121125.Rds")
+
+P108TA_26_RNA <- readRDS("../objects/02_Puck26_108TA_TCR_RNA_area_121125.Rds")
+P108TA_29_RNA <- readRDS("../objects/02_Puck29_108TA_TCR_RNA_area_121125.Rds")
+P108TA_30_RNA <- readRDS("../objects/02_Puck30_108TA_TCR_RNA_area_121125.Rds")
+P108TA_32_RNA <- readRDS("../objects/02_Puck32_108TA_TCR_RNA_area_121125.Rds")
+```
+
+## Remove empty areas
+```{r}
+P102TA_10_RNA <- subset(P102TA_10_RNA, area == "Empty", invert = TRUE)
+P102TA_17_RNA <- subset(P102TA_17_RNA, area == "Empty", invert = TRUE)
+P102TA_33_RNA <- subset(P102TA_33_RNA, area == "Empty", invert = TRUE)
+
+P108TA_26_RNA <- subset(P108TA_26_RNA, area == "Empty", invert = TRUE)
+P108TA_29_RNA <- subset(P108TA_29_RNA, area == "Empty", invert = TRUE)
+P108TA_30_RNA <- subset(P108TA_30_RNA, area == "Empty", invert = TRUE)
+P108TA_32_RNA <- subset(P108TA_32_RNA, area == "Empty", invert = TRUE)
+
+```
+
+## Normalize data
+```{r}
+P102TA_10_RNA <- NormalizeData(P102TA_10_RNA, assay = "Spatial")
+P102TA_17_RNA <- NormalizeData(P102TA_17_RNA, assay = "Spatial")
+P102TA_33_RNA <- NormalizeData(P102TA_33_RNA, assay = "Spatial")
+
+P108TA_26_RNA <- NormalizeData(P108TA_26_RNA, assay = "Spatial")
+P108TA_29_RNA <- NormalizeData(P108TA_29_RNA, assay = "Spatial")
+P108TA_30_RNA <- NormalizeData(P108TA_30_RNA, assay = "Spatial")
+P108TA_32_RNA <- NormalizeData(P108TA_32_RNA, assay = "Spatial")
+```
+
+
+## Load gene sets
+```{r} 
+genesets <- readRDS("../objects/guimaraes_gene_sets.Rds")
+ma_gs <- readRDS("../objects/ma_gene_sets.Rds")
+```
+
+# Signature score 
+## Score all beads
+```{r}
+add_signature_score <- function(puck){
+  puck <- puck %>%
+    AddModuleScore(features = list(ma_gs$`Angio-TAMs`), name = "Ma_Angio-TAM") %>%
+    AddModuleScore(features = list(ma_gs$`Classical TIMs`), name = "Ma_Class-TIM") %>%
+    AddModuleScore(features = list(ma_gs$`IFN-TAMs`), name = "Ma_IFN-TAM") %>%
+    AddModuleScore(features = list(ma_gs$`Inflam-TAMs`), name = "Ma_Inflam-TAM") %>%
+    AddModuleScore(features = list(ma_gs$`Intermediate monocytes`), name = "Intermed_mono") %>%
+    AddModuleScore(features = list(ma_gs$`LA-TAMs`), name = "Ma_LA-TAM") %>%
+    AddModuleScore(features = list(ma_gs$`Nonclassical monocytes`), name = "Ma_Nonclass_mono") %>%
+    AddModuleScore(features = list(ma_gs$`Prolif-TAMs`), name = "Ma_Prolif-TAM") %>%
+    AddModuleScore(features = list(ma_gs$`Reg-TAMs`), name = "Ma_Reg-TAM") %>%
+    AddModuleScore(features = list(ma_gs$`RTM-TAMs_Alveolar-RTM-like`), name = "Ma_RTM_Alv")%>%
+    AddModuleScore(features = list(ma_gs$`RTM-TAMs_Interstitial-RTM-like`), name = "Ma_RTM_Int") %>%
+    AddModuleScore(features = list(ma_gs$`RTM-TAMs_Kupffer-like`), name = "Ma_RTM_Kupf") %>%
+    AddModuleScore(features = list(ma_gs$`RTM-TAMs_Microglia-like`), name = "Ma_RTM_Micro") %>%
+    AddModuleScore(features = list(ma_gs$`RTM-TAMs_MT-RTM-like`), name = "Ma_RTM_MT")
+  return(puck)
+}
+
+P102TA_10_RNA <- P102TA_10_RNA %>% add_signature_score
+P102TA_17_RNA <- P102TA_17_RNA %>% add_signature_score
+P102TA_33_RNA <- P102TA_33_RNA %>% add_signature_score
+P108TA_26_RNA <- P108TA_26_RNA %>% add_signature_score
+P108TA_29_RNA <- P108TA_29_RNA %>% add_signature_score
+P108TA_30_RNA <- P108TA_30_RNA %>% add_signature_score
+P108TA_32_RNA <- P108TA_32_RNA %>% add_signature_score
+
+```
+
+## Spatial plot of all beads
+```{r}
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_Inflam-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_Angio-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_LA-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_IFN-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_Reg-TAM1"), alpha = c(0, 1))
+```
+
+# Cast TLS to a singular value
+```{r}
+format_md <- function(obj){
+  obj <- obj %>%
+    mutate(final_area = case_when(area %in% c("TLS1", "TLS2", "TLS3", "TLS4", "M2") ~ "TLS",
+                                T ~ area),
+         Patient = str_sub(orig.ident, start = 1, end = 5),
+         tls_bool = case_when(final_area == "TLS" ~ "TLS",
+                              T ~ "nonTLS"),
+         boundary_bool = case_when(final_area == "Boundary" ~ "Boundary",
+                                   T ~ "nonBoundary"),
+         tumor_bool = case_when(final_area == "Tumor" ~ "Tumor",
+                                   T ~ "nonTumor"),
+         Patient_tls = paste0(Patient, "_", tls_bool),
+         Patient_boundary = paste0(Patient, "_", boundary_bool),
+         Patient_tumor = paste0(Patient, "_", tumor_bool),
+         dummy = "dummy")
+  
+  return(obj)
+}
+
+P102TA_10_RNA@meta.data <-  P102TA_10_RNA@meta.data %>%
+  format_md()
+P102TA_17_RNA@meta.data <-  P102TA_17_RNA@meta.data %>%
+  format_md()
+P102TA_33_RNA@meta.data <-  P102TA_33_RNA@meta.data %>%
+  format_md()
+
+P108TA_26_RNA@meta.data <-  P108TA_26_RNA@meta.data %>%
+  format_md()
+P108TA_29_RNA@meta.data <-  P108TA_29_RNA@meta.data %>%
+  format_md()
+P108TA_30_RNA@meta.data <-  P108TA_30_RNA@meta.data %>%
+  format_md()
+P108TA_32_RNA@meta.data <-  P108TA_32_RNA@meta.data %>%
+  format_md()
+
+```
+
+# Create dotplot of genes 
+
+# Make a dotplot of the top macrophage subtypes in spatial for myeloid beads
+## Subset all pucks for myeloid cells
+```{r}
+get_mac_beads <- function(puck){
+  puck@meta.data <- puck@meta.data %>% assign_celltypes
+  puck <- subset(puck, subset = assignment1 == "Myeloid")
+  return(puck)
+}
+
+P102TA_10_RNA <- P102TA_10_RNA %>% get_mac_beads
+P102TA_17_RNA <- P102TA_17_RNA %>% get_mac_beads
+P102TA_33_RNA <- P102TA_33_RNA %>% get_mac_beads
+P108TA_26_RNA <- P108TA_26_RNA %>% get_mac_beads
+P108TA_29_RNA <- P108TA_29_RNA %>% get_mac_beads
+P108TA_30_RNA <- P108TA_30_RNA %>% get_mac_beads
+P108TA_32_RNA <- P108TA_32_RNA %>% get_mac_beads
+```
+
+## Spatial plot of myeloid beads
+```{r}
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_Inflam-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_Angio-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_LA-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_IFN-TAM1"), alpha = c(0, 1))
+SpatialFeaturePlot(P108TA_26_RNA, features = c("Ma_Reg-TAM1"), alpha = c(0, 1))
+```
+
+# Angio and LA gene set
+## Get counts of interest
+```{r}
+ma.subset <- ma_gs[str_detect(names(ma_gs), "Angio|LA")]
+
+get_counts_of_int <- function(puck, genes){
+  counts_of_int <- as.data.frame(LayerData(puck, assay = "Spatial", layer = "data", features = unique(unlist(ma.subset)))) %>%
+    t() %>%
+    as.data.frame() %>%
+    rownames_to_column("barcode") %>%
+    mutate(orig.ident = unique(Idents(puck)))
+  return(counts_of_int)
+}
+
+P102TA_10_counts <- P102TA_10_RNA %>% get_counts_of_int
+P102TA_17_counts <- P102TA_17_RNA %>% get_counts_of_int
+P102TA_33_counts <- P102TA_33_RNA %>% get_counts_of_int
+P108TA_26_counts <- P108TA_26_RNA %>% get_counts_of_int
+P108TA_29_counts <- P108TA_29_RNA %>% get_counts_of_int
+P108TA_30_counts <- P108TA_30_RNA %>% get_counts_of_int
+P108TA_32_counts <- P108TA_32_RNA %>% get_counts_of_int
+
+counts_of_int <- P102TA_10_counts %>%
+  full_join(P102TA_17_counts)  %>%
+  full_join(P102TA_33_counts)  %>%
+  full_join(P108TA_26_counts)  %>%
+  full_join(P108TA_29_counts)  %>%
+  full_join(P108TA_30_counts)  %>%
+  full_join(P108TA_32_counts) 
+```
+
+# Combine data into one dataframe, noting pucks in column
+```{r}
+# Remove metadata columns that other pucks don't have
+P102TA_17_RNA@meta.data <- P102TA_17_RNA@meta.data %>%
+  select(-largest_clone_id, -puck17_count, -log_puck17_count, -Fibroblast)
+P102TA_10_RNA@meta.data <- P102TA_10_RNA@meta.data %>%
+  select(-largest_clone_id, -puck10_count, -log_puck10_count, -Fibroblast)
+P102TA_33_RNA@meta.data <- P102TA_33_RNA@meta.data %>%
+  select(-Fibroblast)
+
+P108TA_26_RNA@meta.data <- P108TA_26_RNA@meta.data %>%
+  select(-Fibroblast)
+P108TA_29_RNA@meta.data <- P108TA_29_RNA@meta.data %>%
+  select(-Fibroblast)
+P108TA_30_RNA@meta.data <- P108TA_30_RNA@meta.data %>%
+  select(-Fibroblast)
+P108TA_32_RNA@meta.data <- P108TA_32_RNA@meta.data %>%
+  select(-Fibroblast)
+
+puck_md.df <- do.call(rbind, list(P102TA_10_RNA@meta.data, P102TA_17_RNA@meta.data, P102TA_33_RNA@meta.data,
+                                 P108TA_26_RNA@meta.data, P108TA_29_RNA@meta.data, P108TA_30_RNA@meta.data, P108TA_32_RNA@meta.data)) %>%
+  select(barcode, orig.ident, final_area)
+
+puck_md.df <- full_join(puck_md.df, counts_of_int, by = c("orig.ident", "barcode"))
+```
+
+## Pivot for ggplots
+```{r}
+md.df_long <- puck_md.df %>%
+  pivot_longer(cols = !c("barcode", "orig.ident", "final_area"), values_to = "data", names_to = "gene")
+```
+
+## Gene annotation df
+```{r}
+gene_split <- stack(ma.subset)
+
+names(gene_split) <- c("gene", "Annotation")
+
+# Some genes appear in multiple annotations, just take the first instance.
+gene_split <- gene_split %>%
+  distinct(gene, .keep_all = TRUE)
+```
+
+## Plots
+### Dotplot split by cluster
+```{r, fig.width = 28, fig.height = 6}
+nonzero <- md.df_long %>%
+  filter(data > 0) %>%
+  group_by(orig.ident, gene, final_area) %>%
+  summarize(n_cells_nonzero = n())
+
+md_sum <- md.df_long %>%
+  group_by(orig.ident, gene, final_area) %>%
+  summarize(mean_data = mean(data),
+            n_cells = n()) %>%
+  full_join(nonzero, by = c("orig.ident", "gene", "final_area")) %>%
+  mutate(n_cells_nonzero = replace_na(n_cells_nonzero, 0),
+         pct_cells_exp = n_cells_nonzero/n_cells) %>%
+  left_join(gene_split, by = "gene")
+
+plot <- md_sum %>%
+  ggplot(aes(x = gene, y = orig.ident, fill = mean_data, size = pct_cells_exp))+
+  geom_point(shape = 21, color = "black") +
+  theme_bw() +
+  facet_wrap(Annotation~final_area, scales = "free_x", ncol = 3) +
+  scale_fill_gradient(low = "white", high = "red") +
+  # scale_fill_gradient2(low = "white", mid = "red", high = "red", midpoint = 4) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.box = "horizontal", 
+        legend.position = "right") +
+  labs(size = "Pct Cells Expr",
+       fill = "Mean norm. counts")
+
+# pdf("../main_myeloid_per_area_highest_ma_genes_dotplot.pdf", width = 28, height = 6)
+plot
+# dev.off()
+
+```
+
+# IFN and Reg gene sets
+## Get counts of interest
+```{r}
+ma.subset <- ma_gs[str_detect(names(ma_gs), "IFN|Reg")]
+
+get_counts_of_int <- function(puck, genes){
+  counts_of_int <- as.data.frame(LayerData(puck, assay = "Spatial", layer = "data", features = unique(unlist(ma.subset)))) %>%
+    t() %>%
+    as.data.frame() %>%
+    rownames_to_column("barcode") %>%
+    mutate(orig.ident = unique(Idents(puck)))
+  return(counts_of_int)
+}
+
+P102TA_10_counts <- P102TA_10_RNA %>% get_counts_of_int
+P102TA_17_counts <- P102TA_17_RNA %>% get_counts_of_int
+P102TA_33_counts <- P102TA_33_RNA %>% get_counts_of_int
+P108TA_26_counts <- P108TA_26_RNA %>% get_counts_of_int
+P108TA_29_counts <- P108TA_29_RNA %>% get_counts_of_int
+P108TA_30_counts <- P108TA_30_RNA %>% get_counts_of_int
+P108TA_32_counts <- P108TA_32_RNA %>% get_counts_of_int
+
+counts_of_int <- P102TA_10_counts %>%
+  full_join(P102TA_17_counts)  %>%
+  full_join(P102TA_33_counts)  %>%
+  full_join(P108TA_26_counts)  %>%
+  full_join(P108TA_29_counts)  %>%
+  full_join(P108TA_30_counts)  %>%
+  full_join(P108TA_32_counts) 
+```
+
+# Combine data into one dataframe, noting pucks in column
+```{r}
+puck_md.df <- do.call(rbind, list(P102TA_10_RNA@meta.data, P102TA_17_RNA@meta.data, P102TA_33_RNA@meta.data,
+                                 P108TA_26_RNA@meta.data, P108TA_29_RNA@meta.data, P108TA_30_RNA@meta.data, P108TA_32_RNA@meta.data)) %>%
+  select(barcode, orig.ident, final_area)
+
+puck_md.df <- full_join(puck_md.df, counts_of_int, by = c("orig.ident", "barcode"))
+```
+
+## Pivot for ggplots
+```{r}
+md.df_long <- puck_md.df %>%
+  pivot_longer(cols = !c("barcode", "orig.ident", "final_area"), values_to = "data", names_to = "gene")
+```
+
+## Gene annotation df
+```{r}
+gene_split <- stack(ma.subset)
+
+names(gene_split) <- c("gene", "Annotation")
+
+# Some genes appear in multiple annotations, just take the first instance.
+gene_split <- gene_split %>%
+  distinct(gene, .keep_all = TRUE)
+```
+
+## Plots
+### Dotplot split by cluster
+```{r, fig.width = 28, fig.height = 10}
+nonzero <- md.df_long %>%
+  filter(data > 0) %>%
+  group_by(orig.ident, gene, final_area) %>%
+  summarize(n_cells_nonzero = n())
+
+md_sum <- md.df_long %>%
+  group_by(orig.ident, gene, final_area) %>%
+  summarize(mean_data = mean(data),
+            n_cells = n()) %>%
+  full_join(nonzero, by = c("orig.ident", "gene", "final_area")) %>%
+  mutate(n_cells_nonzero = replace_na(n_cells_nonzero, 0),
+         pct_cells_exp = n_cells_nonzero/n_cells) %>%
+  left_join(gene_split, by = "gene")
+
+plot <- md_sum %>%
+  ggplot(aes(x = gene, y = orig.ident, fill = mean_data, size = pct_cells_exp))+
+  geom_point(shape = 21, color = "black") +
+  theme_bw() +
+  facet_wrap(Annotation~final_area, scales = "free_x", ncol = 3) +
+  scale_fill_gradient(low = "white", high = "red") +
+  # scale_fill_gradient2(low = "white", mid = "red", high = "red", midpoint = 4) +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1),
+        legend.box = "horizontal", 
+        legend.position = "right") +
+  labs(size = "Pct Cells Expr",
+       fill = "Mean norm. counts")
+
+# pdf("../supp_myeloid_per_area_highest_ma_genes_dotplot.pdf", width = 31, height = 6)
+plot
+# dev.off()
+
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```
+
+

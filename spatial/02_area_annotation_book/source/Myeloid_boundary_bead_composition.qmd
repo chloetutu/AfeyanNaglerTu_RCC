@@ -266,11 +266,16 @@ df <- do.call(rbind, list(P102TA_10_bin, P102TA_17_bin, P102TA_33_bin,
 
 ```
 
+## Save all areas including mixed bins
+```{r}
+# write.csv(df, "../../../supplementary_tables/Ext Fig 9a bins areas.csv", row.names = FALSE)
+```
+
 ## Plot % myeloid beads in tumor and boundary
 ```{r}
 subset_df <- df %>%
   filter(area %in% c("Tumor", "Boundary")) %>%
-  mutate(area = factor(area, levels = c("Tumor", "Boundary")))
+  mutate(area = factor(area, levels = c("Boundary", "Tumor")))
 
 subset_df %>%
   summarize(mean_total_beads = mean(total_beads))
@@ -279,16 +284,31 @@ subset_df %>%
   dplyr::count(area)
 ```
 
-## Plot proportion of beads
-```{r}
+# Plot proportion of beads
+```{r, fig.width = 4, fig.height = 5}
+means <- subset_df %>%
+  group_by(orig.ident, Patient, area) %>%
+  summarize(mean_pct_myeloid = mean(pct_myeloid))
+
 subset_df %>%
-  ggplot(aes(x = paste0(orig.ident, area), y = pct_myeloid, fill = orig.ident)) +
-  geom_boxplot() +
-  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+  ggplot() +
+  geom_boxplot(aes(x = area, y = pct_myeloid, fill = area)) +
+  geom_jitter(data = means, aes(x = area, y = mean_pct_myeloid, fill = Patient), shape = 22, size = 2) +
+  theme_classic() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1)) +
+  scale_fill_manual(values = c("Boundary" = "#ff8f1b", "Tumor" = "#974000", "P102TA" = "#FF9300", "P108TA" = "#009193"))
 ```
+## Save source data
+```{r}
+# write.csv(means, "../../../supplementary_tables/Ext Fig 9B means.csv", row.names = FALSE)
+# write.csv(subset_df, "../../../supplementary_tables/Ext Fig 9B myeloid beads per bin.csv", row.names = FALSE)
+```
+
 
 # Try building a linear model
 ```{r}
+subset_df$area <- relevel(subset_df$area, ref = "Tumor")
+
 model_obs <- lmer(pct_myeloid ~ area + (1 | Patient / orig.ident), data = subset_df, REML = TRUE)
 t_val_obs <- coef(summary(model_obs))["areaBoundary","t value"]
 ```

@@ -1151,19 +1151,21 @@ TLS_md %>%
 ```{r}
 TLS_md_long <- TLS_md %>%
   pivot_longer(cols = all_of(genes_of_int), values_to = "counts", names_to = "gene") %>%
-mutate(gene = factor(gene, levels = c("TOX", "TOX2", "LAG3", "ENTPD1", "HAVCR2", "PDCD1", "TCF7", "CCR7", "IL7R", "SELL", "CXCL13")))
+mutate(gene = factor(gene, levels = c("TOX", "TOX2", "LAG3", "ENTPD1", "HAVCR2", "PDCD1", "TCF7", "CCR7", "IL7R", "SELL", "CXCL13")),
+       gene_annot = case_when(gene %in% c("TOX", "TOX2", "LAG3", "ENTPD1", "HAVCR2", "PDCD1") ~ "Exhaustion",
+                              gene %in% c("TCF7", "CCR7", "IL7R", "SELL", "CXCL13") ~ "Memory + TPEx"))
 ```
 
 # Plots
 ## Dotplot split by area and tls status
-```{r, fig.width = 6, fig.height = 4}
+```{r, fig.width = 7, fig.height = 5}
 TLS_nonzero <- TLS_md_long %>%
   filter(counts > 0) %>%
   group_by(tls_status_gid, gene, final_area) %>%
   summarize(n_cells_nonzero = n())
 
 TLS_md_sum <- TLS_md_long %>%
-  group_by(tls_status_gid, gene, final_area) %>%
+  group_by(tls_status_gid, gene, final_area, gene_annot) %>%
   summarize(mean_counts = mean(counts),
             n_cells = n()) %>%
   full_join(TLS_nonzero, by = c("tls_status_gid", "gene", "final_area")) %>%
@@ -1173,8 +1175,8 @@ TLS_md_sum <- TLS_md_long %>%
 TLS_md_sum %>%
   ggplot(aes(x = gene, y = final_area, fill = mean_counts, size = pct_cells_exp))+
   geom_point(shape = 21, color = "black") +
-  theme_bw() +
-  facet_wrap(~tls_status_gid, scales = "free_y", ncol = 1) +
+  facet_wrap(tls_status_gid~gene_annot, scales = "free") +
+  theme_classic() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1),
         legend.box = "horizontal", 
         legend.position = "right") +
@@ -1183,15 +1185,20 @@ TLS_md_sum %>%
 
 ```
 
+## Save source data
+```{r}
+# write.csv(TLS_md_sum, "../../../supplementary_tables/Fig 4J shared neoag TCR dotplot.csv", row.names = FALSE)
+```
+
 ## Dotplot split by neoantigen and tls status
-```{r, fig.width = 7, fig.height = 4}
+```{r, fig.width = 6, fig.height = 5}
 TLS_nonzero <- TLS_md_long %>%
   filter(counts > 0) %>%
   group_by(tls_status_gid, gene, final_neoant_id) %>%
   summarize(n_cells_nonzero = n())
 
 TLS_md_sum <- TLS_md_long %>%
-  group_by(tls_status_gid, gene, final_neoant_id) %>%
+  group_by(tls_status_gid, gene, final_neoant_id, gene_annot) %>%
   summarize(mean_counts = mean(counts),
             n_cells = n()) %>%
   full_join(TLS_nonzero, by = c("tls_status_gid", "gene", "final_neoant_id")) %>%
@@ -1201,12 +1208,17 @@ TLS_md_sum <- TLS_md_long %>%
 TLS_md_sum %>%
   ggplot(aes(x = gene, y = final_neoant_id, fill = mean_counts, size = pct_cells_exp))+
   geom_point(shape = 21, color = "black") +
-  theme_bw() +
-  facet_wrap(~tls_status_gid) +
+  facet_wrap(tls_status_gid~gene_annot, scales = "free") +
+  theme_classic() +
   theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
   scale_fill_gradient2(low = "white", mid = "red", high = "red", midpoint = 0.9) +
   ylab("Neoantigen-specific TCR")
 
+```
+
+## Save source data
+```{r}
+# write.csv(TLS_md_sum, "../../../supplementary_tables/Ext Fig 10G shared neoag TCR dotplot.csv", row.names = FALSE)
 ```
 
 # Get session info

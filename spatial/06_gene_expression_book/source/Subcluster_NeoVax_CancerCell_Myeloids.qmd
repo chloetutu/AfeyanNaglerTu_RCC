@@ -1,0 +1,145 @@
+# Subcluster and clean patient-specific myeloid cells {#sec-gene-exp-plots}
+
+# Libraries
+```{r}
+library(harmony)
+library(Seurat)
+library(paletteer)
+library(liana)
+library(tidyverse)
+library(ggpointdensity)
+library(rmarkdown)
+library(knitr)
+library(ComplexHeatmap)
+library(clustree)
+library(scSHC)
+library(fgsea)
+library(msigdbr)
+```
+
+# Load NeoVax + Cancer Cell object
+```{r}
+scrna <- readRDS("/n/data2/dfci/medonc/cwu/alex/objects/merged_RCC.NeoVax.CancerCell.rds")
+```
+
+## Subset for cohort 2
+```{r}
+scrna <- subset(scrna, subset = sample %in% c("1N", "1T", "2N", "2T", "4M", "4T", "5N", "5T", "6N", "6T", "7N", "7T", "8M", "8N", "8T", "9N", "9T", "10N", "10T", "11N", "11T", "12N", "12T"))
+```
+
+## Subset for macrophage subclusters
+```{r}
+myeloid_subclusters <- subset(scrna, subset = unified_cluster %in% c("cDC", "MONO.NONCLASS", "MONO.CLASS", "M2.MAC", "MAC", "pDC", "MAST"))
+
+rm(scrna)
+```
+
+# Dimensionality
+```{r}
+myeloid_subclusters <- FindVariableFeatures(myeloid_subclusters)
+myeloid_subclusters <- ScaleData(myeloid_subclusters)
+myeloid_subclusters <- RunPCA(myeloid_subclusters, features = VariableFeatures(myeloid_subclusters), verbose = FALSE, npcs = 50)
+
+ElbowPlot(myeloid_subclusters, ndims = 50)
+```
+
+# Run harmony
+```{r}
+myeloid_subclusters <- RunHarmony(myeloid_subclusters, "batchID", plot_convergence = TRUE)
+```
+
+# Recluster
+```{r, fig.width = 10, fig.height = 5}
+myeloid_subclusters <- FindNeighbors(myeloid_subclusters, dims = 1:30, reduction = "harmony")
+
+res <- seq(0.3, 0.5, 0.05)
+
+for (i in res) {
+  myeloid_subclusters <- FindClusters(myeloid_subclusters, resolution=i)
+}
+
+clustree(myeloid_subclusters, prefix = "RNA_snn_res.")
+
+myeloid_subclusters <- RunUMAP(myeloid_subclusters, dims = 1:30, reduction = "harmony", reduction.name = "umap.harmony")
+```
+
+# View resolution
+```{r}
+Idents(myeloid_subclusters) <- myeloid_subclusters$RNA_snn_res.0.4
+DimPlot(myeloid_subclusters, reduction = "umap.harmony", label = TRUE) 
+DimPlot(myeloid_subclusters, split.by = "RNA_snn_res.0.4", reduction = "umap.harmony", label = TRUE, ncol = 5) 
+```
+
+# Explore 0.4 cluster
+
+## Count number of cells per cluster per patient
+```{r}
+myeloid_subclusters@meta.data %>%
+  dplyr::count(RNA_snn_res.0.4, patient) %>%
+  pivot_wider(names_from = "RNA_snn_res.0.4", values_from = "n")
+```
+
+## Plot general cell type markers
+```{r}
+Idents(myeloid_subclusters) <- myeloid_subclusters$RNA_snn_res.0.4
+VlnPlot(myeloid_subclusters, features = c("VCAN", "FCN1", "THBS1", "WARS", "CD300E", "CD14", "LYZ", "AIF1", "S100A8", "S100A9", "LST1"), flip=T,stack=T) + ggtitle("Monocytes")
+VlnPlot(myeloid_subclusters, features = c("CLEC9A", "FCER1A", "AREG", "CD14", "FCGR3A", "CXCL8", "CADM1", "CD1C", "CLEC10A", "CCR7", "LAMP3", "CD1A", "CD207", "INSIG1"), flip=T,stack=T) + ggtitle("cDC")
+VlnPlot(myeloid_subclusters, features = c("ICAM", "AIF1", "LYZ", "APOE", "APOC1", "SPP1", "C1QC", "C1QB", "C1QA"), flip=T,stack=T) + ggtitle("Macrophage")
+VlnPlot(myeloid_subclusters, features = c("CPA3", "TPSAB1", "KIT"), flip=T,stack=T) + ggtitle("Mast")
+VlnPlot(myeloid_subclusters, features = c("CXCR2", "IFITM2", "IL1R2", "CSF3R", "TAGLN2", "MMP9", "CXCL8"), flip=T,stack=T) + ggtitle("Neutrophils")
+
+VlnPlot(myeloid_subclusters, features = c("NKG7", "GNLY", "GZMB", "CD8A", "CD8B", "CD4", "CD3D", "CD3E", "CD247"), flip=T,stack=T) + ggtitle("NK/CD4/CD8 T")
+```
+
+## Count number of cells with TCR
+```{r}
+myeloid_subclusters@meta.data %>%
+  dplyr::count(HasClonotype, RNA_snn_res.0.4) %>%
+  pivot_wider(names_from = "HasClonotype", values_from = "n") %>%
+  mutate(pct_has_clonotype = `1`/(`1`+`0`)*100)
+```
+
+## Plot % mitochondrial
+```{r}
+Idents(myeloid_subclusters) <- myeloid_subclusters$RNA_snn_res.0.4
+VlnPlot(myeloid_subclusters, features = c("percent_mito")) + ggtitle("% mito")
+```
+
+# Find DEG
+```{r}
+Idents(myeloid_subclusters) <- "RNA_snn_res.0.4"
+mac_deg <- FindAllMarkers(myeloid_subclusters, only.pos = TRUE, logfc.threshold = 0.5) 
+
+mac_deg %>%
+  group_by(cluster) %>%
+  dplyr::slice(1:5)
+```
+
+## Remove doublet clusters
+```{r}
+Idents(myeloid_subclusters) <- "RNA_snn_res.0.4"
+
+myeloid_subclusters <- subset(myeloid_subclusters, idents = c(1, 2, 5, 9, 10, 12, 13), invert = TRUE)
+```
+
+## Remove MAST cell- it's a rare subtype so likely not a key player in the myeloid boundary.
+```{r}
+myeloid_subclusters <- subset(myeloid_subclusters, idents = c(14), invert = TRUE)
+```
+
+## Subset for patient specific cells
+```{r}
+Idents(myeloid_subclusters) <- "patient"
+myeloid_subclusters <- subset(myeloid_subclusters, subset = patient %in% c("16097-102", "16097-108"))
+```
+
+# Save
+```{r}
+saveRDS(myeloid_subclusters, "../objects/myeloid_subclusters_res0.4_cleaned_102_108.rds")
+```
+
+# Get session info
+```{r}
+sessionInfo()
+```
+
